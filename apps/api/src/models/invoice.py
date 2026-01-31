@@ -1,0 +1,129 @@
+import uuid
+from datetime import datetime
+from decimal import Decimal
+from typing import TYPE_CHECKING, List, Optional
+
+from sqlalchemy import String, Numeric, DateTime, ForeignKey, JSON, Text, Integer
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from src.database import Base
+
+if TYPE_CHECKING:
+    from src.models.user import User
+    from src.models.merchant import Merchant
+    from src.models.invoice_item import InvoiceItem
+
+
+class Invoice(Base):
+    """Nota Fiscal completa"""
+    
+    __tablename__ = "invoices"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        primary_key=True,
+        default=uuid.uuid4
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id"),
+        nullable=False
+    )
+    merchant_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        ForeignKey("merchants.id"),
+        nullable=True
+    )
+
+    # Dados da nota fiscal
+    access_key: Mapped[str] = mapped_column(
+        String(44),
+        unique=True,
+        index=True,
+        nullable=False
+    )  # Chave de acesso (44 caracteres)
+    number: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False
+    )
+    series: Mapped[str] = mapped_column(
+        String(10),
+        nullable=False
+    )
+    issue_date: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False
+    )
+
+    # Tipo e formato
+    invoice_type: Mapped[str] = mapped_column(
+        String(10),
+        nullable=False
+    )  # NFC-e, NF-e
+    source: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False
+    )  # qrcode, xml, pdf, manual
+
+    # Valores
+    total_value: Mapped[Decimal] = mapped_column(
+        Numeric(15, 2),
+        nullable=False
+    )
+    discount_value: Mapped[Decimal] = mapped_column(
+        Numeric(15, 2),
+        default=Decimal("0"),
+        nullable=False
+    )
+    tax_value: Mapped[Decimal] = mapped_column(
+        Numeric(15, 2),
+        default=Decimal("0"),
+        nullable=False
+    )
+
+    # Status
+    status: Mapped[str] = mapped_column(
+        String(20),
+        default="processed",
+        nullable=False
+    )  # processed, processing, error
+
+    # Metadados
+    item_count: Mapped[int] = mapped_column(
+        Integer,
+        default=0,
+        nullable=False
+    )
+    category_distribution: Mapped[Optional[dict]] = mapped_column(
+        JSON,
+        nullable=True
+    )  # {category_id: percentage}
+
+    # XML completo (JSON)
+    raw_data: Mapped[Optional[dict]] = mapped_column(
+        JSON,
+        nullable=True
+    )
+
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=datetime.utcnow,
+        nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+        nullable=False
+    )
+
+    # Relationships
+    user: Mapped["User"] = relationship(
+        back_populates="invoices"
+    )
+    merchant: Mapped[Optional["Merchant"]] = relationship(
+        back_populates="invoices"
+    )
+    items: Mapped[List["InvoiceItem"]] = relationship(
+        back_populates="invoice",
+        lazy="selectin",
+        cascade="all, delete-orphan"
+    )

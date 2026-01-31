@@ -1,0 +1,137 @@
+// User Types
+export interface User {
+  id: string;
+  email: string;
+  full_name: string;
+  created_at: string;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface RegisterRequest {
+  email: string;
+  password: string;
+  full_name: string;
+}
+
+export interface Token {
+  access_token: string;
+  refresh_token: string;
+  token_type: string;
+}
+
+// Invoice Types
+export interface Product {
+  id: string;
+  code: string;
+  description: string;
+  quantity: number;
+  unit: string;
+  unit_price: number;
+  total_price: number;
+  category_id?: string;
+  ai_category_suggestion?: string;
+}
+
+export interface Invoice {
+  id: string;
+  access_key: string;
+  number: string;
+  series: string;
+  issue_date: string;
+  issuer_cnpj: string;
+  issuer_name: string;
+  total_value: number;
+  type: 'NFC-e' | 'NF-e';
+  source: 'qrcode' | 'xml' | 'pdf' | 'manual';
+  user_id: string;
+  created_at: string;
+  products: Product[];
+}
+
+export interface InvoiceList {
+  id: string;
+  access_key: string;
+  issuer_name: string;
+  total_value: number;
+  issue_date: string;
+  product_count: number;
+  created_at: string;
+  type?: 'NFC-e' | 'NF-e';
+}
+
+export interface QRCodeRequest {
+  qrcode_url: string;
+}
+
+// Analysis Types
+export interface Analysis {
+  id: string;
+  user_id: string;
+  invoice_id?: string;
+  type: string;
+  title: string;
+  description: string;
+  priority: 'critical' | 'high' | 'medium' | 'low';
+  details: Record<string, unknown>;
+  reference_period_start?: string;
+  reference_period_end?: string;
+  related_categories: string[];
+  related_merchants: string[];
+  is_read: boolean;
+  is_acted_upon: boolean;
+  dismissed_at?: string;
+  ai_model?: string;
+  confidence_score?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+// Dashboard Types
+export interface DashboardSummary {
+  total_spent_this_month: number;
+  total_spent_last_month: number;
+  month_over_month_change_percent: number;
+  invoice_count_this_month: number;
+  unread_insights_count: number;
+  top_merchant_this_month: {
+    name: string;
+    total: number;
+  } | null;
+}
+
+// Category Types
+export interface Category {
+  id: string;
+  name: string;
+  description?: string;
+  color?: string;
+  icon?: string;
+  created_at: string;
+}
+
+// Merchant Types
+export interface Merchant {
+  id: string;
+  name: string;
+  cnpj?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  created_at: string;
+}
+
+// API Response Types
+export interface ApiError {
+  detail: string;
+}
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  skip: number;
+  limit: number;
+}
