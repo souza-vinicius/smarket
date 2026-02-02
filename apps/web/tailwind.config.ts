@@ -8,7 +8,15 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        display: ["Manrope", "sans-serif"],
+      },
       colors: {
+        "smarket-primary": "#13ec80",
+        "background-light": "#f6f8f7",
+        "background-dark": "#102219",
+        "emerald-dark": "#022c22",
+        "emerald-mid": "#064e3b",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",

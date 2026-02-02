@@ -16,15 +16,17 @@ export function useAuth() {
   const { data: user, isLoading } = useQuery({
     queryKey: AUTH_KEYS.user,
     queryFn: async () => {
-      // For now, we'll check if there's a token
-      // In a real app, you might want to validate the token with the server
       if (!apiClient.isAuthenticated()) {
         return null;
       }
-      // Return a placeholder user - in production, fetch from /me endpoint
-      return { id: '1', email: 'user@example.com', full_name: 'User' } as User;
+      try {
+        return await apiClient.getMe();
+      } catch {
+        return null;
+      }
     },
-    staleTime: Infinity,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: false,
   });
 
   const loginMutation = useMutation({

@@ -1,1 +1,22 @@
-{"mcpServers":{"sequential-thinking":{"command":"npx","args":["-y","@modelcontextprotocol/server-sequential-thinking"],"disabled":true,"alwaysAllow":[]},"stitch":{"type":"streamable-http","url":"https://stitch.googleapis.com/mcp","headers":{"X-Goog-Api-Key":"AQ.Ab8RN6IaK0eIyLzYHAlGKnsOg4Va2NQJ71BWPEL_2Fq4Ce4piQ"},"alwaysAllow":["list_projects","create_project"]},"context7":{"command":"npx","args":["-y","@upstash/context7-mcp","--api-key","ctx7sk-5cb81fc1-fade-451d-ba43-1f1b8b8589de"]}}}
+{
+    "mcpServers": {
+        "sequential-thinking": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@modelcontextprotocol/server-sequential-thinking"
+            ],
+            "disabled": true,
+            "alwaysAllow": []
+        },
+        "context7": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@upstash/context7-mcp",
+                "--api-key",
+                "ctx7sk-5cb81fc1-fade-451d-ba43-1f1b8b8589de"
+            ]
+        }
+    }
+}

@@ -36,7 +36,7 @@ class ApiClient {
       (response) => response,
       async (error: AxiosError) => {
         const originalRequest = error.config;
-        
+
         if (!originalRequest) {
           return Promise.reject(error);
         }
@@ -97,7 +97,7 @@ class ApiClient {
         const { access_token, refresh_token } = response.data;
         localStorage.setItem('access_token', access_token);
         localStorage.setItem('refresh_token', refresh_token);
-        
+
         return access_token;
       } finally {
         this.refreshPromise = null;
@@ -130,6 +130,11 @@ class ApiClient {
 
   isAuthenticated(): boolean {
     return !!this.getAccessToken();
+  }
+
+  async getMe(): Promise<User> {
+    const response = await this.client.get<User>('/auth/me');
+    return response.data;
   }
 
   // Generic HTTP methods
