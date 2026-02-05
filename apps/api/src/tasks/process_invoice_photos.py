@@ -1,5 +1,6 @@
 import logging
 import os
+import mimetypes
 import aiofiles
 from datetime import datetime
 
@@ -18,6 +19,10 @@ async def process_invoice_photos(processing_id: str) -> None:
     Args:
         processing_id: ID do registro InvoiceProcessing
     """
+    # Log imediato para confirmar que a task foi iniciada
+    logger.info(f"=" * 80)
+    logger.info(f"🎬 BACKGROUND TASK STARTED | Processing ID: {processing_id}")
+    logger.info(f"=" * 80)
 
     async with AsyncSessionLocal() as db:
         # Buscar registro de processamento
@@ -38,8 +43,14 @@ async def process_invoice_photos(processing_id: str) -> None:
             await db.commit()
 
             logger.info(
-                f"Starting processing for {processing.image_count} images",
-                extra={"processing_id": processing_id}
+                f"🚀 STARTING INVOICE PROCESSING | "
+                f"Processing ID: {processing_id} | "
+                f"Images: {processing.image_count}",
+                extra={
+                    "processing_id": processing_id,
+                    "image_count": processing.image_count,
+                    "user_id": processing.user_id
+                }
             )
 
             # Processar cada imagem
@@ -54,14 +65,30 @@ async def process_invoice_photos(processing_id: str) -> None:
                         extra={"processing_id": processing_id}
                     )
 
-                    # Aqui você carregaria a imagem do storage
-                    # Por enquanto, simulamos
+                    # Carregar imagem do storage
                     image_bytes = await _load_image_from_storage(image_id)
+                    
+                    # Validar se a imagem foi carregada
+                    if not image_bytes:
+                        raise ValueError(f"Failed to load image: {image_id}")
+                    
+                    # Inferir mime type do arquivo
+                    mime_type = _get_mime_type(image_id)
+                    
+                    logger.info(
+                        f"Image loaded: {len(image_bytes)} bytes, type: {mime_type}",
+                        extra={"processing_id": processing_id}
+                    )
+
+                    logger.info(
+                        f"→ Calling multi-provider extractor for image {idx + 1}...",
+                        extra={"processing_id": processing_id, "image_id": image_id}
+                    )
 
                     # Extrair dados com AI (multi-provider fallback)
                     extracted = await extractor.extract(
                         image_bytes,
-                        mime_type="image/jpeg"
+                        mime_type=mime_type
                     )
 
                     all_extracted.append(extracted)
@@ -70,17 +97,28 @@ async def process_invoice_photos(processing_id: str) -> None:
                         all_items.extend(extracted.items)
 
                     logger.info(
-                        f"Image {idx + 1} processed successfully",
+                        f"✓ Image {idx + 1}/{len(processing.image_ids)} processed successfully | "
+                        f"Provider worked | Invoice: {extracted.number} | "
+                        f"Total: R$ {extracted.total_value:.2f} | Items: {len(extracted.items)} | "
+                        f"Confidence: {extracted.confidence:.2%}",
                         extra={
                             "processing_id": processing_id,
-                            "confidence": extracted.confidence
+                            "confidence": extracted.confidence,
+                            "invoice_number": extracted.number,
+                            "total_value": float(extracted.total_value) if extracted.total_value else 0,
+                            "items_count": len(extracted.items)
                         }
                     )
 
                 except Exception as e:
                     logger.error(
-                        f"Error processing image {idx + 1}: {e}",
-                        extra={"processing_id": processing_id}
+                        f"✗ ERROR processing image {idx + 1}/{len(processing.image_ids)}: {e}",
+                        extra={
+                            "processing_id": processing_id,
+                            "image_id": image_id,
+                            "error": str(e)
+                        },
+                        exc_info=True
                     )
                     processing.errors.append(f"Image {idx + 1}: {str(e)}")
 
@@ -96,15 +134,27 @@ async def process_invoice_photos(processing_id: str) -> None:
                 )
 
                 logger.info(
-                    "Extraction completed successfully",
+                    f"✓✓✓ EXTRACTION COMPLETED SUCCESSFULLY | "
+                    f"Processing ID: {processing_id} | "
+                    f"Images processed: {len(all_extracted)} | "
+                    f"Total items: {len(all_items)} | "
+                    f"Avg confidence: {processing.confidence_score:.2%} | "
+                    f"Invoice: {merged_data.get('number', 'N/A')}",
                     extra={
                         "processing_id": processing_id,
-                        "confidence": processing.confidence_score
+                        "confidence": processing.confidence_score,
+                        "images_processed": len(all_extracted),
+                        "total_items": len(all_items),
+                        "invoice_number": merged_data.get('number')
                     }
                 )
             else:
                 processing.status = "error"
                 processing.errors.append("No images could be processed")
+                logger.error(
+                    f"✗ NO IMAGES PROCESSED | Processing ID: {processing_id}",
+                    extra={"processing_id": processing_id}
+                )
 
             processing.updated_at = datetime.utcnow()
             await db.commit()
@@ -119,6 +169,10 @@ async def process_invoice_photos(processing_id: str) -> None:
             processing.updated_at = datetime.utcnow()
             await db.commit()
 
+    logger.info(f"=" * 80)
+    logger.info(f"🏁 BACKGROUND TASK FINISHED | Processing ID: {processing_id}")
+    logger.info(f"=" * 80)
+
 
 async def _load_image_from_storage(image_id: str) -> bytes:
     """Carrega imagem do storage.
@@ -132,11 +186,41 @@ async def _load_image_from_storage(image_id: str) -> bytes:
     try:
         if os.path.exists(image_id):
             async with aiofiles.open(image_id, 'rb') as f:
-                return await f.read()
+                content = await f.read()
+                logger.info(f"Loaded image {image_id}: {len(content)} bytes")
+                return content
+        else:
+            logger.error(f"Image file not found: {image_id}")
     except Exception as e:
         logger.error(f"Error loading image {image_id}: {e}")
     
     return b""
+
+
+def _get_mime_type(filepath: str) -> str:
+    """Determina o mime type de um arquivo.
+    
+    Args:
+        filepath: Caminho do arquivo
+        
+    Returns:
+        Mime type (ex: image/jpeg, image/png)
+    """
+    mime_type, _ = mimetypes.guess_type(filepath)
+    
+    # Fallback para extensões comuns
+    if not mime_type:
+        ext = filepath.lower().split('.')[-1]
+        mime_map = {
+            'jpg': 'image/jpeg',
+            'jpeg': 'image/jpeg',
+            'png': 'image/png',
+            'heic': 'image/heic',
+            'heif': 'image/heif'
+        }
+        mime_type = mime_map.get(ext, 'image/jpeg')
+    
+    return mime_type
 
 
 def _merge_extracted_data(
@@ -164,10 +248,15 @@ def _merge_extracted_data(
         e.confidence for e in all_extracted
     ) / len(all_extracted)
 
-    # Mesclar items
+    # Mesclar items convertendo Decimal para float
     merged_items = []
     for item in all_items:
-        merged_items.append(item.model_dump())
+        item_dict = item.model_dump()
+        # Converter Decimal para float para serialização JSON
+        for key in ['quantity', 'unit_price', 'total_price']:
+            if key in item_dict and item_dict[key] is not None:
+                item_dict[key] = float(item_dict[key])
+        merged_items.append(item_dict)
 
     return {
         "access_key": base.access_key,

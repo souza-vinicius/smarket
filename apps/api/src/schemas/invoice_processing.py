@@ -1,9 +1,9 @@
 import uuid
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
+from typing import Optional, Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class ExtractedItem(BaseModel):
@@ -29,6 +29,27 @@ class ExtractedInvoiceData(BaseModel):
     items: list[ExtractedItem] = Field(default_factory=list)
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
     warnings: list[str] = Field(default_factory=list)
+    
+    @field_validator('number', 'series', 'access_key', mode='before')
+    @classmethod
+    def coerce_to_string(cls, v: Any) -> Optional[str]:
+        """Converte valores numéricos para string"""
+        if v is None:
+            return None
+        return str(v)
+    
+    @model_validator(mode='before')
+    @classmethod
+    def extract_issuer_fields(cls, data: Any) -> Any:
+        """Extrai issuer_name e issuer_cnpj do objeto issuer se presente"""
+        if isinstance(data, dict):
+            issuer = data.pop('issuer', None)
+            if issuer and isinstance(issuer, dict):
+                if 'name' in issuer and not data.get('issuer_name'):
+                    data['issuer_name'] = issuer['name']
+                if 'cnpj' in issuer and not data.get('issuer_cnpj'):
+                    data['issuer_cnpj'] = issuer['cnpj']
+        return data
 
 
 class ProcessingResponse(BaseModel):

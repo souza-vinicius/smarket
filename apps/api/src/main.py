@@ -1,3 +1,6 @@
+import logging
+import sys
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -13,6 +16,19 @@ from src.routers import (
     purchase_patterns,
     users
 )
+
+# Configurar logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+
+# Set specific loggers to DEBUG for detailed tracking
+logging.getLogger("src.services.multi_provider_extractor").setLevel(logging.DEBUG)
+logging.getLogger("src.tasks.process_invoice_photos").setLevel(logging.DEBUG)
 
 app = FastAPI(
     title=settings.APP_NAME,
