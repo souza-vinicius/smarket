@@ -137,3 +137,14 @@ class Invoice(Base):
         lazy="selectin",
         cascade="all, delete-orphan"
     )
+
+    # Properties for schema compatibility
+    @property
+    def type(self) -> str:
+        """Alias for invoice_type to match schema"""
+        return self.invoice_type
+
+    @property
+    def products(self) -> List["InvoiceItem"]:
+        """Alias for items to match schema"""
+        return self.items

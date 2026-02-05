@@ -3,6 +3,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional, Any
 
+from dateutil import parser as dateutil_parser
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 
@@ -87,6 +88,48 @@ class InvoiceCorrection(BaseModel):
 
 
 class ProcessingConfirmRequest(BaseModel):
-    """Request para confirmar dados extraídos"""
+    """Request para confirmar dados extraídos (dados completos editados)"""
 
-    corrections: Optional[InvoiceCorrection] = None
+    access_key: Optional[str] = None
+    number: Optional[str] = None
+    series: Optional[str] = None
+    issue_date: Optional[datetime] = None
+    issuer_name: Optional[str] = None
+    issuer_cnpj: Optional[str] = None
+    total_value: Optional[Decimal] = None
+    items: list[ExtractedItem] = Field(default_factory=list)
+    confidence: float = Field(default=0.0, ge=0.0, le=1.0)
+    warnings: list[str] = Field(default_factory=list)
+    image_count: Optional[int] = None
+
+    @field_validator('issue_date', mode='before')
+    @classmethod
+    def parse_issue_date(cls, v: Any) -> Optional[datetime]:
+        """Converte string ISO para datetime"""
+        if v is None:
+            return None
+        if isinstance(v, datetime):
+            return v
+        if isinstance(v, str):
+            # Parse ISO 8601 string
+            try:
+                # Try to parse with dateutil first (handles more formats)
+                dt = dateutil_parser.isoparse(v)
+                # Make timezone-naive for PostgreSQL compatibility
+                if dt.tzinfo is not None:
+                    dt = dt.replace(tzinfo=None)
+                return dt
+            except (ValueError, AttributeError, TypeError) as e:
+                # Log the error but don't fail
+                import logging
+                logging.warning(f"Failed to parse date '{v}': {e}")
+                return None
+        return None
+
+    @field_validator('number', 'series', 'access_key', mode='before')
+    @classmethod
+    def coerce_to_string(cls, v: Any) -> Optional[str]:
+        """Converte valores numéricos para string"""
+        if v is None:
+            return None
+        return str(v)

@@ -400,86 +400,142 @@ async def confirm_extracted_invoice(
     db: AsyncSession = Depends(get_db)
 ):
     """Confirm and save extracted invoice data."""
-    result = await db.execute(
-        select(InvoiceProcessing).where(
-            InvoiceProcessing.id == processing_id,
-            InvoiceProcessing.user_id == current_user.id
-        )
-    )
-    processing = result.scalar_one_or_none()
+    import logging
+    logger = logging.getLogger(__name__)
 
-    if not processing:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Processing not found"
-        )
-
-    if processing.status != "extracted":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Cannot confirm processing in {processing.status} status"
-        )
-
-    if not processing.extracted_data:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No extracted data available"
-        )
-
-    # Aplicar correções se fornecidas
-    extracted_data = processing.extracted_data.copy()
-    if request.corrections:
-        if request.corrections.issuer_name:
-            extracted_data["issuer_name"] = request.corrections.issuer_name
-        if request.corrections.total_value:
-            extracted_data["total_value"] = float(
-                request.corrections.total_value
+    try:
+        logger.info(f"Confirming invoice for processing_id: {processing_id}")
+        result = await db.execute(
+            select(InvoiceProcessing).where(
+                InvoiceProcessing.id == processing_id,
+                InvoiceProcessing.user_id == current_user.id
             )
-        if request.corrections.items:
-            extracted_data["items"] = [
-                item.model_dump() for item in request.corrections.items
-            ]
-
-    # Criar Invoice
-    invoice = Invoice(
-        user_id=current_user.id,
-        access_key=extracted_data.get("access_key"),
-        number=extracted_data.get("number", ""),
-        series=extracted_data.get("series", ""),
-        issue_date=extracted_data.get("issue_date"),
-        issuer_cnpj=extracted_data.get("issuer_cnpj", ""),
-        issuer_name=extracted_data.get("issuer_name", ""),
-        total_value=extracted_data.get("total_value", 0),
-        invoice_type=extracted_data.get("type", "NFC-e"),
-        source="photo",
-        raw_data=extracted_data
-    )
-
-    db.add(invoice)
-    await db.flush()
-
-    # Criar items
-    for item_data in extracted_data.get("items", []):
-        item = InvoiceItem(
-            invoice_id=invoice.id,
-            code=item_data.get("code", ""),
-            description=item_data.get("description", ""),
-            quantity=item_data.get("quantity"),
-            unit=item_data.get("unit", "UN"),
-            unit_price=item_data.get("unit_price"),
-            total_price=item_data.get("total_price")
         )
-        db.add(item)
+        processing = result.scalar_one_or_none()
 
-    # Atualizar processing
-    processing.status = "completed"
-    processing.invoice_id = invoice.id
-    processing.completed_at = datetime.utcnow()
+        if not processing:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Processing not found"
+            )
 
-    await db.commit()
-    await db.refresh(invoice)
+        if processing.status != "extracted":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Cannot confirm processing in {processing.status} status"
+            )
 
-    return invoice
+        if not processing.extracted_data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No extracted data available"
+            )
+
+        # Usar dados editados do request (já validados pelo Pydantic)
+        # Criar Invoice
+        raw_data = request.model_dump(mode='json')
+        # Ensure datetime is serialized to string for JSON storage
+        if 'issue_date' in raw_data and raw_data['issue_date'] is not None:
+            if isinstance(raw_data['issue_date'], datetime):
+                raw_data['issue_date'] = raw_data['issue_date'].isoformat()
+
+        # Clean access_key: remove spaces, hyphens, and keep only first 44 chars
+        access_key = request.access_key or ""
+        access_key = "".join(c for c in access_key if c.isalnum())[:44]
+
+        # Clean CNPJ: remove dots, hyphens, slashes
+        issuer_cnpj = request.issuer_cnpj or ""
+        issuer_cnpj = "".join(c for c in issuer_cnpj if c.isdigit())
+
+        logger.info(f"Cleaned access_key: '{access_key}' (length: {len(access_key)})")
+        logger.info(f"Cleaned CNPJ: '{issuer_cnpj}' (length: {len(issuer_cnpj)})")
+
+        # Check if invoice with this access_key already exists
+        existing_invoice_result = await db.execute(
+            select(Invoice).where(
+                Invoice.access_key == access_key,
+                Invoice.user_id == current_user.id
+            )
+        )
+        existing_invoice = existing_invoice_result.scalar_one_or_none()
+
+        if existing_invoice:
+            logger.warning(f"Duplicate invoice detected: access_key={access_key}")
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "message": "Esta nota fiscal já foi cadastrada",
+                    "existing_invoice_id": str(existing_invoice.id),
+                    "existing_invoice_number": existing_invoice.number,
+                    "existing_invoice_date": existing_invoice.issue_date.isoformat(),
+                    "existing_invoice_total": float(existing_invoice.total_value),
+                }
+            )
+
+        invoice = Invoice(
+            user_id=current_user.id,
+            access_key=access_key,
+            number=request.number or "",
+            series=request.series or "",
+            issue_date=request.issue_date,
+            issuer_cnpj=issuer_cnpj,
+            issuer_name=request.issuer_name or "",
+            total_value=float(request.total_value) if request.total_value else 0,
+            invoice_type="NFC-e",  # Default
+            source="photo",
+            raw_data=raw_data
+        )
+
+        db.add(invoice)
+        await db.flush()
+
+        # Criar items
+        for item_data in request.items:
+            item = InvoiceItem(
+                invoice_id=invoice.id,
+                code="",  # Não capturamos código ainda
+                description=item_data.description or "",
+                quantity=item_data.quantity,
+                unit=item_data.unit or "UN",
+                unit_price=item_data.unit_price,
+                total_price=item_data.total_price
+            )
+            db.add(item)
+
+        # Atualizar processing
+        processing.status = "completed"
+        processing.invoice_id = invoice.id
+        processing.completed_at = datetime.utcnow()
+
+        await db.commit()
+        await db.refresh(invoice)
+
+        logger.info(f"✓ Invoice confirmed successfully: {invoice.id}")
+        return invoice
+
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except Exception as e:
+        logger.error(f"Error confirming invoice: {e}", exc_info=True)
+        await db.rollback()
+
+        # Check if it's a duplicate key error
+        error_str = str(e).lower()
+        if 'unique constraint' in error_str or 'duplicate key' in error_str:
+            if 'access_key' in error_str:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail={
+                        "message": "Esta nota fiscal já foi cadastrada anteriormente",
+                        "error": "duplicate_invoice",
+                    }
+                )
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to confirm invoice: {str(e)}"
+        )
 
 
 @router.delete("/{invoice_id}", status_code=status.HTTP_204_NO_CONTENT)

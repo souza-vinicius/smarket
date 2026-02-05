@@ -29,7 +29,7 @@ class ProductInInvoice(ProductBase):
 
 
 class InvoiceBase(BaseModel):
-    access_key: str = Field(..., min_length=44, max_length=44)
+    access_key: str = Field(..., max_length=44)  # Removed min_length to allow shorter keys
     number: str
     series: str
     issue_date: datetime
@@ -37,7 +37,7 @@ class InvoiceBase(BaseModel):
     issuer_name: str
     total_value: Decimal
     type: str = Field(..., pattern="^(NFC-e|NF-e)$")
-    source: str = Field(..., pattern="^(qrcode|xml|pdf|manual)$")
+    source: str = Field(..., pattern="^(qrcode|xml|pdf|manual|photo)$")
 
 
 class InvoiceCreate(InvoiceBase):
