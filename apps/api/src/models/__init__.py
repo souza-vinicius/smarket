@@ -6,6 +6,7 @@ from src.models.product import Product
 from src.models.category import Category
 from src.models.analysis import Analysis
 from src.models.purchase_pattern import PurchasePattern
+from src.models.invoice_processing import InvoiceProcessing
 
 __all__ = [
     "User",
@@ -16,4 +17,5 @@ __all__ = [
     "Category",
     "Analysis",
     "PurchasePattern",
+    "InvoiceProcessing",
 ]

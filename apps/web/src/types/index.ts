@@ -6,6 +6,23 @@ export interface User {
   created_at: string;
 }
 
+export interface UserProfile {
+  id: string;
+  email: string;
+  full_name: string;
+  household_income?: number;
+  adults_count?: number;
+  children_count?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserProfileUpdate {
+  household_income?: number;
+  adults_count?: number;
+  children_count?: number;
+}
+
 export interface LoginRequest {
   email: string;
   password: string;

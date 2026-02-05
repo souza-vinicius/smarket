@@ -1,5 +1,5 @@
 import axios, { AxiosError, AxiosInstance } from 'axios';
-import { Token, LoginRequest, RegisterRequest, User } from '@/types';
+import { Token, LoginRequest, RegisterRequest, User, UserProfile, UserProfileUpdate } from '@/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
@@ -134,6 +134,17 @@ class ApiClient {
 
   async getMe(): Promise<User> {
     const response = await this.client.get<User>('/auth/me');
+    return response.data;
+  }
+
+  // Profile methods
+  async getProfile(): Promise<UserProfile> {
+    const response = await this.client.get<UserProfile>('/users/profile');
+    return response.data;
+  }
+
+  async updateProfile(data: UserProfileUpdate): Promise<UserProfile> {
+    const response = await this.client.patch<UserProfile>('/users/profile', data);
     return response.data;
   }
 

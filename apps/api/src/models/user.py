@@ -1,8 +1,9 @@
 import uuid
 from datetime import datetime
-from typing import TYPE_CHECKING, List
+from decimal import Decimal
+from typing import TYPE_CHECKING, List, Optional
 
-from sqlalchemy import String, Boolean, JSON
+from sqlalchemy import String, Boolean, JSON, Numeric, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.database import Base
@@ -50,6 +51,23 @@ class User(Base):
         default=dict,
         nullable=False
     )  # {currency, language, notifications_enabled, etc.}
+
+    # Informações do perfil para IA
+    household_income: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(12, 2),
+        nullable=True,
+        default=None
+    )
+    adults_count: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        nullable=True,
+        default=1
+    )
+    children_count: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        nullable=True,
+        default=0
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         default=datetime.utcnow,

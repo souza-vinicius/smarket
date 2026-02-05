@@ -10,7 +10,8 @@ from src.routers import (
     products,
     invoice_items,
     analysis,
-    purchase_patterns
+    purchase_patterns,
+    users
 )
 
 app = FastAPI(
@@ -41,6 +42,7 @@ app.include_router(
 )
 app.include_router(analysis.router, prefix="/api/v1/analysis", tags=["analysis"])
 app.include_router(purchase_patterns.router, prefix="/api/v1/purchase-patterns", tags=["purchase-patterns"])
+app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
 
 
 @app.get("/health")

@@ -19,6 +19,12 @@ class Settings(BaseSettings):
     # OpenAI
     OPENAI_API_KEY: str = ""
     
+    # Gemini
+    GEMINI_API_KEY: str = ""
+    
+    # Redis
+    REDIS_URL: str = "redis://localhost:6379/0"
+    
     # Sefaz
     SEFAZ_API_URL: str = "https://www.nfce.fazenda.sp.gov.br/NFCeConsultaPublica"
     
