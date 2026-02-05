@@ -285,6 +285,7 @@ async def upload_invoice_photos(
     db: AsyncSession = Depends(get_db)
 ):
     """Upload photos of invoices for LLM processing."""
+    print(f"DEBUG: upload_invoice_photos called with {len(files)} files")
     if not files:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

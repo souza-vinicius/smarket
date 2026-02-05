@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api';
-import { Invoice, InvoiceList, QRCodeRequest } from '@/types';
+import { Invoice, InvoiceList, QRCodeRequest, ProcessingResponse } from '@/types';
 
 const INVOICE_KEYS = {
   all: ['invoices'] as const,
@@ -51,6 +51,19 @@ export function useUploadXML() {
   return useMutation({
     mutationFn: async (file: File) => {
       return apiClient.uploadFile<Invoice>('/invoices/upload/xml', file);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: INVOICE_KEYS.lists() });
+    },
+  });
+}
+
+export function useUploadPhotos() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (files: File[]) => {
+      return apiClient.uploadFiles<ProcessingResponse>('/invoices/upload/photos', files);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: INVOICE_KEYS.lists() });

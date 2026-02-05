@@ -186,6 +186,21 @@ class ApiClient {
     });
     return response.data;
   }
+
+  // Multiple files upload method
+  async uploadFiles<T>(url: string, files: File[], fieldName: string = 'files') {
+    const formData = new FormData();
+    files.forEach((file) => {
+      formData.append(fieldName, file);
+    });
+
+    const response = await this.client.post<T>(url, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  }
 }
 
 export const apiClient = new ApiClient();

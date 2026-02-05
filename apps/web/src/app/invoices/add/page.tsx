@@ -14,15 +14,16 @@ import { AddInvoiceOptions } from '@/components/invoices/add-invoice-options';
 import { UploadModal } from '@/components/invoices/upload-modal';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useInvoices, useUploadXML, useProcessQRCode } from '@/hooks/use-invoices';
+import { useInvoices, useUploadXML, useProcessQRCode, useUploadPhotos } from '@/hooks/use-invoices';
 import { formatCurrency, formatDate } from '@/lib/utils';
 
-type UploadMode = 'qrcode' | 'xml' | null;
+type UploadMode = 'qrcode' | 'xml' | 'photo' | null;
 
 export default function AddInvoicePage() {
     const [uploadMode, setUploadMode] = useState<UploadMode>(null);
     const { data: invoices, isLoading: isLoadingInvoices } = useInvoices();
     const uploadXMLMutation = useUploadXML();
+    const uploadPhotosMutation = useUploadPhotos();
     const processQRCodeMutation = useProcessQRCode();
 
     // Get last 3 invoices
@@ -30,6 +31,14 @@ export default function AddInvoicePage() {
 
     const handleUploadXML = (file: File) => {
         uploadXMLMutation.mutate(file, {
+            onSuccess: () => {
+                setUploadMode(null);
+            },
+        });
+    };
+
+    const handleUploadPhoto = (file: File) => {
+        uploadPhotosMutation.mutate([file], {
             onSuccess: () => {
                 setUploadMode(null);
             },
@@ -45,7 +54,7 @@ export default function AddInvoicePage() {
     };
 
     const handleSelectUpload = () => {
-        setUploadMode('xml');
+        setUploadMode('photo');
     };
 
     const handleSelectQRCode = () => {
@@ -155,8 +164,10 @@ export default function AddInvoicePage() {
                 isOpen={uploadMode !== null}
                 onClose={() => setUploadMode(null)}
                 onUploadXML={handleUploadXML}
+                onUploadPhoto={handleUploadPhoto}
                 onProcessQRCode={handleProcessQRCode}
-                isUploading={uploadXMLMutation.isPending || processQRCodeMutation.isPending}
+                isUploading={uploadXMLMutation.isPending || processQRCodeMutation.isPending || uploadPhotosMutation.isPending}
+                initialTab={uploadMode === 'qrcode' ? 'qrcode' : uploadMode === 'photo' ? 'photo' : 'xml'}
             />
         </div>
     );

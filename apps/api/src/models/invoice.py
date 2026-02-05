@@ -52,6 +52,16 @@ class Invoice(Base):
         nullable=False
     )
 
+    # Dados do emissor
+    issuer_name: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False
+    )
+    issuer_cnpj: Mapped[str] = mapped_column(
+        String(14),
+        nullable=False
+    )
+
     # Tipo e formato
     invoice_type: Mapped[str] = mapped_column(
         String(10),

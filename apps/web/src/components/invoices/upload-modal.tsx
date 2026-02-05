@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { Upload, QrCode, X, FileText } from 'lucide-react';
+import { Upload, QrCode, X, FileText, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -10,20 +10,24 @@ interface UploadModalProps {
   isOpen: boolean;
   onClose: () => void;
   onUploadXML: (file: File) => void;
+  onUploadPhoto: (file: File) => void;
   onProcessQRCode: (url: string) => void;
   isUploading: boolean;
+  initialTab?: UploadTab;
 }
 
-type UploadTab = 'xml' | 'qrcode';
+type UploadTab = 'xml' | 'qrcode' | 'photo';
 
 export function UploadModal({
   isOpen,
   onClose,
   onUploadXML,
+  onUploadPhoto,
   onProcessQRCode,
   isUploading,
+  initialTab = 'xml',
 }: UploadModalProps) {
-  const [activeTab, setActiveTab] = useState<UploadTab>('xml');
+  const [activeTab, setActiveTab] = useState<UploadTab>(initialTab);
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [dragActive, setDragActive] = useState(false);
 
@@ -45,17 +49,23 @@ export function UploadModal({
 
       if (e.dataTransfer.files && e.dataTransfer.files[0]) {
         const file = e.dataTransfer.files[0];
-        if (file.name.endsWith('.xml')) {
+        if (activeTab === 'xml' && file.name.endsWith('.xml')) {
           onUploadXML(file);
+        } else if (activeTab === 'photo' && (file.type === 'image/jpeg' || file.type === 'image/png' || file.type === 'image/heic')) {
+          onUploadPhoto(file);
         }
       }
     },
-    [onUploadXML]
+    [activeTab, onUploadXML, onUploadPhoto]
   );
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      onUploadXML(e.target.files[0]);
+      if (activeTab === 'xml') {
+        onUploadXML(e.target.files[0]);
+      } else if (activeTab === 'photo') {
+        onUploadPhoto(e.target.files[0]);
+      }
     }
   };
 
@@ -93,7 +103,19 @@ export function UploadModal({
             )}
           >
             <FileText className="h-4 w-4" />
-            Arquivo XML
+            XML
+          </button>
+          <button
+            onClick={() => setActiveTab('photo')}
+            className={cn(
+              'flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors',
+              activeTab === 'photo'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-muted-foreground hover:bg-accent'
+            )}
+          >
+            <Camera className="h-4 w-4" />
+            Foto
           </button>
           <button
             onClick={() => setActiveTab('qrcode')}
@@ -110,7 +132,7 @@ export function UploadModal({
         </div>
 
         {/* Content */}
-        {activeTab === 'xml' ? (
+        {activeTab === 'xml' || activeTab === 'photo' ? (
           <div
             onDragEnter={handleDrag}
             onDragLeave={handleDrag}
@@ -125,17 +147,17 @@ export function UploadModal({
           >
             <Upload className="mx-auto h-10 w-10 text-muted-foreground" />
             <p className="mt-2 text-sm font-medium">
-              Arraste e solte um arquivo XML
+              {activeTab === 'xml' ? 'Arraste e solte um arquivo XML' : 'Arraste e solte uma foto (JPEG)'}
             </p>
             <p className="text-xs text-muted-foreground">ou</p>
             <label className="mt-2 inline-block">
               <input
                 type="file"
-                accept=".xml"
+                accept={activeTab === 'xml' ? ".xml" : ".jpg,.jpeg,.png,.heic"}
                 onChange={handleFileChange}
                 className="hidden"
               />
-              <Button variant="outline" type="button">
+              <Button variant="outline" type="button" className="pointer-events-none">
                 Selecionar arquivo
               </Button>
             </label>

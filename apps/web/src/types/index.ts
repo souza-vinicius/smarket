@@ -84,6 +84,13 @@ export interface QRCodeRequest {
   qrcode_url: string;
 }
 
+export interface ProcessingResponse {
+  processing_id: string;
+  status: string;
+  message: string;
+  estimated_seconds: number;
+}
+
 // Analysis Types
 export interface Analysis {
   id: string;
