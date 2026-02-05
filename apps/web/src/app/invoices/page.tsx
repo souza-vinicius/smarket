@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Plus, Upload, Search, Filter, FileText, Calendar, Store, MoreVertical, Download, Trash2 } from 'lucide-react';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
@@ -14,6 +15,7 @@ import { useInvoices, useUploadXML, useProcessQRCode, useUploadPhotos } from '@/
 import { formatCurrency, formatDate } from '@/lib/utils';
 
 export default function InvoicesPage() {
+  const router = useRouter();
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'nfce' | 'nfe'>('all');
@@ -32,8 +34,10 @@ export default function InvoicesPage() {
 
   const handleUploadPhoto = (file: File) => {
     uploadPhotosMutation.mutate([file], {
-      onSuccess: () => {
+      onSuccess: (data) => {
         setIsUploadModalOpen(false);
+        // Redirect to review page with processing_id
+        router.push(`/invoices/review/${data.processing_id}`);
       },
     });
   };
@@ -47,8 +51,7 @@ export default function InvoicesPage() {
   };
 
   const handleViewDetails = (id: string) => {
-    // TODO: Navigate to invoice details page
-    console.log('View details for invoice:', id);
+    router.push(`/invoices/${id}`);
   };
 
   // Filter invoices based on search and type

@@ -26,7 +26,12 @@ export function useInvoice(id: string) {
   return useQuery({
     queryKey: INVOICE_KEYS.detail(id),
     queryFn: async () => {
-      return apiClient.get<Invoice>(`/invoices/${id}`);
+      const data = await apiClient.get<any>(`/invoices/${id}`);
+      // Ensure items is an array
+      if (data && !Array.isArray(data.items)) {
+        data.items = data.products || [];
+      }
+      return data;
     },
     enabled: !!id,
   });
@@ -77,6 +82,50 @@ export function useDeleteInvoice() {
   return useMutation({
     mutationFn: async (id: string) => {
       return apiClient.delete(`/invoices/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: INVOICE_KEYS.lists() });
+    },
+  });
+}
+
+export function useProcessingStatus(processingId: string) {
+  return useQuery({
+    queryKey: ['processing', processingId],
+    queryFn: async () => {
+      return apiClient.get<{
+        processing_id: string;
+        status: string;
+        extracted_data?: any;
+        confidence_score?: number;
+        errors: string[];
+      }>(`/invoices/processing/${processingId}`);
+    },
+    enabled: !!processingId,
+    refetchInterval: (query) => {
+      // Stop refetching if status is extracted, confirmed, or error
+      const status = query.state.data?.status;
+      return status === 'pending' || status === 'processing' ? 2000 : false;
+    },
+    retry: 3,
+  });
+}
+
+export function useConfirmInvoice() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      processingId,
+      data,
+    }: {
+      processingId: string;
+      data: any;
+    }) => {
+      return apiClient.post<Invoice>(
+        `/invoices/processing/${processingId}/confirm`,
+        data
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: INVOICE_KEYS.lists() });
