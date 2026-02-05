@@ -9,7 +9,8 @@ class Settings(BaseSettings):
     
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://postgres:password@localhost:5432/smarket"
-    
+    DB_ECHO: bool = False
+
     # JWT
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
@@ -21,6 +22,11 @@ class Settings(BaseSettings):
     
     # Gemini
     GEMINI_API_KEY: str = ""
+    GEMINI_MODEL: str = "gemini-2.0-flash"
+    
+    # Anthropic
+    ANTHROPIC_API_KEY: str = ""
+    ANTHROPIC_MODEL: str = "claude-3-5-sonnet-20241022"
     
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"

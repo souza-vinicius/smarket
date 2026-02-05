@@ -33,7 +33,7 @@ class LangChainGeminiExtractor:
 
     def __init__(self):
         self.llm = ChatGoogleGenerativeAI(
-            model="gemini-3.0-flash",
+            model=settings.GEMINI_MODEL,
             api_key=settings.GEMINI_API_KEY,
             temperature=0.1,
             max_output_tokens=2048
@@ -86,5 +86,6 @@ class LangChainGeminiExtractor:
             raise ValueError(f"Extração falhou: {str(e)}")
 
 
-# Instância global
-extractor = LangChainGeminiExtractor()
+# DEPRECATED: Use multi_provider_extractor for automatic fallback
+# Only instantiate if you specifically need Gemini
+# extractor = LangChainGeminiExtractor()

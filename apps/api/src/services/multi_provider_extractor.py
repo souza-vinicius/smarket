@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
+from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage
 from langchain_core.output_parsers import PydanticOutputParser
 
@@ -49,7 +50,7 @@ class GeminiExtractor(BaseInvoiceExtractor):
 
     def __init__(self):
         self.llm = ChatGoogleGenerativeAI(
-            model="gemini-3.0-flash",
+            model=settings.GEMINI_MODEL,
             api_key=settings.GEMINI_API_KEY,
             temperature=0.1,
             max_output_tokens=2048
@@ -110,6 +111,39 @@ class OpenAIExtractor(BaseInvoiceExtractor):
         return self.parser.parse(response.content)
 
 
+class AnthropicExtractor(BaseInvoiceExtractor):
+    """Extrator usando Anthropic Claude via LangChain."""
+
+    def __init__(self):
+        self.llm = ChatAnthropic(
+            model=settings.ANTHROPIC_MODEL,
+            api_key=settings.ANTHROPIC_API_KEY,
+            temperature=0.1,
+            max_tokens=2048
+        )
+        self.parser = PydanticOutputParser(
+            pydantic_object=ExtractedInvoiceData
+        )
+
+    async def extract(
+        self,
+        image_bytes: bytes,
+        mime_type: str = "image/jpeg"
+    ) -> ExtractedInvoiceData:
+        image_base64 = base64.standard_b64encode(image_bytes).decode("utf-8")
+        image_url = f"data:{mime_type};base64,{image_base64}"
+
+        message = HumanMessage(
+            content=[
+                {"type": "text", "text": SYSTEM_PROMPT},
+                {"type": "image_url", "image_url": {"url": image_url}}
+            ]
+        )
+
+        response = await self.llm.ainvoke([message])
+        return self.parser.parse(response.content)
+
+
 class MultiProviderExtractor:
     """Extrator com fallback entre provedores."""
 
@@ -125,6 +159,11 @@ class MultiProviderExtractor:
         if settings.OPENAI_API_KEY:
             self.providers.append(("openai", OpenAIExtractor()))
             logger.info("OpenAI provider initialized")
+
+        # Inicializar Anthropic se API key disponível
+        if settings.ANTHROPIC_API_KEY:
+            self.providers.append(("anthropic", AnthropicExtractor()))
+            logger.info("Anthropic provider initialized")
 
         if not self.providers:
             raise ValueError("Nenhum provedor de LLM configurado")
@@ -200,7 +239,7 @@ class MultiProviderExtractor:
         Args:
             image_bytes: Bytes da imagem
             mime_type: Tipo MIME
-            preferred_provider: Provedor preferido (gemini|openai)
+            preferred_provider: Provedor preferido (gemini|openai|anthropic)
 
         Returns:
             ExtractedInvoiceData
@@ -238,5 +277,5 @@ except ValueError as e:
     logger.error(f"Falha ao inicializar extrator: {e}")
     raise RuntimeError(
         "Nenhum provedor de LLM configurado. "
-        "Configure GEMINI_API_KEY ou OPENAI_API_KEY no arquivo .env"
+        "Configure GEMINI_API_KEY, OPENAI_API_KEY ou ANTHROPIC_API_KEY no arquivo .env"
     ) from e

@@ -1,8 +1,10 @@
 import uuid
+import os
+import aiofiles
 from datetime import datetime
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, BackgroundTasks
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -24,6 +26,7 @@ from src.parsers.qrcode_parser import (
 )
 from src.parsers.xml_parser import parse_xml_invoice
 from src.services.ai_analyzer import analyzer
+from src.tasks.process_invoice_photos import process_invoice_photos
 
 router = APIRouter()
 
@@ -280,6 +283,7 @@ async def upload_xml(
     status_code=status.HTTP_202_ACCEPTED
 )
 async def upload_invoice_photos(
+    background_tasks: BackgroundTasks,
     files: list[UploadFile] = File(...),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
@@ -307,17 +311,37 @@ async def upload_invoice_photos(
                 detail=f"File type {file.content_type} not allowed"
             )
 
+    # Save files and get paths
+    image_paths = []
+    upload_dir = "uploads"
+    os.makedirs(upload_dir, exist_ok=True)
+
+    for file in files:
+        # Generate unique filename
+        ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+        filename = f"{uuid.uuid4()}.{ext}"
+        filepath = os.path.join(upload_dir, filename)
+        
+        async with aiofiles.open(filepath, 'wb') as out_file:
+            content = await file.read()
+            await out_file.write(content)
+        
+        image_paths.append(filepath)
+
     # Criar registro de processamento
     processing = InvoiceProcessing(
         user_id=current_user.id,
         status="pending",
-        image_ids=[],
+        image_ids=image_paths, # Saving file paths as image_ids
         image_count=len(files)
     )
 
     db.add(processing)
     await db.commit()
     await db.refresh(processing)
+
+    # Trigger background task
+    background_tasks.add_task(process_invoice_photos, str(processing.id))
 
     return ProcessingResponse(
         processing_id=processing.id,

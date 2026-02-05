@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { Upload, QrCode, X, FileText, Camera } from 'lucide-react';
+import { Upload, QrCode, X, FileText, Camera, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -134,33 +134,45 @@ export function UploadModal({
         {/* Content */}
         {activeTab === 'xml' || activeTab === 'photo' ? (
           <div
-            onDragEnter={handleDrag}
-            onDragLeave={handleDrag}
-            onDragOver={handleDrag}
-            onDrop={handleDrop}
+            onDragEnter={!isUploading ? handleDrag : undefined}
+            onDragLeave={!isUploading ? handleDrag : undefined}
+            onDragOver={!isUploading ? handleDrag : undefined}
+            onDrop={!isUploading ? handleDrop : undefined}
             className={cn(
               'rounded-lg border-2 border-dashed p-8 text-center transition-colors',
-              dragActive
+              isUploading
+                ? 'border-muted bg-muted/20 cursor-wait'
+                : dragActive
                 ? 'border-primary bg-primary/5'
                 : 'border-muted-foreground/25 hover:border-muted-foreground/50'
             )}
           >
-            <Upload className="mx-auto h-10 w-10 text-muted-foreground" />
-            <p className="mt-2 text-sm font-medium">
-              {activeTab === 'xml' ? 'Arraste e solte um arquivo XML' : 'Arraste e solte uma foto (JPEG)'}
-            </p>
-            <p className="text-xs text-muted-foreground">ou</p>
-            <label className="mt-2 inline-block">
-              <input
-                type="file"
-                accept={activeTab === 'xml' ? ".xml" : ".jpg,.jpeg,.png,.heic"}
-                onChange={handleFileChange}
-                className="hidden"
-              />
-              <Button variant="outline" type="button" className="pointer-events-none">
-                Selecionar arquivo
-              </Button>
-            </label>
+            {isUploading ? (
+              <div className="flex flex-col items-center justify-center py-4">
+                <Loader2 className="h-10 w-10 text-primary animate-spin mb-3" />
+                <p className="text-sm font-medium">Enviando arquivo...</p>
+                <p className="text-xs text-muted-foreground mt-1">Por favor, aguarde.</p>
+              </div>
+            ) : (
+              <>
+                <Upload className="mx-auto h-10 w-10 text-muted-foreground" />
+                <p className="mt-2 text-sm font-medium">
+                  {activeTab === 'xml' ? 'Arraste e solte um arquivo XML' : 'Arraste e solte uma foto (JPEG)'}
+                </p>
+                <p className="text-xs text-muted-foreground">ou</p>
+                <label className="mt-2 inline-block">
+                  <input
+                    type="file"
+                    accept={activeTab === 'xml' ? ".xml" : ".jpg,.jpeg,.png,.heic"}
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                  <Button variant="outline" type="button" className="pointer-events-none">
+                    Selecionar arquivo
+                  </Button>
+                </label>
+              </>
+            )}
           </div>
         ) : (
           <form onSubmit={handleQRCodeSubmit} className="space-y-4">

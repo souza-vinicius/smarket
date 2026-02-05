@@ -1,11 +1,13 @@
 import logging
+import os
+import aiofiles
 from datetime import datetime
 
 from sqlalchemy import select
 
 from src.database import AsyncSessionLocal
 from src.models.invoice_processing import InvoiceProcessing
-from src.services.gemini_extractor import extractor
+from src.services.multi_provider_extractor import extractor
 
 logger = logging.getLogger(__name__)
 
@@ -56,10 +58,10 @@ async def process_invoice_photos(processing_id: str) -> None:
                     # Por enquanto, simulamos
                     image_bytes = await _load_image_from_storage(image_id)
 
-                    # Extrair dados com Gemini
-                    extracted = await extractor.extract_from_image(
+                    # Extrair dados com AI (multi-provider fallback)
+                    extracted = await extractor.extract(
                         image_bytes,
-                        image_mime_type="image/jpeg"
+                        mime_type="image/jpeg"
                     )
 
                     all_extracted.append(extracted)
@@ -122,14 +124,18 @@ async def _load_image_from_storage(image_id: str) -> bytes:
     """Carrega imagem do storage.
 
     Args:
-        image_id: ID da imagem no storage
+        image_id: ID da imagem no storage (caminho do arquivo local)
 
     Returns:
         Conteúdo da imagem em bytes
     """
-
-    # TODO: Implementar carregamento do storage (S3, local, etc)
-    # Por enquanto, retorna bytes vazios
+    try:
+        if os.path.exists(image_id):
+            async with aiofiles.open(image_id, 'rb') as f:
+                return await f.read()
+    except Exception as e:
+        logger.error(f"Error loading image {image_id}: {e}")
+    
     return b""
 
 
