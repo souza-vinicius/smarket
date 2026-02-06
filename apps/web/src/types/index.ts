@@ -101,6 +101,19 @@ export interface ProcessingResponse {
   estimated_seconds: number;
 }
 
+export interface InvoiceProcessingList {
+  processing_id: string;
+  status: 'pending' | 'processing' | 'extracted' | 'error';
+  image_count: number;
+  confidence_score?: number;
+  extracted_issuer_name?: string;
+  extracted_total_value?: number;
+  extracted_issue_date?: string;
+  errors: string[];
+  created_at: string;
+  updated_at: string;
+}
+
 // Analysis Types
 export interface Analysis {
   id: string;

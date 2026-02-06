@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient, type UseQueryResult, type UseMutationResult } from '@tanstack/react-query';
 
 import { apiClient } from '@/lib/api';
-import { type Invoice, type InvoiceList, type QRCodeRequest, type ProcessingResponse } from '@/types';
+import { type Invoice, type InvoiceList, type QRCodeRequest, type ProcessingResponse, type InvoiceProcessingList } from '@/types';
 
 const INVOICE_KEYS = {
   all: ['invoices'] as const,
@@ -12,6 +12,7 @@ const INVOICE_KEYS = {
     [...INVOICE_KEYS.lists(), filters] as const,
   details: () => [...INVOICE_KEYS.all, 'detail'] as const,
   detail: (id: string) => [...INVOICE_KEYS.details(), id] as const,
+  processing: () => [...INVOICE_KEYS.all, 'processing'] as const,
 };
 
 interface InvoiceWithItems extends Invoice {
@@ -172,6 +173,17 @@ export function useConfirmInvoice(): UseMutationResult<Invoice, Error, { process
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: INVOICE_KEYS.lists() });
+      void queryClient.invalidateQueries({ queryKey: INVOICE_KEYS.processing() });
     },
+  });
+}
+
+export function usePendingProcessing(skip = 0, limit = 100): UseQueryResult<InvoiceProcessingList[]> {
+  return useQuery({
+    queryKey: ['pending-processing', { skip, limit }],
+    queryFn: async () => {
+      return apiClient.get<InvoiceProcessingList[]>(`/invoices/processing?skip=${String(skip)}&limit=${String(limit)}`);
+    },
+    refetchInterval: 5000, // Refresh every 5 seconds while processing is active
   });
 }

@@ -89,6 +89,24 @@ class InvoiceCorrection(BaseModel):
     items: Optional[list[ExtractedItem]] = None
 
 
+class InvoiceProcessingList(BaseModel):
+    """Item na lista de processamentos aguardando revisão"""
+
+    processing_id: uuid.UUID
+    status: str
+    image_count: int
+    confidence_score: float = Field(default=0.0, ge=0.0, le=1.0)
+    extracted_issuer_name: Optional[str] = None
+    extracted_total_value: Optional[Decimal] = None
+    extracted_issue_date: Optional[datetime] = None
+    errors: list[str] = Field(default_factory=list)
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 class ProcessingConfirmRequest(BaseModel):
     """Request para confirmar dados extraídos (dados completos editados)"""
 
