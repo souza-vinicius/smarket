@@ -352,32 +352,39 @@ async def get_category_spending(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Get spending by category and subcategory."""
+    """Get spending by category and subcategory.
+
+    Uses the category_name and subcategory string fields on InvoiceItem
+    (populated during invoice confirmation by the LLM extraction) instead
+    of the category_id FK which may not always be set.
+    """
     from dateutil.relativedelta import relativedelta
 
     today = date.today()
     start_date = today - relativedelta(months=months)
 
-    # Get spending by category (only parent categories, level = 0)
+    palette = [
+        "#3b82f6", "#10b981", "#f59e0b", "#ef4444",
+        "#8b5cf6", "#ec4899", "#14b8a6", "#f97316",
+        "#6366f1", "#84cc16",
+    ]
+
+    # Get spending grouped by category_name string field
     category_result = await db.execute(
         select(
-            Category.id,
-            Category.name,
-            Category.color,
-            Category.icon,
+            InvoiceItem.category_name,
             func.sum(InvoiceItem.total_price).label("total_spent")
-        ).join(
-            InvoiceItem, InvoiceItem.category_id == Category.id
         ).join(
             Invoice, InvoiceItem.invoice_id == Invoice.id
         ).where(
             and_(
                 Invoice.user_id == current_user.id,
                 Invoice.issue_date >= start_date,
-                Category.level == 0  # Only parent categories
+                InvoiceItem.category_name.isnot(None),
+                InvoiceItem.category_name != "",
             )
         ).group_by(
-            Category.id
+            InvoiceItem.category_name
         ).order_by(
             func.sum(InvoiceItem.total_price).desc()
         )
@@ -385,27 +392,24 @@ async def get_category_spending(
 
     categories = category_result.all()
 
-    # Get spending by subcategory (level = 1)
+    # Get spending grouped by subcategory string field
     subcategory_result = await db.execute(
         select(
-            Category.id,
-            Category.name,
-            Category.color,
-            Category.icon,
-            Category.parent_id,
+            InvoiceItem.subcategory,
+            InvoiceItem.category_name,
             func.sum(InvoiceItem.total_price).label("total_spent")
-        ).join(
-            InvoiceItem, InvoiceItem.category_id == Category.id
         ).join(
             Invoice, InvoiceItem.invoice_id == Invoice.id
         ).where(
             and_(
                 Invoice.user_id == current_user.id,
                 Invoice.issue_date >= start_date,
-                Category.level == 1  # Only subcategories
+                InvoiceItem.subcategory.isnot(None),
+                InvoiceItem.subcategory != "",
             )
         ).group_by(
-            Category.id
+            InvoiceItem.subcategory,
+            InvoiceItem.category_name,
         ).order_by(
             func.sum(InvoiceItem.total_price).desc()
         )
@@ -413,39 +417,28 @@ async def get_category_spending(
 
     subcategories = subcategory_result.all()
 
-    # Get parent category names for subcategories
-    parent_ids = [s.parent_id for s in subcategories if s.parent_id]
-    parent_names = {}
-    if parent_ids:
-        parent_result = await db.execute(
-            select(Category.id, Category.name).where(
-                Category.id.in_(parent_ids)
-            )
-        )
-        parent_names = {p.id: p.name for p in parent_result.all()}
-
     return {
         "period_months": months,
         "categories": [
             {
-                "id": str(c.id),
-                "name": c.name,
-                "color": c.color,
-                "icon": c.icon,
+                "id": str(i),
+                "name": c.category_name,
+                "color": palette[i % len(palette)],
+                "icon": None,
                 "total_spent": float(c.total_spent or Decimal("0.00"))
             }
-            for c in categories
+            for i, c in enumerate(categories)
         ],
         "subcategories": [
             {
-                "id": str(s.id),
-                "name": s.name,
-                "color": s.color,
-                "icon": s.icon,
-                "parent_id": str(s.parent_id) if s.parent_id else None,
-                "parent_name": parent_names.get(s.parent_id, "Sem Categoria"),
+                "id": str(i),
+                "name": s.subcategory,
+                "color": palette[i % len(palette)],
+                "icon": None,
+                "parent_id": None,
+                "parent_name": s.category_name or "Sem Categoria",
                 "total_spent": float(s.total_spent or Decimal("0.00"))
             }
-            for s in subcategories
+            for i, s in enumerate(subcategories)
         ]
     }
