@@ -8,6 +8,8 @@ import { type AxiosError } from 'axios';
 
 import { useProcessingStatus, useConfirmInvoice, type ExtractedInvoiceData } from '@/hooks/use-invoices';
 import { type InvoiceItem } from '@/types';
+import { formatCNPJInput, getCNPJErrorMessage, isValidCNPJ } from '@/lib/cnpj';
+import { useCNPJEnrichment, type CNPJEnrichmentError } from '@/hooks/use-cnpj-enrichment';
 
 interface DuplicateErrorData {
   message: string;
@@ -24,9 +26,13 @@ export default function InvoiceReviewPage() {
 
   const { data: processingData, isLoading, error: fetchError } = useProcessingStatus(processingId);
   const confirmMutation = useConfirmInvoice();
+  const enrichmentMutation = useCNPJEnrichment();
 
   const [editedData, setEditedData] = useState<ExtractedInvoiceData | null>(null);
   const [duplicateError, setDuplicateError] = useState<DuplicateErrorData | null>(null);
+  const [cnpjError, setCnpjError] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [enrichmentSuccess, setEnrichmentSuccess] = useState<string | null>(null);
 
   // Update editedData when processingData changes
   if (processingData?.extracted_data && !editedData) {
@@ -84,11 +90,36 @@ export default function InvoiceReviewPage() {
 
   const handleHeaderChange = (field: keyof ExtractedInvoiceData, value: string) => {
     if (!editedData) {return;}
-    setEditedData({ ...editedData, [field]: value });
+
+    // Special handling for CNPJ field
+    if (field === 'issuer_cnpj') {
+      // Format as user types
+      const formatted = formatCNPJInput(value);
+      setEditedData({ ...editedData, [field]: formatted });
+
+      // Validate and show error
+      const error = getCNPJErrorMessage(formatted);
+      setCnpjError(error);
+
+      // Clear general validation error when user edits
+      setValidationError(null);
+    } else {
+      setEditedData({ ...editedData, [field]: value });
+    }
   };
 
   const handleConfirm = async () => {
     if (!editedData) {return;}
+
+    // Validate CNPJ before submitting
+    if (editedData.issuer_cnpj) {
+      const cnpjValidationError = getCNPJErrorMessage(editedData.issuer_cnpj);
+      if (cnpjValidationError) {
+        setCnpjError(cnpjValidationError);
+        setValidationError('Por favor, corrija os erros antes de continuar.');
+        return;
+      }
+    }
 
     try {
       await confirmMutation.mutateAsync({
@@ -97,17 +128,39 @@ export default function InvoiceReviewPage() {
       });
       router.push('/invoices');
     } catch (err) {
+      const axiosError = err as AxiosError<{
+        detail?: {
+          error?: string;
+          message?: string;
+          field?: string;
+          hint?: string;
+          existing_invoice_id?: string;
+          existing_invoice_number?: string;
+          existing_invoice_date?: string;
+          existing_invoice_total?: number;
+        } | string;
+      }>;
+
+      // Check if it's an invalid CNPJ error (400 Bad Request)
+      if (axiosError.response?.status === 400) {
+        const detail = axiosError?.response?.data?.detail;
+        if (typeof detail === 'object' && detail !== null && detail.error === 'invalid_cnpj') {
+          setCnpjError(detail.message || 'CNPJ inválido');
+          setValidationError(detail.hint || 'Verifique o CNPJ informado.');
+          return;
+        }
+      }
+
       // Check if it's a duplicate invoice error (409 Conflict)
-      const axiosError = err as AxiosError<{ detail?: { message?: string; existing_invoice_id?: string; existing_invoice_number?: string; existing_invoice_date?: string; existing_invoice_total?: number } | string; }>;
       if (axiosError.response?.status === 409) {
         const detail = axiosError?.response?.data?.detail;
         if (typeof detail === 'object' && detail !== null) {
           setDuplicateError({
-            message: (detail as { message?: string }).message || 'Esta nota fiscal já foi cadastrada',
-            existingId: (detail as { existing_invoice_id?: string }).existing_invoice_id,
-            existingNumber: (detail as { existing_invoice_number?: string }).existing_invoice_number,
-            existingDate: (detail as { existing_invoice_date?: string }).existing_invoice_date,
-            existingTotal: (detail as { existing_invoice_total?: number }).existing_invoice_total,
+            message: detail.message || 'Esta nota fiscal já foi cadastrada',
+            existingId: detail.existing_invoice_id,
+            existingNumber: detail.existing_invoice_number,
+            existingDate: detail.existing_invoice_date,
+            existingTotal: detail.existing_invoice_total,
           });
         } else {
           setDuplicateError({
@@ -115,7 +168,62 @@ export default function InvoiceReviewPage() {
           });
         }
       } else {
-        alert(axiosError?.response?.data?.detail || axiosError.message || 'Falha ao salvar nota fiscal');
+        const errorMessage = typeof axiosError?.response?.data?.detail === 'object'
+          ? axiosError.response.data.detail.message
+          : axiosError?.response?.data?.detail || axiosError.message || 'Falha ao salvar nota fiscal';
+        alert(errorMessage);
+      }
+    }
+  };
+
+  const handleEnrichCNPJ = async () => {
+    if (!editedData?.issuer_cnpj) {
+      setValidationError('CNPJ não informado');
+      return;
+    }
+
+    // Validate CNPJ before enriching
+    const cnpjValidationError = getCNPJErrorMessage(editedData.issuer_cnpj);
+    if (cnpjValidationError) {
+      setCnpjError(cnpjValidationError);
+      setValidationError('Por favor, corrija o CNPJ antes de consultar.');
+      return;
+    }
+
+    // Clear previous messages
+    setEnrichmentSuccess(null);
+    setValidationError(null);
+
+    try {
+      const result = await enrichmentMutation.mutateAsync(editedData.issuer_cnpj);
+
+      // Update issuer name with suggested name
+      if (result.suggested_name && editedData) {
+        setEditedData({
+          ...editedData,
+          issuer_name: result.suggested_name,
+        });
+        setEnrichmentSuccess(
+          `Nome atualizado com sucesso! Fonte: ${result.data.source === 'brasilapi' ? 'BrasilAPI' : 'ReceitaWS'}`
+        );
+      }
+    } catch (err) {
+      console.error('CNPJ enrichment error:', err);
+      const axiosError = err as AxiosError<{ detail?: CNPJEnrichmentError }>;
+      console.log('Response status:', axiosError?.response?.status);
+      console.log('Response data:', axiosError?.response?.data);
+
+      const detail = axiosError?.response?.data?.detail;
+
+      if (detail) {
+        setValidationError(detail.message || 'Erro ao consultar CNPJ');
+        if (detail.hint) {
+          setValidationError(`${detail.message}\n${detail.hint}`);
+        }
+      } else {
+        // Generic error
+        const errorMessage = axiosError?.message || 'Erro ao consultar CNPJ. Tente novamente.';
+        setValidationError(errorMessage);
       }
     }
   };
@@ -294,13 +402,50 @@ export default function InvoiceReviewPage() {
                     className="editable-cell w-full border-b-2 border-transparent bg-transparent px-2 py-1 font-mono text-lg font-semibold transition-colors hover:border-[#e5e5e5] focus:border-[#2d2d2d]"
                     style={{ fontFamily: 'IBM Plex Mono, monospace' }}
                   />
-                  <input
-                    type="text"
-                    value={editedData.issuer_cnpj}
-                    onChange={(e) => { handleHeaderChange('issuer_cnpj', e.target.value); }}
-                    className="editable-cell mt-1 w-full border-b-2 border-transparent bg-transparent px-2 py-1 font-mono text-sm text-[#666] transition-colors hover:border-[#e5e5e5] focus:border-[#2d2d2d]"
-                    style={{ fontFamily: 'IBM Plex Mono, monospace' }}
-                  />
+                  <div className="mt-1">
+                    <label htmlFor="issuer-cnpj" className="mb-1 block font-mono text-xs tracking-wider text-[#666]">
+                      CNPJ
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        id="issuer-cnpj"
+                        type="text"
+                        value={editedData.issuer_cnpj}
+                        onChange={(e) => { handleHeaderChange('issuer_cnpj', e.target.value); }}
+                        placeholder="00.000.000/0000-00"
+                        maxLength={18}
+                        className={`editable-cell flex-1 border-b-2 bg-transparent px-2 py-1 font-mono text-sm transition-colors ${
+                          cnpjError
+                            ? 'border-red-500 text-red-600 focus:border-red-600'
+                            : 'border-transparent text-[#666] hover:border-[#e5e5e5] focus:border-[#2d2d2d]'
+                        }`}
+                        style={{ fontFamily: 'IBM Plex Mono, monospace' }}
+                      />
+                      <button
+                        onClick={() => { void handleEnrichCNPJ(); }}
+                        disabled={enrichmentMutation.isPending || !!cnpjError || !editedData.issuer_cnpj}
+                        className="shrink-0 border border-[#2d2d2d] bg-white px-3 py-1 font-mono text-xs font-semibold tracking-wider text-[#2d2d2d] transition-all hover:bg-[#2d2d2d] hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-[#2d2d2d]"
+                        title="Consultar dados do CNPJ na Receita Federal"
+                      >
+                        {enrichmentMutation.isPending ? '...' : '🔍'}
+                      </button>
+                    </div>
+                    {cnpjError && (
+                      <p className="mt-1 font-mono text-xs text-red-600">
+                        {cnpjError}
+                      </p>
+                    )}
+                    {enrichmentSuccess && (
+                      <p className="mt-1 font-mono text-xs text-green-600">
+                        ✓ {enrichmentSuccess}
+                      </p>
+                    )}
+                    {!cnpjError && !enrichmentSuccess && editedData.issuer_cnpj && isValidCNPJ(editedData.issuer_cnpj) && (
+                      <p className="mt-1 font-mono text-xs text-green-600">
+                        ✓ CNPJ válido
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 {/* Invoice Details */}
@@ -488,12 +633,22 @@ export default function InvoiceReviewPage() {
               </div>
             )}
 
+            {/* Validation Error Message */}
+            {validationError && (
+              <div className="mb-6 border-l-4 border-red-500 bg-red-50 p-4">
+                <p className="font-mono text-sm text-red-700">
+                  ⚠ {validationError}
+                </p>
+              </div>
+            )}
+
             {/* Action Buttons */}
             <div className="flex flex-col gap-4 sm:flex-row">
               <button
                 onClick={() => { void handleConfirm(); }}
-                disabled={confirmMutation.isPending}
+                disabled={confirmMutation.isPending || !!cnpjError}
                 className="flex-1 transform bg-[#2d2d2d] py-4 font-mono text-sm font-semibold tracking-wider text-white transition-all hover:scale-[1.02] hover:bg-[#1a1a1a] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                title={cnpjError ? 'Corrija os erros antes de confirmar' : ''}
               >
                 {confirmMutation.isPending ? 'SALVANDO...' : 'CONFIRMAR E SALVAR'}
               </button>

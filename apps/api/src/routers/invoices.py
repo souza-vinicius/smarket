@@ -1,5 +1,6 @@
 import uuid
 import os
+import logging
 import aiofiles
 from datetime import datetime
 from typing import List
@@ -26,9 +27,13 @@ from src.parsers.qrcode_parser import (
 )
 from src.parsers.xml_parser import parse_xml_invoice
 from src.services.ai_analyzer import analyzer
+from src.services.cnpj_enrichment import enrich_cnpj_data
 from src.tasks.process_invoice_photos import process_invoice_photos
+from src.utils.cnpj_validator import validate_cnpj, clean_cnpj, format_cnpj
+from src.config import settings
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.get("/", response_model=List[InvoiceList])
@@ -400,9 +405,6 @@ async def confirm_extracted_invoice(
     db: AsyncSession = Depends(get_db)
 ):
     """Confirm and save extracted invoice data."""
-    import logging
-    logger = logging.getLogger(__name__)
-
     try:
         logger.info(f"Confirming invoice for processing_id: {processing_id}")
         result = await db.execute(
@@ -445,10 +447,82 @@ async def confirm_extracted_invoice(
 
         # Clean CNPJ: remove dots, hyphens, slashes
         issuer_cnpj = request.issuer_cnpj or ""
-        issuer_cnpj = "".join(c for c in issuer_cnpj if c.isdigit())
+        issuer_cnpj = clean_cnpj(issuer_cnpj)
+        issuer_name = request.issuer_name or ""
 
         logger.info(f"Cleaned access_key: '{access_key}' (length: {len(access_key)})")
         logger.info(f"Cleaned CNPJ: '{issuer_cnpj}' (length: {len(issuer_cnpj)})")
+
+        # CNPJ Validation (if enabled and CNPJ exists)
+        if settings.cnpj_validation_enabled and issuer_cnpj:
+            # Check CNPJ length
+            if len(issuer_cnpj) != 14:
+                logger.warning(f"Invalid CNPJ length: {issuer_cnpj} (length: {len(issuer_cnpj)})")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail={
+                        "error": "invalid_cnpj",
+                        "message": "CNPJ deve ter 14 dígitos",
+                        "field": "issuer_cnpj",
+                        "value": issuer_cnpj,
+                        "expected_length": 14,
+                        "actual_length": len(issuer_cnpj)
+                    }
+                )
+
+            # Validate CNPJ checksum
+            is_valid = validate_cnpj(issuer_cnpj)
+
+            if not is_valid:
+                logger.warning(f"Invalid CNPJ checksum: {issuer_cnpj}")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail={
+                        "error": "invalid_cnpj",
+                        "message": "CNPJ inválido. Verifique os dígitos verificadores.",
+                        "field": "issuer_cnpj",
+                        "value": format_cnpj(issuer_cnpj),
+                        "hint": "O CNPJ informado não passa na validação dos dígitos verificadores."
+                    }
+                )
+
+            logger.info(f"✓ CNPJ validated successfully: {issuer_cnpj}")
+
+            # CNPJ Enrichment (if enabled)
+            if settings.cnpj_enrichment_enabled:
+                try:
+                    enriched = await enrich_cnpj_data(
+                        issuer_cnpj,
+                        timeout=settings.CNPJ_API_TIMEOUT
+                    )
+
+                    if enriched:
+                        logger.info(f"✓ CNPJ enriched from {enriched.get('source')}: {issuer_cnpj}")
+
+                        # Use razao_social (legal name) as default, fallback to nome_fantasia
+                        enriched_name = enriched.get('razao_social') or enriched.get('nome_fantasia')
+
+                        # Update issuer_name if:
+                        # - It's empty OR
+                        # - Enriched name is significantly longer (likely more complete)
+                        if enriched_name and (not issuer_name or len(enriched_name) > len(issuer_name) + 5):
+                            old_name = issuer_name
+                            issuer_name = enriched_name
+                            logger.info(f"✓ Updated issuer_name: '{old_name}' -> '{enriched_name}'")
+
+                        # Save complete enriched data in raw_data for reference
+                        raw_data['cnpj_enrichment'] = {
+                            'source': enriched.get('source', 'unknown'),
+                            'enriched_at': datetime.utcnow().isoformat(),
+                            'data': enriched
+                        }
+                    else:
+                        logger.warning(f"CNPJ enrichment returned no data for: {issuer_cnpj}")
+
+                except Exception as e:
+                    # Don't fail if enrichment fails - continue with original data
+                    logger.warning(f"CNPJ enrichment failed for {issuer_cnpj}: {e}")
+                    # Continue with original issuer_name
 
         # Check if invoice with this access_key already exists
         existing_invoice_result = await db.execute(
@@ -479,7 +553,7 @@ async def confirm_extracted_invoice(
             series=request.series or "",
             issue_date=request.issue_date,
             issuer_cnpj=issuer_cnpj,
-            issuer_name=request.issuer_name or "",
+            issuer_name=issuer_name,  # Use potentially enriched name
             total_value=float(request.total_value) if request.total_value else 0,
             invoice_type="NFC-e",  # Default
             source="photo",
@@ -612,3 +686,93 @@ async def _get_user_history(
             for cat in top_categories
         ]
     }
+
+
+@router.get("/cnpj/{cnpj}/enrich")
+async def enrich_cnpj(
+    cnpj: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Enrich CNPJ data using public Brazilian APIs (BrasilAPI/ReceitaWS).
+    
+    This endpoint queries public APIs to get detailed information about a company
+    based on its CNPJ number, including legal name, trade name, address, and status.
+    """
+    logger.info(f"Enriching CNPJ: {cnpj}")
+
+    # Clean CNPJ
+    cnpj_clean = clean_cnpj(cnpj)
+
+    # Validate CNPJ length
+    if len(cnpj_clean) != 14:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "error": "invalid_cnpj",
+                "message": "CNPJ deve ter 14 dígitos",
+                "cnpj": cnpj,
+                "length": len(cnpj_clean)
+            }
+        )
+
+    # Validate CNPJ checksum (if validation is enabled)
+    if settings.cnpj_validation_enabled:
+        if not validate_cnpj(cnpj_clean):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={
+                    "error": "invalid_cnpj",
+                    "message": "CNPJ inválido. Verifique os dígitos verificadores.",
+                    "cnpj": format_cnpj(cnpj_clean)
+                }
+            )
+
+    # Enrich CNPJ (if enrichment is enabled)
+    if not settings.cnpj_enrichment_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "error": "service_disabled",
+                "message": "Serviço de enriquecimento de CNPJ está desabilitado"
+            }
+        )
+
+    try:
+        enriched_data = await enrich_cnpj_data(
+            cnpj_clean,
+            timeout=settings.CNPJ_API_TIMEOUT
+        )
+
+        if not enriched_data:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={
+                    "error": "cnpj_not_found",
+                    "message": "CNPJ não encontrado nas bases de dados públicas",
+                    "cnpj": format_cnpj(cnpj_clean),
+                    "hint": "Verifique se o CNPJ está correto e ativo"
+                }
+            )
+
+        logger.info(f"✓ CNPJ enriched successfully from {enriched_data.get('source')}: {cnpj_clean}")
+
+        return {
+            "success": True,
+            "cnpj": format_cnpj(cnpj_clean),
+            "data": enriched_data,
+            "suggested_name": enriched_data.get('razao_social') or enriched_data.get('nome_fantasia')
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error enriching CNPJ {cnpj_clean}: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "error": "enrichment_failed",
+                "message": "Falha ao consultar dados do CNPJ. Tente novamente.",
+                "hint": "As APIs públicas podem estar temporariamente indisponíveis"
+            }
+        )
