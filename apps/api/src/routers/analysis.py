@@ -45,10 +45,13 @@ async def list_analysis(
         query = query.where(Analysis.is_read == is_read)
     
     if is_dismissed is not None:
-        query = query.where(Analysis.is_dismissed == is_dismissed)
+        if is_dismissed:
+            query = query.where(Analysis.dismissed_at.isnot(None))
+        else:
+            query = query.where(Analysis.dismissed_at.is_(None))
     else:
         # By default, exclude dismissed items
-        query = query.where(Analysis.is_dismissed == False)
+        query = query.where(Analysis.dismissed_at.is_(None))
     
     query = query.order_by(
         func.case(
@@ -147,7 +150,7 @@ async def get_dashboard_summary(
             and_(
                 Analysis.user_id == current_user.id,
                 Analysis.is_read == False,
-                Analysis.is_dismissed == False
+                Analysis.dismissed_at.is_(None)
             )
         )
     )
@@ -215,7 +218,6 @@ async def mark_as_read(
         )
     
     analysis.is_read = True
-    analysis.read_at = datetime.utcnow()
     await db.commit()
     await db.refresh(analysis)
     
@@ -245,7 +247,6 @@ async def dismiss_analysis(
             detail="Analysis not found"
         )
     
-    analysis.is_dismissed = True
     analysis.dismissed_at = datetime.utcnow()
     await db.commit()
     await db.refresh(analysis)
