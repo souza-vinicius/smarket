@@ -16,6 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useInvoices, useUploadXML, useProcessQRCode, useUploadPhotos, usePendingProcessing, useDeleteInvoice, useDeleteProcessing } from '@/hooks/use-invoices';
 import { useInvoicesSummary } from '@/hooks/use-invoices-summary';
 import { PendingList } from '@/components/invoices/pending-list';
+import { DeleteProcessingModal } from '@/components/invoices/delete-processing-modal';
 import { formatCurrency, formatDate } from '@/lib/utils';
 
 export default function InvoicesPage() {
@@ -24,6 +25,8 @@ export default function InvoicesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'nfce' | 'nfe'>('all');
   const [view, setView] = useState<'all' | 'processed' | 'pending'>('all');
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [processingToDelete, setProcessingToDelete] = useState<{ id: string; issuerName?: string } | null>(null);
   const { data: invoices, isLoading } = useInvoices();
   const { data: pendingProcessing, isLoading: isPendingLoading } = usePendingProcessing();
   const { data: summary, isLoading: isSummaryLoading } = useInvoicesSummary();
@@ -262,7 +265,12 @@ export default function InvoicesPage() {
                 items={pendingProcessing || []}
                 isLoading={isPendingLoading}
                 onDelete={(processingId) => {
-                  deleteProcessingMutation.mutate(processingId);
+                  const item = pendingProcessing?.find(p => p.processing_id === processingId);
+                  setProcessingToDelete({
+                    id: processingId,
+                    issuerName: item?.extracted_issuer_name || 'Processamento',
+                  });
+                  setDeleteModalOpen(true);
                 }}
                 isDeleting={deleteProcessingMutation.isPending}
               />
@@ -393,6 +401,24 @@ export default function InvoicesPage() {
           )}
         </main>
       </div>
+
+      {/* Upload Modal */}
+      {/* Delete Processing Modal */}
+      <DeleteProcessingModal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setProcessingToDelete(null);
+        }}
+        onConfirm={() => {
+          if (processingToDelete) {
+            deleteProcessingMutation.mutate(processingToDelete.id);
+          }
+        }}
+        isDeleting={deleteProcessingMutation.isPending}
+        issuerName={processingToDelete?.issuerName}
+        error={deleteProcessingMutation.error?.message || null}
+      />
 
       {/* Upload Modal */}
       <UploadModal
