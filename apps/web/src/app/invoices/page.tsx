@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useInvoices, useUploadXML, useProcessQRCode, useUploadPhotos, usePendingProcessing, useDeleteInvoice } from '@/hooks/use-invoices';
+import { useInvoices, useUploadXML, useProcessQRCode, useUploadPhotos, usePendingProcessing, useDeleteInvoice, useDeleteProcessing } from '@/hooks/use-invoices';
 import { useInvoicesSummary } from '@/hooks/use-invoices-summary';
 import { PendingList } from '@/components/invoices/pending-list';
 import { formatCurrency, formatDate } from '@/lib/utils';
@@ -31,6 +31,7 @@ export default function InvoicesPage() {
   const uploadPhotosMutation = useUploadPhotos();
   const processQRCodeMutation = useProcessQRCode();
   const deleteInvoiceMutation = useDeleteInvoice();
+  const deleteProcessingMutation = useDeleteProcessing();
 
   const handleUploadXML = (file: File) => {
     uploadXMLMutation.mutate(file, {
@@ -261,9 +262,9 @@ export default function InvoicesPage() {
                 items={pendingProcessing || []}
                 isLoading={isPendingLoading}
                 onDelete={(processingId) => {
-                  // TODO: Implement delete processing record
-                  console.log('Delete pending processing:', processingId);
+                  deleteProcessingMutation.mutate(processingId);
                 }}
+                isDeleting={deleteProcessingMutation.isPending}
               />
             </div>
           )}

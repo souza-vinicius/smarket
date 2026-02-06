@@ -187,3 +187,16 @@ export function usePendingProcessing(skip = 0, limit = 100): UseQueryResult<Invo
     refetchInterval: 5000, // Refresh every 5 seconds while processing is active
   });
 }
+
+export function useDeleteProcessing(): UseMutationResult<unknown, Error, string> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (processingId: string) => {
+      return apiClient.delete(`/invoices/processing/${processingId}`);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['pending-processing'] });
+    },
+  });
+}

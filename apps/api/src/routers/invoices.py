@@ -133,6 +133,32 @@ async def list_pending_processing(
     return items
 
 
+@router.delete("/processing/{processing_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_processing(
+    processing_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Delete a pending invoice processing record."""
+    result = await db.execute(
+        select(InvoiceProcessing)
+        .where(InvoiceProcessing.id == processing_id)
+        .where(InvoiceProcessing.user_id == current_user.id)
+    )
+    processing = result.scalar_one_or_none()
+
+    if not processing:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Processing record not found"
+        )
+
+    await db.delete(processing)
+    await db.commit()
+
+    return None
+
+
 @router.get("/{invoice_id}", response_model=InvoiceResponse)
 async def get_invoice(
     invoice_id: uuid.UUID,
