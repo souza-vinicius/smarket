@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from src.models.user import User
     from src.models.merchant import Merchant
     from src.models.invoice_item import InvoiceItem
+    from src.models.invoice_processing import InvoiceProcessing
 
 
 class Invoice(Base):
@@ -135,6 +136,10 @@ class Invoice(Base):
     items: Mapped[List["InvoiceItem"]] = relationship(
         back_populates="invoice",
         lazy="selectin",
+        cascade="all, delete-orphan"
+    )
+    processing_records: Mapped[List["InvoiceProcessing"]] = relationship(
+        back_populates="invoice",
         cascade="all, delete-orphan"
     )
 

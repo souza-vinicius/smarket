@@ -9,6 +9,7 @@ from src.database import Base
 
 if TYPE_CHECKING:
     from src.models.user import User
+    from src.models.invoice import Invoice
 
 
 class InvoiceProcessing(Base):
@@ -81,7 +82,7 @@ class InvoiceProcessing(Base):
 
     # Invoice criada (se confirmada)
     invoice_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        ForeignKey("invoices.id"),
+        ForeignKey("invoices.id", ondelete="CASCADE"),
         nullable=True
     )
 
@@ -105,4 +106,7 @@ class InvoiceProcessing(Base):
     # Relationships
     user: Mapped["User"] = relationship(
         back_populates="invoice_processing"
+    )
+    invoice: Mapped[Optional["Invoice"]] = relationship(
+        back_populates="processing_records"
     )
