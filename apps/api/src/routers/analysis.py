@@ -262,14 +262,17 @@ async def get_spending_trends(
 ):
     """Get spending trends over time."""
     from dateutil.relativedelta import relativedelta
-    
+
     today = date.today()
     start_date = today - relativedelta(months=months)
-    
+
+    # Create the date_trunc expression once to reuse
+    month_trunc = func.date_trunc('month', Invoice.issue_date)
+
     # Get monthly totals
     result = await db.execute(
         select(
-            func.date_trunc('month', Invoice.issue_date).label("month"),
+            month_trunc.label("month"),
             func.sum(Invoice.total_value).label("total"),
             func.count(Invoice.id).label("invoice_count")
         ).where(
@@ -278,14 +281,14 @@ async def get_spending_trends(
                 Invoice.issue_date >= start_date
             )
         ).group_by(
-            func.date_trunc('month', Invoice.issue_date)
+            month_trunc
         ).order_by(
-            func.date_trunc('month', Invoice.issue_date)
+            month_trunc
         )
     )
-    
+
     trends = result.all()
-    
+
     return {
         "period_months": months,
         "trends": [
