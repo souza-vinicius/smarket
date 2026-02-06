@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useInvoices, useUploadXML, useProcessQRCode, useUploadPhotos } from '@/hooks/use-invoices';
+import { useInvoicesSummary } from '@/hooks/use-invoices-summary';
 import { formatCurrency, formatDate } from '@/lib/utils';
 
 export default function InvoicesPage() {
@@ -22,6 +23,7 @@ export default function InvoicesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'nfce' | 'nfe'>('all');
   const { data: invoices, isLoading } = useInvoices();
+  const { data: summary, isLoading: isSummaryLoading } = useInvoicesSummary();
   const uploadXMLMutation = useUploadXML();
   const uploadPhotosMutation = useUploadPhotos();
   const processQRCodeMutation = useProcessQRCode();
@@ -96,13 +98,15 @@ export default function InvoicesPage() {
 
             <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
               <div className="flex items-center justify-between">
-                <div>
+                <div className="flex-1">
                   <p className="text-sm font-medium text-slate-600">Total Gasto</p>
-                  <p className="mt-1 text-3xl font-bold text-slate-900">
-                    {formatCurrency(
-                      invoices?.reduce((sum, inv) => sum + inv.total_value, 0) || 0
-                    )}
-                  </p>
+                  {isSummaryLoading ? (
+                    <Skeleton className="mt-1 h-10 w-32" />
+                  ) : (
+                    <p className="mt-1 text-3xl font-bold text-slate-900">
+                      {formatCurrency(summary?.total_spent || 0)}
+                    </p>
+                  )}
                 </div>
                 <div className="flex size-12 items-center justify-center rounded-lg bg-blue-100">
                   <Store className="size-6 text-blue-600" />

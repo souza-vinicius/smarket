@@ -776,3 +776,61 @@ async def enrich_cnpj(
                 "hint": "As APIs públicas podem estar temporariamente indisponíveis"
             }
         )
+
+
+@router.get("/stats/summary")
+async def get_invoices_summary(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get summary statistics for user's invoices.
+    
+    Returns:
+    - total_invoices: Total number of invoices
+    - total_spent: Sum of all invoice values
+    - top_categories: Top 5 spending categories
+    """
+    logger.info(f"Getting invoice summary for user: {current_user.id}")
+
+    # Get total invoices count
+    result = await db.execute(
+        select(func.count(Invoice.id)).where(
+            Invoice.user_id == current_user.id
+        )
+    )
+    total_invoices = result.scalar() or 0
+
+    # Get total spent
+    result = await db.execute(
+        select(func.sum(Invoice.total_value)).where(
+            Invoice.user_id == current_user.id
+        )
+    )
+    total_spent = result.scalar() or 0
+
+    # Get top categories
+    result = await db.execute(
+        select(
+            InvoiceItem.category,
+            func.sum(InvoiceItem.total_price).label('total')
+        ).join(
+            Invoice, Invoice.id == InvoiceItem.invoice_id
+        ).where(
+            Invoice.user_id == current_user.id
+        ).group_by(
+            InvoiceItem.category
+        ).order_by(
+            func.sum(InvoiceItem.total_price).desc()
+        ).limit(5)
+    )
+    top_categories = result.all()
+
+    return {
+        "total_invoices": total_invoices,
+        "total_spent": float(total_spent),
+        "top_categories": [
+            {"category": cat[0] or "Sem categoria", "total": float(cat[1])}
+            for cat in top_categories
+        ]
+    }
