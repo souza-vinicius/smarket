@@ -4,7 +4,7 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy import select, and_, or_, func
+from sqlalchemy import case, select, and_, or_, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database import get_db
@@ -54,7 +54,7 @@ async def list_analysis(
         query = query.where(Analysis.dismissed_at.is_(None))
     
     query = query.order_by(
-        func.case(
+        case(
             (Analysis.priority == "critical", 1),
             (Analysis.priority == "high", 2),
             (Analysis.priority == "medium", 3),
