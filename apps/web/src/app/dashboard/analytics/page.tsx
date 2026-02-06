@@ -18,27 +18,31 @@ export default function AnalyticsPage() {
   // Transform API data for charts
   const monthlyData = trendsData?.trends.map((t) => ({
     month: new Date(t.month).toLocaleDateString('pt-BR', { month: 'short' }),
-    amount: t.total,
+    amount: Number(t.total) || 0,
   })) ?? [];
 
   const categoryChartData = categoryData?.categories.map((c) => ({
     category: c.name,
-    amount: c.total_spent,
+    amount: Number(c.total_spent) || 0,
     color: c.color,
   })) ?? [];
 
   const subcategoryChartData = categoryData?.subcategories.map((s) => ({
     name: s.name,
-    amount: s.total_spent,
+    amount: Number(s.total_spent) || 0,
     color: s.color,
     parent_name: s.parent_name,
   })) ?? [];
 
   // Calculate summary stats
-  const totalSpending = monthlyData.reduce((acc, item) => acc + item.amount, 0);
-  const averageMonthly = monthlyData.length > 0 ? totalSpending / monthlyData.length : 0;
-  const highestMonth = monthlyData.length > 0 ? Math.max(...monthlyData.map((d) => d.amount)) : 0;
-  const lowestMonth = monthlyData.length > 0 ? Math.min(...monthlyData.map((d) => d.amount)) : 0;
+  const totalSpending = Number(monthlyData.reduce((acc, item) => acc + item.amount, 0)) || 0;
+  const averageMonthly = monthlyData.length > 0 ? Number(totalSpending / monthlyData.length) || 0 : 0;
+  const highestMonth = monthlyData.length > 0 && monthlyData.some(d => d.amount > 0)
+    ? Number(Math.max(...monthlyData.map((d) => d.amount))) || 0
+    : 0;
+  const lowestMonth = monthlyData.length > 0 && monthlyData.some(d => d.amount > 0)
+    ? Number(Math.min(...monthlyData.map((d) => d.amount))) || 0
+    : 0;
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
