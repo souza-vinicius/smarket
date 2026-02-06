@@ -6,6 +6,7 @@ from datetime import datetime
 
 from sqlalchemy import select
 
+from src.config import settings
 from src.database import AsyncSessionLocal
 from src.models.invoice_processing import InvoiceProcessing
 from src.services.multi_provider_extractor import extractor
@@ -67,14 +68,14 @@ async def process_invoice_photos(processing_id: str) -> None:
 
                     # Carregar imagem do storage
                     image_bytes = await _load_image_from_storage(image_id)
-                    
+
                     # Validar se a imagem foi carregada
                     if not image_bytes:
                         raise ValueError(f"Failed to load image: {image_id}")
-                    
+
                     # Inferir mime type do arquivo
                     mime_type = _get_mime_type(image_id)
-                    
+
                     logger.info(
                         f"Image loaded: {len(image_bytes)} bytes, type: {mime_type}",
                         extra={"processing_id": processing_id}
@@ -148,6 +149,21 @@ async def process_invoice_photos(processing_id: str) -> None:
                         "invoice_number": merged_data.get('number')
                     }
                 )
+
+                # Feature flag: Deletar imagens processadas
+                if settings.DELETE_PROCESSED_IMAGES:
+                    logger.info("🗑️ Deleting processed images due to feature flag enabled...")
+                    deleted_count = 0
+                    for image_id in processing.image_ids:
+                        try:
+                            if os.path.exists(image_id):
+                                os.remove(image_id)
+                                logger.info(f"Deleted image: {image_id}")
+                                deleted_count += 1
+                        except Exception as e:
+                            logger.error(f"Error deleting image {image_id}: {e}")
+
+                    logger.info(f"Deleted {deleted_count} processed images")
             else:
                 processing.status = "error"
                 processing.errors.append("No images could be processed")
@@ -193,21 +209,21 @@ async def _load_image_from_storage(image_id: str) -> bytes:
             logger.error(f"Image file not found: {image_id}")
     except Exception as e:
         logger.error(f"Error loading image {image_id}: {e}")
-    
+
     return b""
 
 
 def _get_mime_type(filepath: str) -> str:
     """Determina o mime type de um arquivo.
-    
+
     Args:
         filepath: Caminho do arquivo
-        
+
     Returns:
         Mime type (ex: image/jpeg, image/png)
     """
     mime_type, _ = mimetypes.guess_type(filepath)
-    
+
     # Fallback para extensões comuns
     if not mime_type:
         ext = filepath.lower().split('.')[-1]
@@ -219,7 +235,7 @@ def _get_mime_type(filepath: str) -> str:
             'heif': 'image/heif'
         }
         mime_type = mime_map.get(ext, 'image/jpeg')
-    
+
     return mime_type
 
 

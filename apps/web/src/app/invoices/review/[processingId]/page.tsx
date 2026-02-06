@@ -52,7 +52,7 @@ export default function InvoiceReviewPage() {
   }
 
   const handleItemChange = (index: number, field: keyof InvoiceItem, value: string | number) => {
-    if (!editedData) {return;}
+    if (!editedData) { return; }
 
     const newItems = [...editedData.items];
 
@@ -89,7 +89,7 @@ export default function InvoiceReviewPage() {
   };
 
   const handleHeaderChange = (field: keyof ExtractedInvoiceData, value: string) => {
-    if (!editedData) {return;}
+    if (!editedData) { return; }
 
     // Special handling for CNPJ field
     if (field === 'issuer_cnpj') {
@@ -109,7 +109,7 @@ export default function InvoiceReviewPage() {
   };
 
   const handleConfirm = async () => {
-    if (!editedData) {return;}
+    if (!editedData) { return; }
 
     // Validate CNPJ before submitting
     if (editedData.issuer_cnpj) {
@@ -269,8 +269,8 @@ export default function InvoiceReviewPage() {
       processingData?.status === 'processing'
         ? 'Processando nota fiscal com IA...'
         : processingData?.status === 'pending'
-        ? 'Aguardando processamento...'
-        : 'Carregando dados...';
+          ? 'Aguardando processamento...'
+          : 'Carregando dados...';
 
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#faf9f7]">
@@ -337,21 +337,21 @@ export default function InvoiceReviewPage() {
     confidence >= 0.9
       ? '#16a34a'
       : confidence >= 0.7
-      ? '#f59e0b'
-      : '#dc2626';
+        ? '#f59e0b'
+        : '#dc2626';
 
   const confidenceLabel =
     confidence >= 0.9
       ? 'ALTA CONFIANÇA'
       : confidence >= 0.7
-      ? 'CONFIANÇA MÉDIA'
-      : 'REVISAR COM ATENÇÃO';
+        ? 'CONFIANÇA MÉDIA'
+        : 'REVISAR COM ATENÇÃO';
 
   return (
     <div className="min-h-screen bg-[#faf9f7] px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-4xl">
         {/* Import fonts via link or CSS file instead of jsx global */}
-        
+
         {/* Receipt Container */}
         <div className="receipt-texture relative overflow-hidden rounded-none border border-[#e5e5e5] bg-[#faf9f7] shadow-xl">
           {/* Confidence Stamp */}
@@ -414,11 +414,10 @@ export default function InvoiceReviewPage() {
                         onChange={(e) => { handleHeaderChange('issuer_cnpj', e.target.value); }}
                         placeholder="00.000.000/0000-00"
                         maxLength={18}
-                        className={`editable-cell flex-1 border-b-2 bg-transparent px-2 py-1 font-mono text-sm transition-colors ${
-                          cnpjError
-                            ? 'border-red-500 text-red-600 focus:border-red-600'
-                            : 'border-transparent text-[#666] hover:border-[#e5e5e5] focus:border-[#2d2d2d]'
-                        }`}
+                        className={`editable-cell flex-1 border-b-2 bg-transparent px-2 py-1 font-mono text-sm transition-colors ${cnpjError
+                          ? 'border-red-500 text-red-600 focus:border-red-600'
+                          : 'border-transparent text-[#666] hover:border-[#e5e5e5] focus:border-[#2d2d2d]'
+                          }`}
                         style={{ fontFamily: 'IBM Plex Mono, monospace' }}
                       />
                       <button
@@ -477,12 +476,12 @@ export default function InvoiceReviewPage() {
                       value={
                         editedData.issue_date
                           ? new Date(editedData.issue_date).toLocaleString('pt-BR', {
-                              year: 'numeric',
-                              month: '2-digit',
-                              day: '2-digit',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })
                           : ''
                       }
                       onChange={(e) => { handleHeaderChange('issue_date', e.target.value); }}
@@ -531,6 +530,12 @@ export default function InvoiceReviewPage() {
                       <th className="w-16 px-2 py-3 text-center font-mono text-xs tracking-wider text-[#666]">
                         UN
                       </th>
+                      <th className="w-24 px-2 py-3 text-left font-mono text-xs tracking-wider text-[#666]">
+                        CATEGORIA
+                      </th>
+                      <th className="w-24 px-2 py-3 text-left font-mono text-xs tracking-wider text-[#666]">
+                        SUBCATEGORIA
+                      </th>
                       <th className="w-32 px-2 py-3 text-right font-mono text-xs tracking-wider text-[#666]">
                         PREÇO UN.
                       </th>
@@ -549,8 +554,7 @@ export default function InvoiceReviewPage() {
                           <input
                             type="text"
                             value={item.description}
-                            onChange={(e) =>
-                              { handleItemChange(index, 'description', e.target.value); }
+                            onChange={(e) => { handleItemChange(index, 'description', e.target.value); }
                             }
                             className="editable-cell w-full border-b-2 border-transparent bg-transparent p-1 font-mono text-sm transition-colors hover:border-[#e5e5e5] focus:border-[#2d2d2d]"
                             style={{ fontFamily: 'IBM Plex Mono, monospace' }}
@@ -561,8 +565,7 @@ export default function InvoiceReviewPage() {
                             type="number"
                             step="0.001"
                             value={Number(item.quantity) || 0}
-                            onChange={(e) =>
-                              { handleItemChange(index, 'quantity', e.target.value); }
+                            onChange={(e) => { handleItemChange(index, 'quantity', e.target.value); }
                             }
                             className="editable-cell w-full border-b-2 border-transparent bg-transparent p-1 text-right font-mono text-sm transition-colors hover:border-[#e5e5e5] focus:border-[#2d2d2d]"
                             style={{ fontFamily: 'IBM Plex Mono, monospace' }}
@@ -579,11 +582,30 @@ export default function InvoiceReviewPage() {
                         </td>
                         <td className="px-2 py-3">
                           <input
+                            type="text"
+                            value={item.category_name || ''}
+                            onChange={(e) => { handleItemChange(index, 'category_name', e.target.value); }}
+                            className="editable-cell w-full border-b-2 border-transparent bg-transparent p-1 font-mono text-sm transition-colors hover:border-[#e5e5e5] focus:border-[#2d2d2d]"
+                            style={{ fontFamily: 'IBM Plex Mono, monospace' }}
+                            placeholder="-"
+                          />
+                        </td>
+                        <td className="px-2 py-3">
+                          <input
+                            type="text"
+                            value={item.subcategory || ''}
+                            onChange={(e) => { handleItemChange(index, 'subcategory', e.target.value); }}
+                            className="editable-cell w-full border-b-2 border-transparent bg-transparent p-1 font-mono text-sm transition-colors hover:border-[#e5e5e5] focus:border-[#2d2d2d]"
+                            style={{ fontFamily: 'IBM Plex Mono, monospace' }}
+                            placeholder="-"
+                          />
+                        </td>
+                        <td className="px-2 py-3">
+                          <input
                             type="number"
                             step="0.01"
                             value={Number(item.unit_price) || 0}
-                            onChange={(e) =>
-                              { handleItemChange(index, 'unit_price', e.target.value); }
+                            onChange={(e) => { handleItemChange(index, 'unit_price', e.target.value); }
                             }
                             className="editable-cell w-full border-b-2 border-transparent bg-transparent p-1 text-right font-mono text-sm transition-colors hover:border-[#e5e5e5] focus:border-[#2d2d2d]"
                             style={{ fontFamily: 'IBM Plex Mono, monospace' }}

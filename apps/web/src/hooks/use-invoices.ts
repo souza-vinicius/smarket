@@ -15,7 +15,16 @@ const INVOICE_KEYS = {
 };
 
 interface InvoiceWithItems extends Invoice {
-  items?: { description: string; quantity: number; unit: string; unit_price: number; total_price: number }[];
+  items?: {
+    id?: string;
+    description: string;
+    quantity: number;
+    unit: string;
+    unit_price: number;
+    total_price: number;
+    category_name?: string;
+    subcategory?: string;
+  }[];
 }
 
 export interface InvoiceItemData {
@@ -24,6 +33,8 @@ export interface InvoiceItemData {
   unit: string;
   unit_price: number;
   total_price: number;
+  category_name?: string;
+  subcategory?: string;
 }
 
 export interface ExtractedInvoiceData {

@@ -47,6 +47,8 @@ export interface InvoiceItem {
   unit: string;
   unit_price: number;
   total_price: number;
+  category_name?: string;
+  subcategory?: string;
 }
 
 export interface Product {

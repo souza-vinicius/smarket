@@ -25,8 +25,8 @@ export default function InvoiceDetailsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const handleDelete = async () => {
-    if (!invoice) {return;}
-    if (!confirm('Tem certeza que deseja deletar esta nota fiscal?')) {return;}
+    if (!invoice) { return; }
+    if (!confirm('Tem certeza que deseja deletar esta nota fiscal?')) { return; }
 
     setDeletingId(invoiceId);
     deleteInvoice.mutate(invoiceId, {
@@ -259,6 +259,12 @@ export default function InvoiceDetailsPage() {
                         <th className="w-20 px-4 py-3 text-center text-sm font-semibold text-slate-700">
                           Un
                         </th>
+                        <th className="w-24 px-4 py-3 text-left text-sm font-semibold text-slate-700">
+                          Categoria
+                        </th>
+                        <th className="w-24 px-4 py-3 text-left text-sm font-semibold text-slate-700">
+                          Subcategoria
+                        </th>
                         <th className="w-32 px-4 py-3 text-right text-sm font-semibold text-slate-700">
                           Preço Un.
                         </th>
@@ -272,9 +278,8 @@ export default function InvoiceDetailsPage() {
                         invoice.items.map((item, idx) => (
                           <tr
                             key={item.id}
-                            className={`border-b border-slate-100 transition-colors hover:bg-slate-50 ${
-                              idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'
-                            }`}
+                            className={`border-b border-slate-100 transition-colors hover:bg-slate-50 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'
+                              }`}
                           >
                             <td className="p-4 text-slate-900">{item.description}</td>
                             <td className="p-4 text-right font-mono text-slate-900">
@@ -282,6 +287,12 @@ export default function InvoiceDetailsPage() {
                             </td>
                             <td className="p-4 text-center text-slate-700">
                               {item.unit || ''}
+                            </td>
+                            <td className="p-4 text-slate-700">
+                              {item.category_name || '-'}
+                            </td>
+                            <td className="p-4 text-slate-700">
+                              {item.subcategory || '-'}
                             </td>
                             <td className="p-4 text-right font-mono text-slate-900">
                               R$ {(Number(item.unit_price) || 0).toFixed(2)}

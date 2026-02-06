@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 def parse_invoice_response(content: str) -> ExtractedInvoiceData:
     """Parse LLM response into ExtractedInvoiceData.
-    
+
     Handles JSON extraction and type coercion before Pydantic validation.
     """
     # Remover markdown code blocks se presentes
@@ -27,18 +27,18 @@ def parse_invoice_response(content: str) -> ExtractedInvoiceData:
         # Remove ```json or ``` at start and ``` at end
         content = re.sub(r'^```(?:json)?\s*', '', content)
         content = re.sub(r'\s*```$', '', content)
-    
+
     try:
         data = json.loads(content)
     except json.JSONDecodeError as e:
         raise ValueError(f"Invalid JSON response: {e}")
-    
+
     # Pré-processar dados antes de passar para Pydantic
     # Converter campos que devem ser string
     for field in ['number', 'series', 'access_key']:
         if field in data and data[field] is not None:
             data[field] = str(data[field])
-    
+
     # Extrair issuer se for objeto aninhado
     if 'issuer' in data and isinstance(data['issuer'], dict):
         issuer = data.pop('issuer')
@@ -46,7 +46,7 @@ def parse_invoice_response(content: str) -> ExtractedInvoiceData:
             data['issuer_name'] = issuer['name']
         if 'cnpj' in issuer and not data.get('issuer_cnpj'):
             data['issuer_cnpj'] = issuer['cnpj']
-    
+
     return ExtractedInvoiceData(**data)
 
 
@@ -69,6 +69,8 @@ Campos obrigatórios (todos os valores devem ser strings, exceto números e arra
   - unit: string (ex: "UN", "KG")
   - unit_price: número decimal
   - total_price: número decimal
+  - category_name: string (ex: "Laticínios", "Carnes", "Limpeza", "Bebidas")
+  - subcategory: string (ex: "Leite", "Iogurte", "Frango", "Detergente")
 - confidence: número entre 0.0 e 1.0 indicando confiança na extração
 - warnings: array de strings com avisos sobre dados incertos ou ilegíveis"""
 
@@ -242,7 +244,7 @@ class MultiProviderExtractor:
         Raises:
             ValueError: Se todos os provedores falharem
         """
-        
+
         # Validar imagem
         if not image_bytes:
             raise ValueError("Image bytes cannot be empty")
@@ -258,7 +260,7 @@ class MultiProviderExtractor:
                 "available_providers": providers_list
             }
         )
-        
+
         # Avisar se a imagem é muito grande (Claude tem limite de ~5MB)
         if image_size_mb > 5:
             logger.warning(

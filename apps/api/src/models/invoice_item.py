@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 class InvoiceItem(Base):
     """Item específico de uma nota fiscal (instância de compra)"""
-    
+
     __tablename__ = "invoice_items"
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -90,6 +90,16 @@ class InvoiceItem(Base):
         Float,
         nullable=True
     )  # 0-1, confiança da sugestão
+
+    # Extração de categorias
+    category_name: Mapped[Optional[str]] = mapped_column(
+        String(100),
+        nullable=True
+    )
+    subcategory: Mapped[Optional[str]] = mapped_column(
+        String(100),
+        nullable=True
+    )
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(

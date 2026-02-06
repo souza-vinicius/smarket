@@ -15,6 +15,8 @@ class ExtractedItem(BaseModel):
     unit: Optional[str] = None
     unit_price: Optional[Decimal] = None
     total_price: Optional[Decimal] = None
+    category_name: Optional[str] = None
+    subcategory: Optional[str] = None
 
 
 class ExtractedInvoiceData(BaseModel):
@@ -30,7 +32,7 @@ class ExtractedInvoiceData(BaseModel):
     items: list[ExtractedItem] = Field(default_factory=list)
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
     warnings: list[str] = Field(default_factory=list)
-    
+
     @field_validator('number', 'series', 'access_key', mode='before')
     @classmethod
     def coerce_to_string(cls, v: Any) -> Optional[str]:
@@ -38,7 +40,7 @@ class ExtractedInvoiceData(BaseModel):
         if v is None:
             return None
         return str(v)
-    
+
     @model_validator(mode='before')
     @classmethod
     def extract_issuer_fields(cls, data: Any) -> Any:
