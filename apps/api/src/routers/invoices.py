@@ -19,7 +19,8 @@ from src.schemas.invoice import InvoiceResponse, InvoiceList, QRCodeRequest
 from src.schemas.invoice_processing import (
     ProcessingResponse,
     ProcessingStatus,
-    ProcessingConfirmRequest
+    ProcessingConfirmRequest,
+    InvoiceProcessingList
 )
 from src.parsers.qrcode_parser import (
     extract_access_key,
@@ -75,6 +76,87 @@ async def list_invoices(
         )
         for inv in invoices
     ]
+
+
+@router.get("/processing", response_model=List[InvoiceProcessingList])
+async def list_pending_processing(
+    skip: int = 0,
+    limit: int = 100,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """List pending and awaiting review invoice processing records for current user."""
+    result = await db.execute(
+        select(InvoiceProcessing)
+        .where(InvoiceProcessing.user_id == current_user.id)
+        .where(InvoiceProcessing.status != "completed")
+        .order_by(InvoiceProcessing.updated_at.desc())
+        .offset(skip)
+        .limit(limit)
+    )
+
+    processing_records = result.scalars().all()
+
+    items = []
+    for record in processing_records:
+        # Extract issuer name and total value from extracted_data if available
+        extracted_issuer_name = None
+        extracted_total_value = None
+        extracted_issue_date = None
+
+        if record.extracted_data:
+            extracted_issuer_name = record.extracted_data.get("issuer_name")
+            total_value = record.extracted_data.get("total_value")
+            # Convert Decimal to float for JSON serialization
+            if total_value is not None:
+                extracted_total_value = float(total_value)
+            extracted_issue_date = record.extracted_data.get("issue_date")
+
+        # Ensure errors is a list of strings
+        errors = record.errors if isinstance(record.errors, list) else []
+
+        items.append(
+            InvoiceProcessingList(
+                processing_id=record.id,
+                status=record.status,
+                image_count=record.image_count,
+                confidence_score=record.confidence_score,
+                extracted_issuer_name=extracted_issuer_name,
+                extracted_total_value=extracted_total_value,
+                extracted_issue_date=extracted_issue_date,
+                errors=errors,
+                created_at=record.created_at,
+                updated_at=record.updated_at
+            )
+        )
+
+    return items
+
+
+@router.delete("/processing/{processing_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_processing(
+    processing_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Delete a pending invoice processing record."""
+    result = await db.execute(
+        select(InvoiceProcessing)
+        .where(InvoiceProcessing.id == processing_id)
+        .where(InvoiceProcessing.user_id == current_user.id)
+    )
+    processing = result.scalar_one_or_none()
+
+    if not processing:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Processing record not found"
+        )
+
+    await db.delete(processing)
+    await db.commit()
+
+    return None
 
 
 @router.get("/{invoice_id}", response_model=InvoiceResponse)

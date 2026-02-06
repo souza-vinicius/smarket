@@ -28,14 +28,17 @@ export function useInsights(filters: InsightsFilters = {}): UseQueryResult<Analy
 
   return useQuery({
     queryKey: INSIGHT_KEYS.list({ type, priority, is_read }),
-    queryFn: () => {
-      const params = new URLSearchParams();
-      if (type) params.append('type', type);
-      if (priority) params.append('priority', priority);
-      if (is_read !== undefined) params.append('is_read', String(is_read));
-      params.append('skip', String(skip));
-      params.append('limit', String(limit));
-      return apiClient.get<Analysis[]>(`/analysis?${params.toString()}`);
+    queryFn: async () => {
+      const params: Record<string, string> = {
+        skip: String(skip),
+        limit: String(limit),
+      };
+
+      if (type) params.type = type;
+      if (priority) params.priority = priority;
+      if (is_read !== undefined) params.is_read = String(is_read);
+
+      return apiClient.get<Analysis[]>('/analysis', params);
     },
   });
 }
@@ -43,7 +46,9 @@ export function useInsights(filters: InsightsFilters = {}): UseQueryResult<Analy
 export function useInsight(id: string): UseQueryResult<Analysis> {
   return useQuery({
     queryKey: INSIGHT_KEYS.detail(id),
-    queryFn: () => apiClient.get<Analysis>(`/analysis/${id}`),
+    queryFn: async () => {
+      return apiClient.get<Analysis>(`/analysis/${id}`);
+    },
     enabled: !!id,
   });
 }
@@ -52,7 +57,9 @@ export function useMarkInsightAsRead(): UseMutationResult<Analysis, Error, strin
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => apiClient.post<Analysis>(`/analysis/${id}/read`),
+    mutationFn: async (id: string) => {
+      return apiClient.post<Analysis>(`/analysis/${id}/read`);
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: INSIGHT_KEYS.lists() });
       void queryClient.invalidateQueries({ queryKey: DASHBOARD_KEYS.summary });
@@ -65,7 +72,9 @@ export function useDismissInsight(): UseMutationResult<Analysis, Error, string> 
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => apiClient.post<Analysis>(`/analysis/${id}/dismiss`),
+    mutationFn: async (id: string) => {
+      return apiClient.post<Analysis>(`/analysis/${id}/dismiss`);
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: INSIGHT_KEYS.lists() });
       void queryClient.invalidateQueries({ queryKey: DASHBOARD_KEYS.summary });

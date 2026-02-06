@@ -13,13 +13,17 @@ export const DASHBOARD_KEYS = {
 export function useDashboardSummary(): UseQueryResult<DashboardSummary> {
   return useQuery({
     queryKey: DASHBOARD_KEYS.summary,
-    queryFn: () => apiClient.get<DashboardSummary>('/analysis/dashboard/summary'),
+    queryFn: async () => {
+      return apiClient.get<DashboardSummary>('/analysis/dashboard/summary');
+    },
   });
 }
 
 export function useRecentInsights(limit = 6): UseQueryResult<Analysis[]> {
   return useQuery({
     queryKey: [...DASHBOARD_KEYS.insights, limit],
-    queryFn: () => apiClient.get<Analysis[]>(`/analysis?limit=${limit}`),
+    queryFn: async () => {
+      return apiClient.get<Analysis[]>('/analysis', { limit: String(limit), skip: '0' });
+    },
   });
 }

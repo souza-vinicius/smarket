@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.database import get_db
 from src.dependencies import get_current_user
 from src.models.analysis import Analysis
+from src.models.category import Category
 from src.models.invoice import Invoice
 from src.models.invoice_item import InvoiceItem
 from src.models.merchant import Merchant
@@ -262,14 +263,17 @@ async def get_spending_trends(
 ):
     """Get spending trends over time."""
     from dateutil.relativedelta import relativedelta
-    
+
     today = date.today()
     start_date = today - relativedelta(months=months)
-    
+
+    # Create the date_trunc expression once to reuse
+    month_trunc = func.date_trunc('month', Invoice.issue_date)
+
     # Get monthly totals
     result = await db.execute(
         select(
-            func.date_trunc('month', Invoice.issue_date).label("month"),
+            month_trunc.label("month"),
             func.sum(Invoice.total_value).label("total"),
             func.count(Invoice.id).label("invoice_count")
         ).where(
@@ -278,14 +282,14 @@ async def get_spending_trends(
                 Invoice.issue_date >= start_date
             )
         ).group_by(
-            func.date_trunc('month', Invoice.issue_date)
+            month_trunc
         ).order_by(
-            func.date_trunc('month', Invoice.issue_date)
+            month_trunc
         )
     )
-    
+
     trends = result.all()
-    
+
     return {
         "period_months": months,
         "trends": [
@@ -324,9 +328,9 @@ async def get_merchant_insights(
             func.sum(Invoice.total_value).desc()
         ).limit(limit)
     )
-    
+
     merchants = result.all()
-    
+
     return {
         "merchants": [
             {
@@ -338,5 +342,110 @@ async def get_merchant_insights(
                 "average_ticket": round(m.average_ticket or Decimal("0.00"), 2)
             }
             for m in merchants
+        ]
+    }
+
+
+@router.get("/category-spending/data", response_model=dict)
+async def get_category_spending(
+    months: int = Query(6, ge=1, le=24),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get spending by category and subcategory."""
+    from dateutil.relativedelta import relativedelta
+
+    today = date.today()
+    start_date = today - relativedelta(months=months)
+
+    # Get spending by category (only parent categories, level = 0)
+    category_result = await db.execute(
+        select(
+            Category.id,
+            Category.name,
+            Category.color,
+            Category.icon,
+            func.sum(InvoiceItem.total_price).label("total_spent")
+        ).join(
+            InvoiceItem, InvoiceItem.category_id == Category.id
+        ).join(
+            Invoice, InvoiceItem.invoice_id == Invoice.id
+        ).where(
+            and_(
+                Invoice.user_id == current_user.id,
+                Invoice.issue_date >= start_date,
+                Category.level == 0  # Only parent categories
+            )
+        ).group_by(
+            Category.id
+        ).order_by(
+            func.sum(InvoiceItem.total_price).desc()
+        )
+    )
+
+    categories = category_result.all()
+
+    # Get spending by subcategory (level = 1)
+    subcategory_result = await db.execute(
+        select(
+            Category.id,
+            Category.name,
+            Category.color,
+            Category.icon,
+            Category.parent_id,
+            func.sum(InvoiceItem.total_price).label("total_spent")
+        ).join(
+            InvoiceItem, InvoiceItem.category_id == Category.id
+        ).join(
+            Invoice, InvoiceItem.invoice_id == Invoice.id
+        ).where(
+            and_(
+                Invoice.user_id == current_user.id,
+                Invoice.issue_date >= start_date,
+                Category.level == 1  # Only subcategories
+            )
+        ).group_by(
+            Category.id
+        ).order_by(
+            func.sum(InvoiceItem.total_price).desc()
+        )
+    )
+
+    subcategories = subcategory_result.all()
+
+    # Get parent category names for subcategories
+    parent_ids = [s.parent_id for s in subcategories if s.parent_id]
+    parent_names = {}
+    if parent_ids:
+        parent_result = await db.execute(
+            select(Category.id, Category.name).where(
+                Category.id.in_(parent_ids)
+            )
+        )
+        parent_names = {p.id: p.name for p in parent_result.all()}
+
+    return {
+        "period_months": months,
+        "categories": [
+            {
+                "id": str(c.id),
+                "name": c.name,
+                "color": c.color,
+                "icon": c.icon,
+                "total_spent": float(c.total_spent or Decimal("0.00"))
+            }
+            for c in categories
+        ],
+        "subcategories": [
+            {
+                "id": str(s.id),
+                "name": s.name,
+                "color": s.color,
+                "icon": s.icon,
+                "parent_id": str(s.parent_id) if s.parent_id else None,
+                "parent_name": parent_names.get(s.parent_id, "Sem Categoria"),
+                "total_spent": float(s.total_spent or Decimal("0.00"))
+            }
+            for s in subcategories
         ]
     }
