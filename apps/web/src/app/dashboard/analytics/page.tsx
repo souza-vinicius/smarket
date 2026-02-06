@@ -4,29 +4,41 @@ import {
   MonthlySpendingChart,
   CategorySpendingChart,
   TrendLineChart,
+  SubcategorySpendingChart,
 } from '@/components/dashboard/spending-chart';
 import { Header } from '@/components/layout/header';
 import { Sidebar } from '@/components/layout/sidebar';
-
-// Mock data for charts
-const monthlyData = [
-  { month: 'Jan', amount: 1250.5 },
-  { month: 'Fev', amount: 980.0 },
-  { month: 'Mar', amount: 1450.75 },
-  { month: 'Abr', amount: 1100.25 },
-  { month: 'Mai', amount: 1350.0 },
-  { month: 'Jun', amount: 1200.5 },
-];
-
-const categoryData = [
-  { category: 'Alimentos', amount: 450.5, color: '#3b82f6' },
-  { category: 'Transporte', amount: 280.0, color: '#10b981' },
-  { category: 'Saúde', amount: 150.75, color: '#f59e0b' },
-  { category: 'Lazer', amount: 200.25, color: '#ef4444' },
-  { category: 'Outros', amount: 169.0, color: '#8b5cf6' },
-];
+import { useSpendingTrends, useCategorySpending } from '@/hooks/use-analytics';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AnalyticsPage() {
+  const { data: trendsData, isLoading: trendsLoading } = useSpendingTrends(6);
+  const { data: categoryData, isLoading: categoryLoading } = useCategorySpending(6);
+
+  // Transform API data for charts
+  const monthlyData = trendsData?.trends.map((t) => ({
+    month: new Date(t.month).toLocaleDateString('pt-BR', { month: 'short' }),
+    amount: t.total,
+  })) ?? [];
+
+  const categoryChartData = categoryData?.categories.map((c) => ({
+    category: c.name,
+    amount: c.total_spent,
+    color: c.color,
+  })) ?? [];
+
+  const subcategoryChartData = categoryData?.subcategories.map((s) => ({
+    name: s.name,
+    amount: s.total_spent,
+    color: s.color,
+    parent_name: s.parent_name,
+  })) ?? [];
+
+  // Calculate summary stats
+  const totalSpending = monthlyData.reduce((acc, item) => acc + item.amount, 0);
+  const averageMonthly = monthlyData.length > 0 ? totalSpending / monthlyData.length : 0;
+  const highestMonth = monthlyData.length > 0 ? Math.max(...monthlyData.map((d) => d.amount)) : 0;
+  const lowestMonth = monthlyData.length > 0 ? Math.min(...monthlyData.map((d) => d.amount)) : 0;
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
@@ -38,52 +50,87 @@ export default function AnalyticsPage() {
         />
 
         <main className="p-6">
+          {/* Summary Stats */}
+          <div className="mb-6 grid gap-4 md:grid-cols-4">
+            {trendsLoading ? (
+              <>
+                <Skeleton className="h-24 rounded-lg" />
+                <Skeleton className="h-24 rounded-lg" />
+                <Skeleton className="h-24 rounded-lg" />
+                <Skeleton className="h-24 rounded-lg" />
+              </>
+            ) : (
+              <>
+                <div className="rounded-lg border bg-card p-4">
+                  <p className="text-sm text-muted-foreground">Média Mensal</p>
+                  <p className="text-2xl font-bold">
+                    R$ {averageMonthly.toFixed(2)}
+                  </p>
+                </div>
+                <div className="rounded-lg border bg-card p-4">
+                  <p className="text-sm text-muted-foreground">Maior Gasto</p>
+                  <p className="text-2xl font-bold">
+                    R$ {highestMonth.toFixed(2)}
+                  </p>
+                </div>
+                <div className="rounded-lg border bg-card p-4">
+                  <p className="text-sm text-muted-foreground">Menor Gasto</p>
+                  <p className="text-2xl font-bold">
+                    R$ {lowestMonth.toFixed(2)}
+                  </p>
+                </div>
+                <div className="rounded-lg border bg-card p-4">
+                  <p className="text-sm text-muted-foreground">Total no Período</p>
+                  <p className="text-2xl font-bold">
+                    R$ {totalSpending.toFixed(2)}
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+
           {/* Charts Grid */}
           <div className="grid gap-6 lg:grid-cols-2">
-            <MonthlySpendingChart
-              data={monthlyData}
-              title="Gastos Mensais"
-            />
-            <CategorySpendingChart
-              data={categoryData}
-              title="Gastos por Categoria"
-            />
+            {trendsLoading ? (
+              <Skeleton className="h-[400px] rounded-lg" />
+            ) : (
+              <MonthlySpendingChart
+                data={monthlyData}
+                title="Gastos Mensais"
+              />
+            )}
+            {categoryLoading ? (
+              <Skeleton className="h-[400px] rounded-lg" />
+            ) : (
+              <CategorySpendingChart
+                data={categoryChartData}
+                title="Gastos por Categoria"
+              />
+            )}
           </div>
 
           {/* Trend Chart */}
           <div className="mt-6">
-            <TrendLineChart
-              data={monthlyData}
-              title="Tendência de Gastos"
-            />
+            {trendsLoading ? (
+              <Skeleton className="h-[400px] rounded-lg" />
+            ) : (
+              <TrendLineChart
+                data={monthlyData}
+                title="Tendência de Gastos"
+              />
+            )}
           </div>
 
-          {/* Summary Stats */}
-          <div className="mt-6 grid gap-4 md:grid-cols-4">
-            <div className="rounded-lg border bg-card p-4">
-              <p className="text-sm text-muted-foreground">Média Mensal</p>
-              <p className="text-2xl font-bold">
-                R$ {((monthlyData.reduce((acc, item) => acc + item.amount, 0)) / monthlyData.length).toFixed(2)}
-              </p>
-            </div>
-            <div className="rounded-lg border bg-card p-4">
-              <p className="text-sm text-muted-foreground">Maior Gasto</p>
-              <p className="text-2xl font-bold">
-                R$ {Math.max(...monthlyData.map((d) => d.amount)).toFixed(2)}
-              </p>
-            </div>
-            <div className="rounded-lg border bg-card p-4">
-              <p className="text-sm text-muted-foreground">Menor Gasto</p>
-              <p className="text-2xl font-bold">
-                R$ {Math.min(...monthlyData.map((d) => d.amount)).toFixed(2)}
-              </p>
-            </div>
-            <div className="rounded-lg border bg-card p-4">
-              <p className="text-sm text-muted-foreground">Total no Período</p>
-              <p className="text-2xl font-bold">
-                R$ {monthlyData.reduce((acc, item) => acc + item.amount, 0).toFixed(2)}
-              </p>
-            </div>
+          {/* Subcategory Chart */}
+          <div className="mt-6">
+            {categoryLoading ? (
+              <Skeleton className="h-[400px] rounded-lg" />
+            ) : (
+              <SubcategorySpendingChart
+                data={subcategoryChartData}
+                title="Gastos por Subcategoria"
+              />
+            )}
           </div>
         </main>
       </div>

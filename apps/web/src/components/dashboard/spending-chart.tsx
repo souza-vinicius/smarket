@@ -29,6 +29,13 @@ interface CategorySpending {
   color: string;
 }
 
+interface SubcategorySpending {
+  name: string;
+  amount: number;
+  color: string;
+  parent_name: string;
+}
+
 interface SpendingChartProps {
   data: MonthlySpending[];
   title?: string;
@@ -36,6 +43,11 @@ interface SpendingChartProps {
 
 interface CategoryChartProps {
   data: CategorySpending[];
+  title?: string;
+}
+
+interface SubcategoryChartProps {
+  data: SubcategorySpending[];
   title?: string;
 }
 
@@ -190,6 +202,88 @@ export function TrendLineChart({
               />
             </LineChart>
           </ResponsiveContainer>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+export function SubcategorySpendingChart({
+  data,
+  title = 'Gastos por Subcategoria',
+}: SubcategoryChartProps) {
+  // Sort data by amount descending and take top 10
+  const topSubcategories = [...data]
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 10);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="h-[300px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={topSubcategories} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <XAxis
+                type="number"
+                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                axisLine={{ stroke: 'hsl(var(--border))' }}
+                // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+                tickFormatter={(value: number) => `R$ ${value}`}
+              />
+              <YAxis
+                type="category"
+                dataKey="name"
+                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                axisLine={{ stroke: 'hsl(var(--border))' }}
+                width={120}
+              />
+              <Tooltip
+                formatter={(value: number) => formatCurrency(value)}
+                labelFormatter={(label: string) => {
+                  const item = topSubcategories.find((s) => s.name === label);
+                  return item ? `${item.parent_name} - ${label}` : label;
+                }}
+                contentStyle={{
+                  backgroundColor: 'hsl(var(--card))',
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '8px',
+                }}
+              />
+              <Bar
+                dataKey="amount"
+                radius={[0, 4, 4, 0]}
+              >
+                {topSubcategories.map((entry, index) => (
+                  <Cell
+                    key={`cell-${String(index)}`}
+                    fill={entry.color || COLORS[index % COLORS.length]}
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="mt-4 space-y-2">
+          {topSubcategories.map((item, index) => (
+            <div key={item.name} className="flex items-center justify-between text-sm">
+              <div className="flex items-center gap-2">
+                <div
+                  className="size-3 rounded-full"
+                  style={{
+                    backgroundColor: item.color || COLORS[index % COLORS.length],
+                  }}
+                />
+                <span className="text-muted-foreground">{item.parent_name}</span>
+                <span>→</span>
+                <span>{item.name}</span>
+              </div>
+              <span className="font-medium">{formatCurrency(item.amount)}</span>
+            </div>
+          ))}
         </div>
       </CardContent>
     </Card>
