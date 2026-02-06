@@ -1,12 +1,12 @@
 'use client';
 
-import { Sidebar } from '@/components/layout/sidebar';
-import { Header } from '@/components/layout/header';
 import {
   MonthlySpendingChart,
   CategorySpendingChart,
   TrendLineChart,
 } from '@/components/dashboard/spending-chart';
+import { Header } from '@/components/layout/header';
+import { Sidebar } from '@/components/layout/sidebar';
 
 // Mock data for charts
 const monthlyData = [

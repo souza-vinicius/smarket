@@ -1,4 +1,5 @@
 import * as React from 'react';
+
 import { cn } from '@/lib/utils';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -50,7 +51,9 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           'inline-flex items-center justify-center rounded-lg font-medium transition-colors',
           'focus:outline-none focus:ring-2 focus:ring-offset-2',
           'disabled:pointer-events-none disabled:opacity-50',
+          // eslint-disable-next-line security/detect-object-injection
           variants[variant],
+          // eslint-disable-next-line security/detect-object-injection
           sizes[size],
           className
         )}
@@ -59,7 +62,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       >
         {isLoading && (
           <svg
-            className="mr-2 h-4 w-4 animate-spin"
+            className="mr-2 size-4 animate-spin"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -90,3 +93,4 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 Button.displayName = 'Button';
 
 export { Button };
+export type { ButtonProps };

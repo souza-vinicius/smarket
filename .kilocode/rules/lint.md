@@ -4,293 +4,147 @@ Política de linting e formatação de código para todo o projeto SMarket. Esta
 
 ---
 
+## Quick Reference
+
+| Task | Backend | Frontend |
+|------|---------|----------|
+| Lint | `ruff check` | `npm run lint` |
+| Fix | `ruff check --fix` | `npm run lint:fix` |
+| Format | `ruff format` | (integrado no lint) |
+| Type Check | `mypy` | `npm run type-check` |
+
+---
+
 ## Python (Backend - apps/api/)
 
 ### Ferramentas Obrigatórias
 
-| Ferramenta | Propósito | Configuração |
-|------------|-----------|--------------|
-| **Ruff** | Linter + Formatter | Substitui flake8, isort, black |
-| **mypy** | Type checking | Modo strict |
-| **pytest** | Testes | Com coverage |
+| Ferramenta | Propósito |
+|------------|-----------|
+| **Ruff** | Linter + Formatter (substitui flake8, isort, black) |
+| **mypy** | Type checking (modo strict) |
+| **pytest** | Testes com coverage |
 
-### Configuração Ruff (pyproject.toml)
+### Configuração Ruff
 
-```toml
-[tool.ruff]
-target-version = "py311"
-line-length = 88
-select = [
-    "E",      # pycodestyle errors
-    "W",      # pycodestyle warnings
-    "F",      # Pyflakes
-    "I",      # isort
-    "B",      # flake8-bugbear
-    "C4",     # flake8-comprehensions
-    "UP",     # pyupgrade
-    "ARG",    # flake8-unused-arguments
-    "SIM",    # flake8-simplify
-    "TCH",    # flake8-type-checking
-    "PTH",    # flake8-use-pathlib
-    "ERA",    # eradicate (commented code)
-    "PL",     # Pylint
-    "RUF",    # Ruff-specific rules
-]
-ignore = [
-    "E501",   # line too long (handled by formatter)
-    "PLR0913", # too many arguments
-]
+Ver `pyproject.toml` para configuração completa.
 
-[tool.ruff.isort]
-known-first-party = ["src"]
-force-single-line = false
-lines-after-imports = 2
-
-[tool.ruff.format]
-quote-style = "double"
-indent-style = "space"
-skip-magic-trailing-comma = false
-```
-
-### Regras de Estilo Python
-
-#### Comprimento de Linha
-- **Máximo**: 88 caracteres (compatível com Black)
-- Exceção: URLs e strings longas podem exceder
-
-#### Type Hints (Obrigatório)
-```python
-# ✅ Correto
-def get_user(user_id: uuid.UUID, db: AsyncSession) -> User | None:
-    ...
-
-async def create_invoice(data: InvoiceCreate) -> InvoiceResponse:
-    ...
-
-# ❌ Incorreto
-def get_user(user_id, db):
-    ...
-```
-
-#### Imports (Ordem isort)
-```python
-# 1. Standard library
-import uuid
-from datetime import datetime
-from typing import TYPE_CHECKING
-
-# 2. Third-party
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
-from sqlalchemy.ext.asyncio import AsyncSession
-
-# 3. Local application (absolute imports ONLY)
-from src.database import get_db
-from src.models.user import User
-from src.schemas.auth import LoginRequest
-```
-
-#### Docstrings (Google Style)
-```python
-async def analyze_invoice(invoice_id: uuid.UUID) -> list[Analysis]:
-    """Analyze an invoice and generate insights.
-
-    Args:
-        invoice_id: The UUID of the invoice to analyze.
-
-    Returns:
-        A list of Analysis objects with generated insights.
-
-    Raises:
-        HTTPException: If invoice is not found (404).
-    """
-    ...
-```
-
-#### Async/Await
-- **SEMPRE** usar `async`/`await` para operações de banco de dados
-- Nunca misturar código síncrono com assíncrono
-
-```python
-# ✅ Correto
-async def get_invoices(db: AsyncSession) -> list[Invoice]:
-    result = await db.execute(select(Invoice))
-    return result.scalars().all()
-
-# ❌ Incorreto
-def get_invoices(db: Session) -> list[Invoice]:
-    return db.query(Invoice).all()
-```
-
-### Comandos de Lint
+### Comandos
 
 ```bash
-# Executar linter
-ruff check apps/api/src/
-
-# Corrigir automaticamente
-ruff check apps/api/src/ --fix
-
-# Formatar código
-ruff format apps/api/src/
-
-# Type checking
-mypy apps/api/src/ --strict
-
-# Verificar tudo antes do commit
-ruff check apps/api/src/ && ruff format --check apps/api/src/ && mypy apps/api/src/
+cd apps/api
+ruff check src/ --fix     # Lint + auto-fix
+ruff format src/          # Formatar
+mypy src/ --strict        # Type check
 ```
 
 ---
 
 ## TypeScript/JavaScript (Frontend - apps/web/)
 
-### Ferramentas Obrigatórias
+### Arquivo de Configuração
 
-| Ferramenta | Propósito |
-|------------|-----------|
-| **ESLint** | Linter |
-| **Prettier** | Formatter |
-| **TypeScript** | Type checking |
+**Novo**: [`apps/web/eslint.config.mjs`](../../apps/web/eslint.config.mjs) (Flat Config)
 
-### Configuração ESLint (.eslintrc.json)
+### Plugins Instalados
 
-```json
+| Plugin | Propósito |
+|--------|-----------|
+| `@typescript-eslint` | Regras TypeScript estritas |
+| `eslint-plugin-react` | Regras React |
+| `eslint-plugin-react-hooks` | Hooks quality (`exhaustive-deps`) |
+| `eslint-plugin-jsx-a11y` | Acessibilidade WCAG |
+| `eslint-plugin-import` | Organização de imports |
+| `eslint-plugin-tailwindcss` | Classes Tailwind válidas |
+| `eslint-plugin-security` | Vulnerabilidades de segurança |
+
+### Regras Essenciais
+
+```javascript
+// eslint.config.mjs (resumo)
 {
-  "extends": [
-    "next/core-web-vitals",
-    "plugin:@typescript-eslint/recommended",
-    "plugin:@typescript-eslint/recommended-requiring-type-checking",
-    "prettier"
-  ],
-  "parser": "@typescript-eslint/parser",
-  "parserOptions": {
-    "project": "./tsconfig.json"
-  },
-  "rules": {
-    "@typescript-eslint/no-unused-vars": "error",
-    "@typescript-eslint/no-explicit-any": "error",
-    "@typescript-eslint/explicit-function-return-type": "warn",
-    "@typescript-eslint/no-floating-promises": "error",
-    "react-hooks/rules-of-hooks": "error",
-    "react-hooks/exhaustive-deps": "warn",
-    "no-console": ["warn", { "allow": ["warn", "error"] }],
-    "prefer-const": "error",
-    "no-var": "error"
-  }
+  // TypeScript
+  '@typescript-eslint/no-explicit-any': 'warn',
+  '@typescript-eslint/no-floating-promises': 'error',
+  '@typescript-eslint/explicit-function-return-type': 'warn',
+  
+  // React
+  'react-hooks/rules-of-hooks': 'error',
+  'react-hooks/exhaustive-deps': 'error',
+  
+  // Acessibilidade
+  'jsx-a11y/alt-text': 'error',
+  'jsx-a11y/label-has-associated-control': 'error',
+  
+  // Segurança
+  'security/detect-object-injection': 'error',
+  
+  // Imports
+  'import/order': ['error', { groups: ['builtin', 'external', 'parent', 'sibling', 'index'] }]
 }
 ```
 
-### Configuração Prettier (.prettierrc)
+### Scripts NPM
 
-```json
-{
-  "semi": true,
-  "singleQuote": false,
-  "tabWidth": 2,
-  "trailingComma": "es5",
-  "printWidth": 100,
-  "bracketSpacing": true,
-  "arrowParens": "always",
-  "endOfLine": "lf"
-}
+```bash
+cd apps/web
+npm run lint         # Verificar erros
+npm run lint:fix     # Corrigir automaticamente
+npm run type-check   # Verificar tipos TS
 ```
 
-### Regras de Estilo TypeScript
+### Exemplos de Código
 
-#### Tipos Explícitos
+#### ✅ Correto
+
 ```typescript
-// ✅ Correto
+// Tipos explícitos
 interface User {
   id: string;
   email: string;
-  fullName: string;
 }
 
-const fetchUser = async (id: string): Promise<User> => {
-  // ...
-};
+async function fetchUser(id: string): Promise<User> {
+  const response = await fetch(`/api/users/${id}`);
+  return response.json();
+}
 
-// ❌ Incorreto
-const fetchUser = async (id) => {
-  // ...
-};
+// Hooks corretos
+function useUserData(userId: string) {
+  return useQuery({
+    queryKey: ['users', userId],
+    queryFn: () => fetchUser(userId),
+  });
+}
 ```
 
-#### Imports Organizados
+#### ❌ Incorreto
+
 ```typescript
-// 1. React/Next.js
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-
-// 2. Third-party
-import { useQuery } from "@tanstack/react-query";
-
-// 3. Local components
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-
-// 4. Types
-import type { Invoice, User } from "@/types";
-
-// 5. Utils/Lib
-import { api } from "@/lib/api";
-import { cn } from "@/lib/utils";
-```
-
-#### Componentes React
-```typescript
-// ✅ Correto - Componente funcional com tipos
-interface InvoiceCardProps {
-  invoice: Invoice;
-  onDelete?: (id: string) => void;
+// any implícito
+function fetchUser(id) {
+  return fetch(`/api/users/${id}`).then(r => r.json());
 }
 
-export function InvoiceCard({ invoice, onDelete }: InvoiceCardProps): JSX.Element {
-  return (
-    <Card>
-      {/* ... */}
-    </Card>
-  );
-}
-
-// ❌ Incorreto - Sem tipos
-export function InvoiceCard({ invoice, onDelete }) {
-  // ...
-}
-```
-
-### Comandos de Lint
-
-```bash
-# Executar ESLint
-npm run lint
-
-# Corrigir automaticamente
-npm run lint -- --fix
-
-# Formatar com Prettier
-npx prettier --write "src/**/*.{ts,tsx}"
-
-# Type check
-npx tsc --noEmit
+// Dependências incompletas
+useEffect(() => {
+  doSomething(props.id);
+}, []); // Erro: missing dependencies
 ```
 
 ---
 
 ## Regras Gerais (Ambos)
 
-### Proibições
+### Proibições Absolutas
 
 | Regra | Motivo |
 |-------|--------|
-| ❌ `any` (TS) / sem type hints (Py) | Perde segurança de tipos |
-| ❌ `console.log` em produção | Usar logger apropriado |
-| ❌ Código comentado | Usar git para histórico |
-| ❌ TODO sem issue | Criar issue no GitHub |
-| ❌ Imports relativos (Python) | Usar absolutos: `from src.` |
-| ❌ `var` (JavaScript) | Usar `const` ou `let` |
-| ❌ Funções sem docstring/JSDoc | Documentar funções públicas |
+| ❌ `any` sem justificativa | Remove type safety |
+| ❌ `console.log` em prod | Usar logger |
+| ❌ Código comentado | Usar git |
+| ❌ Imports relativos (Py) | Usar `from src.` |
+| ❌ `var` (JS) | Usar `const`/`let` |
 
 ### Convenções de Nomenclatura
 
@@ -298,138 +152,75 @@ npx tsc --noEmit
 |----------|--------|------------|
 | Arquivos | `snake_case.py` | `kebab-case.tsx` |
 | Classes | `PascalCase` | `PascalCase` |
-| Funções | `snake_case` | `camelCase` |
+| Funções | `snake_case()` | `camelCase()` |
 | Variáveis | `snake_case` | `camelCase` |
 | Constantes | `UPPER_SNAKE` | `UPPER_SNAKE` |
-| Componentes React | - | `PascalCase` |
-| Hooks | - | `useCamelCase` |
-
-### Tratamento de Erros
-
-```python
-# Python - Usar HTTPException
-from fastapi import HTTPException, status
-
-raise HTTPException(
-    status_code=status.HTTP_404_NOT_FOUND,
-    detail="Invoice not found"
-)
-```
-
-```typescript
-// TypeScript - Usar Error classes
-class ApiError extends Error {
-  constructor(
-    public statusCode: number,
-    message: string
-  ) {
-    super(message);
-  }
-}
-
-throw new ApiError(404, "Invoice not found");
-```
+| Componentes | - | `PascalCase` |
+| Hooks | - | `useCamelCase()` |
 
 ---
 
 ## Pre-commit Hooks
 
-### Configuração (.pre-commit-config.yaml)
-
 ```yaml
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.9
-    hooks:
-      - id: ruff
-        args: [--fix]
-      - id: ruff-format
-
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.8.0
-    hooks:
-      - id: mypy
-        additional_dependencies: [types-all]
+    hooks: [ruff, ruff-format]
 
   - repo: https://github.com/pre-commit/mirrors-eslint
-    rev: v8.56.0
-    hooks:
-      - id: eslint
-        files: \.[jt]sx?$
-        types: [file]
-```
-
-### Instalação
-
-```bash
-pip install pre-commit
-pre-commit install
+    hooks: [eslint]
 ```
 
 ---
 
-## CI/CD Lint Checks
-
-Todo PR deve passar nas seguintes verificações:
-
-1. **Python**: `ruff check` + `ruff format --check` + `mypy`
-2. **TypeScript**: `npm run lint` + `tsc --noEmit`
-3. **Testes**: `pytest` com coverage mínimo de 80%
-
-### GitHub Actions Exemplo
+## CI/CD Checks
 
 ```yaml
-- name: Lint Python
+# GitHub Actions
+- name: Lint Backend
   run: |
-    ruff check apps/api/src/
-    ruff format --check apps/api/src/
-    mypy apps/api/src/ --strict
+    cd apps/api
+    ruff check && ruff format --check
+    mypy
 
-- name: Lint TypeScript
+- name: Lint Frontend
   run: |
     cd apps/web
     npm run lint
-    npx tsc --noEmit
+    npm run type-check
 ```
 
 ---
 
 ## Referência Rápida
 
-### Antes de Commitar
+### Antes do Commit
 
 ```bash
 # Backend
-cd apps/api
-ruff check src/ --fix
-ruff format src/
-mypy src/
-pytest
+cd apps/api && ruff check --fix && ruff format && mypy
 
-# Frontend
-cd apps/web
-npm run lint -- --fix
-npx prettier --write "src/**/*.{ts,tsx}"
-npm run build
+# Frontend  
+cd apps/web && npm run lint:fix && npm run type-check
 ```
 
-### Ignorar Regras (Usar com Moderação)
+### Ignorar Regras (moderadamente)
 
-```python
-# Python - Ignorar linha específica
-some_code()  # noqa: E501
+```typescript
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const data: any = getData();
 
-# Python - Ignorar bloco
-# ruff: noqa: PLR0913
-def function_with_many_args(...):
+// ruff: noqa: PLR0913
+def complex_function(a, b, c, d, e, f, g):
     ...
 ```
 
-```typescript
-// TypeScript - Ignorar linha
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const data: any = response;
+---
 
-// TypeScript - Ignorar arquivo (evitar!)
-/* eslint-disable */
-```
+## Documentação Detalhada
+
+Consulte [`apps/web/ESLINT.md`](../../apps/web/ESLINT.md) para:
+- Lista completa de regras
+- Exemplos detalhados de cada regra
+- Como corrigir problemas comuns
+- Links para documentação oficial

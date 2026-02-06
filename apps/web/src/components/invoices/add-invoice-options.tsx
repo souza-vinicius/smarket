@@ -1,6 +1,7 @@
 'use client';
 
 import { Camera, Upload, QrCode, Info } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -19,17 +20,17 @@ export function AddInvoiceOptions({
             <div className="rounded-xl border-2 border-emerald-100 bg-emerald-50/50 p-6">
                 <div className="text-center">
                     {/* Icon */}
-                    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
-                        <Camera className="h-8 w-8 text-emerald-600" />
+                    <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-emerald-100">
+                        <Camera className="size-8 text-emerald-600" />
                     </div>
 
                     {/* Title */}
-                    <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                    <h3 className="mb-2 text-lg font-semibold text-slate-900">
                         Tire uma foto do cupom fiscal
                     </h3>
 
                     {/* Description */}
-                    <p className="text-sm text-slate-600 mb-6 max-w-md mx-auto">
+                    <p className="mx-auto mb-6 max-w-md text-sm text-slate-600">
                         Capture a imagem completa da nota para que possamos identificar os melhores preços para você.
                     </p>
 
@@ -38,15 +39,15 @@ export function AddInvoiceOptions({
                         variant="primary"
                         size="lg"
                         onClick={onSelectUpload}
-                        leftIcon={<Upload className="h-4 w-4" />}
-                        className="shadow-md mb-4"
+                        leftIcon={<Upload className="size-4" />}
+                        className="mb-4 shadow-md"
                     >
                         Enviar foto ou PDF/XML
                     </Button>
 
                     {/* Helper text */}
                     <p className="flex items-center justify-center gap-2 text-xs text-slate-500">
-                        <Info className="h-3 w-3" />
+                        <Info className="size-3" />
                         Se a nota for longa, você pode enviar várias fotos
                     </p>
                 </div>
@@ -62,8 +63,8 @@ export function AddInvoiceOptions({
                     )}
                 >
                     {/* Icon */}
-                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-slate-100 flex-shrink-0">
-                        <QrCode className="h-6 w-6 text-slate-600" />
+                    <div className="flex size-12 flex-shrink-0 items-center justify-center rounded-lg bg-slate-100">
+                        <QrCode className="size-6 text-slate-600" />
                     </div>
 
                     {/* Content */}

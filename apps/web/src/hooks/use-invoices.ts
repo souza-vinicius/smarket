@@ -1,8 +1,9 @@
 'use client';
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, type UseQueryResult, type UseMutationResult } from '@tanstack/react-query';
+
 import { apiClient } from '@/lib/api';
-import { Invoice, InvoiceList, QRCodeRequest, ProcessingResponse } from '@/types';
+import { type Invoice, type InvoiceList, type QRCodeRequest, type ProcessingResponse } from '@/types';
 
 const INVOICE_KEYS = {
   all: ['invoices'] as const,
@@ -13,23 +14,60 @@ const INVOICE_KEYS = {
   detail: (id: string) => [...INVOICE_KEYS.details(), id] as const,
 };
 
-export function useInvoices(skip = 0, limit = 100) {
+interface InvoiceWithItems extends Invoice {
+  items?: { description: string; quantity: number; unit: string; unit_price: number; total_price: number }[];
+}
+
+export interface InvoiceItemData {
+  description: string;
+  quantity: number;
+  unit: string;
+  unit_price: number;
+  total_price: number;
+}
+
+export interface ExtractedInvoiceData {
+  access_key: string;
+  number: string;
+  series: string;
+  issue_date: string;
+  issuer_name: string;
+  issuer_cnpj: string;
+  total_value: number;
+  items: InvoiceItemData[];
+  image_count?: number;
+  confidence: number;
+  warnings: string[];
+  [key: string]: unknown;
+}
+
+interface ProcessingStatusResponse {
+  processing_id: string;
+  status: string;
+  extracted_data?: ExtractedInvoiceData;
+  confidence_score?: number;
+  errors: string[];
+}
+
+export type ConfirmInvoiceData = ExtractedInvoiceData;
+
+export function useInvoices(skip = 0, limit = 100): UseQueryResult<InvoiceList[]> {
   return useQuery({
     queryKey: INVOICE_KEYS.list({ skip, limit }),
     queryFn: async () => {
-      return apiClient.get<InvoiceList[]>(`/invoices?skip=${skip}&limit=${limit}`);
+      return apiClient.get<InvoiceList[]>(`/invoices?skip=${String(skip)}&limit=${String(limit)}`);
     },
   });
 }
 
-export function useInvoice(id: string) {
+export function useInvoice(id: string): UseQueryResult<InvoiceWithItems> {
   return useQuery({
     queryKey: INVOICE_KEYS.detail(id),
     queryFn: async () => {
-      const data = await apiClient.get<any>(`/invoices/${id}`);
+      const data = await apiClient.get<InvoiceWithItems>(`/invoices/${id}`);
       // Ensure items is an array
-      if (data && !Array.isArray(data.items)) {
-        data.items = data.products || [];
+      if (!Array.isArray(data.items)) {
+        data.items = data.products ?? [];
       }
       return data;
     },
@@ -37,7 +75,7 @@ export function useInvoice(id: string) {
   });
 }
 
-export function useProcessQRCode() {
+export function useProcessQRCode(): UseMutationResult<Invoice, Error, QRCodeRequest> {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -45,12 +83,12 @@ export function useProcessQRCode() {
       return apiClient.post<Invoice>('/invoices/qrcode', data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: INVOICE_KEYS.lists() });
+      void queryClient.invalidateQueries({ queryKey: INVOICE_KEYS.lists() });
     },
   });
 }
 
-export function useUploadXML() {
+export function useUploadXML(): UseMutationResult<Invoice, Error, File> {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -58,12 +96,12 @@ export function useUploadXML() {
       return apiClient.uploadFile<Invoice>('/invoices/upload/xml', file);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: INVOICE_KEYS.lists() });
+      void queryClient.invalidateQueries({ queryKey: INVOICE_KEYS.lists() });
     },
   });
 }
 
-export function useUploadPhotos() {
+export function useUploadPhotos(): UseMutationResult<ProcessingResponse, Error, File[]> {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -71,12 +109,12 @@ export function useUploadPhotos() {
       return apiClient.uploadFiles<ProcessingResponse>('/invoices/upload/photos', files);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: INVOICE_KEYS.lists() });
+      void queryClient.invalidateQueries({ queryKey: INVOICE_KEYS.lists() });
     },
   });
 }
 
-export function useDeleteInvoice() {
+export function useDeleteInvoice(): UseMutationResult<unknown, Error, string> {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -84,22 +122,16 @@ export function useDeleteInvoice() {
       return apiClient.delete(`/invoices/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: INVOICE_KEYS.lists() });
+      void queryClient.invalidateQueries({ queryKey: INVOICE_KEYS.lists() });
     },
   });
 }
 
-export function useProcessingStatus(processingId: string) {
+export function useProcessingStatus(processingId: string): UseQueryResult<ProcessingStatusResponse> {
   return useQuery({
     queryKey: ['processing', processingId],
     queryFn: async () => {
-      return apiClient.get<{
-        processing_id: string;
-        status: string;
-        extracted_data?: any;
-        confidence_score?: number;
-        errors: string[];
-      }>(`/invoices/processing/${processingId}`);
+      return apiClient.get<ProcessingStatusResponse>(`/invoices/processing/${processingId}`);
     },
     enabled: !!processingId,
     refetchInterval: (query) => {
@@ -111,7 +143,7 @@ export function useProcessingStatus(processingId: string) {
   });
 }
 
-export function useConfirmInvoice() {
+export function useConfirmInvoice(): UseMutationResult<Invoice, Error, { processingId: string; data: ConfirmInvoiceData }> {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -120,7 +152,7 @@ export function useConfirmInvoice() {
       data,
     }: {
       processingId: string;
-      data: any;
+      data: ConfirmInvoiceData;
     }) => {
       return apiClient.post<Invoice>(
         `/invoices/processing/${processingId}/confirm`,
@@ -128,7 +160,7 @@ export function useConfirmInvoice() {
       );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: INVOICE_KEYS.lists() });
+      void queryClient.invalidateQueries({ queryKey: INVOICE_KEYS.lists() });
     },
   });
 }

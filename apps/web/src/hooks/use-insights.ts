@@ -1,8 +1,8 @@
 'use client';
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '@/lib/api';
-import { Analysis } from '@/types';
+import { useQuery, useMutation, useQueryClient, type UseQueryResult, type UseMutationResult } from '@tanstack/react-query';
+
+import { type Analysis } from '@/types';
 
 const INSIGHT_KEYS = {
   all: ['insights'] as const,
@@ -13,14 +13,16 @@ const INSIGHT_KEYS = {
   detail: (id: string) => [...INSIGHT_KEYS.details(), id] as const,
 };
 
-export function useInsights(filters: {
+interface InsightsFilters {
   type?: string;
   priority?: string;
   is_read?: boolean;
   skip?: number;
   limit?: number;
-} = {}) {
-  const { type, priority, is_read, skip = 0, limit = 100 } = filters;
+}
+
+export function useInsights(filters: InsightsFilters = {}): UseQueryResult<Analysis[]> {
+  const { type, priority, is_read } = filters;
 
   return useQuery({
     queryKey: INSIGHT_KEYS.list({ type, priority, is_read }),
@@ -35,7 +37,7 @@ export function useInsights(filters: {
       // return apiClient.get<Analysis[]>(`/analysis?${params.toString()}`);
 
       // Mock data for now
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await new Promise((resolve) => { setTimeout(resolve, 500); });
       return [
         {
           id: '1',
@@ -106,7 +108,7 @@ export function useInsights(filters: {
   });
 }
 
-export function useInsight(id: string) {
+export function useInsight(id: string): UseQueryResult<Analysis> {
   return useQuery({
     queryKey: INSIGHT_KEYS.detail(id),
     queryFn: async () => {
@@ -114,7 +116,7 @@ export function useInsight(id: string) {
       // return apiClient.get<Analysis>(`/analysis/${id}`);
 
       // Mock data for now
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await new Promise((resolve) => { setTimeout(resolve, 500); });
       return {
         id,
         user_id: '1',
@@ -136,38 +138,42 @@ export function useInsight(id: string) {
   });
 }
 
-export function useMarkInsightAsRead() {
+interface MarkAsReadResponse {
+  success: boolean;
+}
+
+export function useMarkInsightAsRead(): UseMutationResult<MarkAsReadResponse, Error, string> {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async (_id: string) => {
       // TODO: Replace with actual API call
       // return apiClient.post<Analysis>(`/analysis/${id}/read`);
 
       // Mock data for now
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      await new Promise((resolve) => { setTimeout(resolve, 300); });
       return { success: true };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: INSIGHT_KEYS.lists() });
+      void queryClient.invalidateQueries({ queryKey: INSIGHT_KEYS.lists() });
     },
   });
 }
 
-export function useDismissInsight() {
+export function useDismissInsight(): UseMutationResult<MarkAsReadResponse, Error, string> {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async (_id: string) => {
       // TODO: Replace with actual API call
       // return apiClient.post<Analysis>(`/analysis/${id}/dismiss`);
 
       // Mock data for now
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      await new Promise((resolve) => { setTimeout(resolve, 300); });
       return { success: true };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: INSIGHT_KEYS.lists() });
+      void queryClient.invalidateQueries({ queryKey: INSIGHT_KEYS.lists() });
     },
   });
 }

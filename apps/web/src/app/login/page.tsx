@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+
 import Link from 'next/link';
+
 import { Eye, EyeOff, ArrowRight, Receipt, Search } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+
 import { useAuth } from '@/hooks/use-auth';
 
 export default function LoginPage() {
@@ -19,61 +20,61 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row h-screen w-full overflow-hidden">
+    <div className="flex h-screen w-full flex-col overflow-hidden lg:flex-row">
       {/* Left Panel: Brand & Visuals */}
-      <div className="hidden lg:flex w-1/2 bg-gradient-to-br from-emerald-mid to-emerald-dark relative flex-col justify-between p-12 overflow-hidden">
+      <div className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-gradient-to-br from-emerald-mid to-emerald-dark p-12 lg:flex">
         {/* Background Pattern */}
-        <div className="absolute inset-0 invoice-pattern opacity-20 pointer-events-none" />
+        <div className="invoice-pattern pointer-events-none absolute inset-0 opacity-20" />
 
         {/* Logo Section */}
         <div className="relative z-10 flex items-center gap-3">
-          <div className="flex items-center justify-center w-10 h-10 bg-smarket-primary/20 rounded-lg backdrop-blur-sm border border-smarket-primary/30 text-smarket-primary">
-            <Receipt className="w-6 h-6" />
+          <div className="flex size-10 items-center justify-center rounded-lg border border-smarket-primary/30 bg-smarket-primary/20 text-smarket-primary backdrop-blur-sm">
+            <Receipt className="size-6" />
           </div>
-          <h1 className="text-white text-2xl font-bold tracking-tight">SMarket</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-white">SMarket</h1>
         </div>
 
         {/* Illustration & Hero Text */}
-        <div className="relative z-10 flex flex-col items-start gap-8 my-auto">
-          <div className="w-full max-w-md aspect-square relative flex items-center justify-center">
-            <div className="absolute inset-0 bg-gradient-to-t from-emerald-dark/90 to-transparent mix-blend-multiply rounded-2xl" />
-            <div className="bg-white/10 backdrop-blur-md border border-white/20 p-8 rounded-2xl shadow-2xl transform rotate-3">
-              <Search className="w-[120px] h-[120px] text-smarket-primary drop-shadow-[0_0_15px_rgba(19,236,128,0.5)]" />
+        <div className="relative z-10 my-auto flex flex-col items-start gap-8">
+          <div className="relative flex aspect-square w-full max-w-md items-center justify-center">
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-t from-emerald-dark/90 to-transparent mix-blend-multiply" />
+            <div className="rotate-3 transform rounded-2xl border border-white/20 bg-white/10 p-8 shadow-2xl backdrop-blur-md">
+              <Search className="size-[120px] text-smarket-primary drop-shadow-[0_0_15px_rgba(19,236,128,0.5)]" />
             </div>
           </div>
           <div className="max-w-md">
-            <h2 className="text-4xl font-bold text-white leading-tight mb-2">
+            <h2 className="mb-2 text-4xl font-bold leading-tight text-white">
               Analista de Compras Inteligente
             </h2>
-            <p className="text-emerald-100/80 text-lg leading-relaxed">
+            <p className="text-lg leading-relaxed text-emerald-100/80">
               Transforme seus dados de faturamento em insights acionáveis com nossa tecnologia de análise avançada.
             </p>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="relative z-10 text-emerald-100/40 text-sm">
+        <div className="relative z-10 text-sm text-emerald-100/40">
           © 2024 SMarket Inc.
         </div>
       </div>
 
       {/* Right Panel: Login Form */}
-      <div className="flex-1 flex flex-col justify-center items-center p-6 sm:p-12 lg:p-24 bg-background-light dark:bg-background-dark overflow-y-auto">
-        <div className="w-full max-w-[420px] flex flex-col gap-8">
+      <div className="flex flex-1 flex-col items-center justify-center overflow-y-auto bg-background-light p-6 sm:p-12 lg:p-24 dark:bg-background-dark">
+        <div className="flex w-full max-w-[420px] flex-col gap-8">
           {/* Mobile Logo */}
-          <div className="lg:hidden flex items-center gap-2 mb-4">
-            <div className="flex items-center justify-center w-8 h-8 bg-smarket-primary rounded text-emerald-900">
-              <Receipt className="w-5 h-5" />
+          <div className="mb-4 flex items-center gap-2 lg:hidden">
+            <div className="flex size-8 items-center justify-center rounded bg-smarket-primary text-emerald-900">
+              <Receipt className="size-5" />
             </div>
             <span className="text-xl font-bold text-emerald-900 dark:text-white">SMarket</span>
           </div>
 
           {/* Header */}
           <div className="flex flex-col gap-2">
-            <h2 className="text-3xl font-bold text-emerald-950 dark:text-white tracking-tight">
+            <h2 className="text-3xl font-bold tracking-tight text-emerald-950 dark:text-white">
               Bem-vindo de volta
             </h2>
-            <p className="text-emerald-700/70 dark:text-emerald-200/60 text-base">
+            <p className="text-base text-emerald-700/70 dark:text-emerald-200/60">
               Por favor, insira seus dados para entrar.
             </p>
           </div>
@@ -81,7 +82,7 @@ export default function LoginPage() {
           {/* Form */}
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             {loginError && (
-              <div className="rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 text-sm text-red-700 dark:text-red-400">
+              <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
                 {loginError.message || 'Erro ao fazer login. Verifique suas credenciais.'}
               </div>
             )}
@@ -95,10 +96,10 @@ export default function LoginPage() {
                 id="email"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => { setEmail(e.target.value); }}
                 placeholder="nome@exemplo.com"
                 required
-                className="w-full h-12 px-4 rounded-lg border border-gray-200 dark:border-emerald-800 bg-white dark:bg-emerald-900/30 text-emerald-950 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-smarket-primary/50 focus:border-smarket-primary transition-all"
+                className="h-12 w-full rounded-lg border border-gray-200 bg-white px-4 text-emerald-950 transition-all placeholder:text-gray-400 focus:border-smarket-primary focus:outline-none focus:ring-2 focus:ring-smarket-primary/50 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-white"
               />
             </div>
 
@@ -112,35 +113,35 @@ export default function LoginPage() {
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => { setPassword(e.target.value); }}
                   placeholder="••••••••"
                   required
-                  className="w-full h-12 px-4 pr-12 rounded-lg border border-gray-200 dark:border-emerald-800 bg-white dark:bg-emerald-900/30 text-emerald-950 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-smarket-primary/50 focus:border-smarket-primary transition-all"
+                  className="h-12 w-full rounded-lg border border-gray-200 bg-white px-4 pr-12 text-emerald-950 transition-all placeholder:text-gray-400 focus:border-smarket-primary focus:outline-none focus:ring-2 focus:ring-smarket-primary/50 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-white"
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-emerald-600 transition-colors"
+                  onClick={() => { setShowPassword(!showPassword); }}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 transition-colors hover:text-emerald-600"
                 >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {showPassword ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
                 </button>
               </div>
             </div>
 
             {/* Options Row */}
             <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 cursor-pointer group">
+              <label className="group flex cursor-pointer items-center gap-2">
                 <input
                   type="checkbox"
-                  className="w-4 h-4 rounded border-gray-300 text-smarket-primary focus:ring-smarket-primary/50 cursor-pointer"
+                  className="size-4 cursor-pointer rounded border-gray-300 text-smarket-primary focus:ring-smarket-primary/50"
                 />
-                <span className="text-sm text-emerald-700 dark:text-emerald-200/70 group-hover:text-emerald-900 dark:group-hover:text-emerald-100 transition-colors">
+                <span className="text-sm text-emerald-700 transition-colors group-hover:text-emerald-900 dark:text-emerald-200/70 dark:group-hover:text-emerald-100">
                   Lembrar de mim
                 </span>
               </label>
               <Link
-                href="#"
-                className="text-sm font-semibold text-emerald-600 hover:text-emerald-800 dark:text-smarket-primary dark:hover:text-[#4fffa7] transition-colors"
+                href="/forgot-password"
+                className="text-sm font-semibold text-emerald-600 transition-colors hover:text-emerald-800 dark:text-smarket-primary dark:hover:text-[#4fffa7]"
               >
                 Esqueceu sua senha?
               </Link>
@@ -150,29 +151,29 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={!email || !password || isLoginPending}
-              className="w-full h-12 mt-2 rounded-lg bg-smarket-primary hover:bg-[#0ec76b] text-emerald-950 font-bold text-base shadow-sm shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-smarket-primary text-base font-bold text-emerald-950 shadow-sm shadow-emerald-500/20 transition-all hover:bg-[#0ec76b] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isLoginPending ? (
-                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                <svg className="size-5 animate-spin" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                 </svg>
               ) : (
                 <>
                   <span>Entrar</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRight className="size-4" />
                 </>
               )}
             </button>
           </form>
 
           {/* Footer */}
-          <div className="text-center pt-4 border-t border-gray-100 dark:border-emerald-900/50">
+          <div className="border-t border-gray-100 pt-4 text-center dark:border-emerald-900/50">
             <p className="text-sm text-emerald-700/70 dark:text-emerald-200/60">
               Ainda não tem uma conta?{' '}
               <Link
                 href="/register"
-                className="font-bold text-emerald-700 hover:text-emerald-900 dark:text-smarket-primary dark:hover:text-white transition-colors"
+                className="font-bold text-emerald-700 transition-colors hover:text-emerald-900 dark:text-smarket-primary dark:hover:text-white"
               >
                 Registre-se
               </Link>

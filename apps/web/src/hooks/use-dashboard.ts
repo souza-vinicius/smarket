@@ -1,15 +1,15 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
-import { apiClient } from '@/lib/api';
-import { DashboardSummary, Analysis } from '@/types';
+import { useQuery, type UseQueryResult } from '@tanstack/react-query';
+
+import { type DashboardSummary, type Analysis } from '@/types';
 
 const DASHBOARD_KEYS = {
   summary: ['dashboard', 'summary'] as const,
   insights: ['dashboard', 'insights'] as const,
 };
 
-export function useDashboardSummary() {
+export function useDashboardSummary(): UseQueryResult<DashboardSummary> {
   return useQuery({
     queryKey: DASHBOARD_KEYS.summary,
     queryFn: async () => {
@@ -17,7 +17,7 @@ export function useDashboardSummary() {
       // return apiClient.get<DashboardSummary>('/analysis/dashboard/summary');
       
       // Mock data for now
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await new Promise((resolve) => { setTimeout(resolve, 500); });
       return {
         total_spent_this_month: 1250.50,
         total_spent_last_month: 980.00,
@@ -33,7 +33,7 @@ export function useDashboardSummary() {
   });
 }
 
-export function useRecentInsights(limit = 6) {
+export function useRecentInsights(limit = 6): UseQueryResult<Analysis[]> {
   return useQuery({
     queryKey: [...DASHBOARD_KEYS.insights, limit],
     queryFn: async () => {
@@ -41,34 +41,22 @@ export function useRecentInsights(limit = 6) {
       // return apiClient.get<Analysis[]>(`/analysis?limit=${limit}`);
       
       // Mock data for now
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await new Promise((resolve) => { setTimeout(resolve, 500); });
       return [
         {
           id: '1',
+          user_id: '1',
           type: 'price_alert',
           title: 'Preço acima da média: Arroz',
+          description: 'Você pagou R$ 25,90 pelo arroz, 30% acima da média histórica.',
           priority: 'high',
-          description: 'Você pagou R$ 25,90 pelo arroz, 30% acima da média histórica de R$ 19,90. Considere comprar em outro estabelecimento.',
+          details: { product: 'Arroz', price: 25.9, average: 19.9 },
+          related_categories: ['Alimentos'],
+          related_merchants: ['Supermercado Exemplo'],
           is_read: false,
+          is_acted_upon: false,
           created_at: new Date().toISOString(),
-        },
-        {
-          id: '2',
-          type: 'category_insight',
-          title: 'Gasto elevado em Alimentos',
-          priority: 'medium',
-          description: 'Seus gastos com alimentos este mês estão 40% acima da média dos últimos 3 meses. Tente planejar suas compras com antecedência.',
-          is_read: false,
-          created_at: new Date().toISOString(),
-        },
-        {
-          id: '3',
-          type: 'merchant_pattern',
-          title: 'Preços acima da média em Mercado X',
-          priority: 'medium',
-          description: 'O ticket médio neste estabelecimento é 25% maior que a média da categoria. Considere alternativas mais econômicas.',
-          is_read: false,
-          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         },
       ] as Analysis[];
     },

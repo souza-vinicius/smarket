@@ -41,6 +41,14 @@ export interface Token {
 }
 
 // Invoice Types
+export interface InvoiceItem {
+  description: string;
+  quantity: number;
+  unit: string;
+  unit_price: number;
+  total_price: number;
+}
+
 export interface Product {
   id: string;
   code: string;

@@ -1,11 +1,12 @@
 'use client';
 
 import { Receipt, Calendar, Package } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { InvoiceList as InvoiceListType } from '@/types';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { type InvoiceList as InvoiceListType } from '@/types';
 
 interface InvoiceListProps {
   invoices: InvoiceListType[];
@@ -21,8 +22,8 @@ export function InvoiceList({
   if (isLoading) {
     return (
       <div className="space-y-4">
-        {[...Array(3)].map((_, i) => (
-          <Card key={i}>
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Card key={`skeleton-${String(i)}`}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-2">
@@ -42,7 +43,7 @@ export function InvoiceList({
     return (
       <Card>
         <CardContent className="flex flex-col items-center justify-center py-12">
-          <Receipt className="h-12 w-12 text-muted-foreground" />
+          <Receipt className="size-12 text-muted-foreground" />
           <h3 className="mt-4 text-lg font-medium">Nenhuma nota fiscal</h3>
           <p className="text-sm text-muted-foreground">
             Adicione sua primeira nota fiscal para começar
@@ -55,21 +56,21 @@ export function InvoiceList({
   return (
     <div className="space-y-4">
       {invoices.map((invoice) => (
-        <Card key={invoice.id} className="hover:shadow-md transition-shadow">
+        <Card key={invoice.id} className="transition-shadow hover:shadow-md">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <Receipt className="h-4 w-4 text-muted-foreground" />
+                  <Receipt className="size-4 text-muted-foreground" />
                   <h3 className="font-medium">{invoice.issuer_name}</h3>
                 </div>
                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
                   <span className="flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />
+                    <Calendar className="size-3" />
                     {formatDate(invoice.issue_date)}
                   </span>
                   <span className="flex items-center gap-1">
-                    <Package className="h-3 w-3" />
+                    <Package className="size-3" />
                     {invoice.product_count} produtos
                   </span>
                 </div>
@@ -81,7 +82,7 @@ export function InvoiceList({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => onViewDetails(invoice.id)}
+                  onClick={() => { onViewDetails(invoice.id); }}
                 >
                   Ver detalhes
                 </Button>

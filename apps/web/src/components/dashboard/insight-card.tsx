@@ -1,11 +1,12 @@
 'use client';
 
 import { AlertTriangle, Info, Lightbulb, TrendingUp } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Analysis } from '@/types';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatDate, getPriorityBgColor } from '@/lib/utils';
+import { type Analysis } from '@/types';
 
 interface InsightCardProps {
   insight: Analysis;
@@ -13,10 +14,10 @@ interface InsightCardProps {
 }
 
 const typeIcons: Record<string, React.ReactNode> = {
-  price_alert: <AlertTriangle className="h-4 w-4" />,
-  category_insight: <TrendingUp className="h-4 w-4" />,
-  merchant_pattern: <Info className="h-4 w-4" />,
-  savings_opportunity: <Lightbulb className="h-4 w-4" />,
+  price_alert: <AlertTriangle className="size-4" />,
+  category_insight: <TrendingUp className="size-4" />,
+  merchant_pattern: <Info className="size-4" />,
+  savings_opportunity: <Lightbulb className="size-4" />,
 };
 
 const typeLabels: Record<string, string> = {
@@ -39,7 +40,7 @@ export function InsightCard({ insight, onMarkAsRead }: InsightCardProps) {
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2">
-            {typeIcons[insight.type] || <Info className="h-4 w-4" />}
+            {typeIcons[insight.type] || <Info className="size-4" />}
             <Badge variant="outline" className="text-xs">
               {typeLabels[insight.type] || insight.type}
             </Badge>
@@ -69,7 +70,7 @@ export function InsightCard({ insight, onMarkAsRead }: InsightCardProps) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => onMarkAsRead(insight.id)}
+              onClick={() => { onMarkAsRead(insight.id); }}
             >
               Marcar como lido
             </Button>

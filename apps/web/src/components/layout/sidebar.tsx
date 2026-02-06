@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+
 import {
   LayoutDashboard,
   TrendingUp,
@@ -9,10 +10,10 @@ import {
   LogOut,
   Receipt,
   Settings,
-  User,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+
 import { useAuth } from '@/hooks/use-auth';
+import { cn } from '@/lib/utils';
 
 interface NavItem {
   label: string;
@@ -25,22 +26,22 @@ const navItems: NavItem[] = [
   {
     label: 'Dashboard',
     href: '/dashboard',
-    icon: <LayoutDashboard className="h-5 w-5" />,
+    icon: <LayoutDashboard className="size-5" />,
   },
   {
     label: 'Análises',
     href: '/dashboard/analytics',
-    icon: <TrendingUp className="h-5 w-5" />,
+    icon: <TrendingUp className="size-5" />,
   },
   {
     label: 'Notas Fiscais',
     href: '/invoices',
-    icon: <Receipt className="h-5 w-5" />,
+    icon: <Receipt className="size-5" />,
   },
   {
     label: 'Insights',
     href: '/insights',
-    icon: <Lightbulb className="h-5 w-5" />,
+    icon: <Lightbulb className="size-5" />,
   },
 ];
 
@@ -54,10 +55,10 @@ export function Sidebar() {
         {/* Logo */}
         <div className="flex h-16 items-center border-b border-slate-200 px-6">
           <Link href="/dashboard" className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md">
-              <Receipt className="h-5 w-5" />
+            <div className="flex size-9 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md">
+              <Receipt className="size-5" />
             </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-xl font-bold text-transparent">
               SMarket
             </span>
           </Link>
@@ -93,10 +94,10 @@ export function Sidebar() {
         {/* User Section */}
         <div className="border-t border-slate-200 p-4">
           <div className="mb-3 flex items-center gap-3 rounded-lg bg-slate-50 p-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-white font-semibold">
-              {user?.full_name?.charAt(0).toUpperCase() || 'U'}
+            <div className="flex size-10 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 font-semibold text-white">
+              {user?.full_name.charAt(0).toUpperCase() || 'U'}
             </div>
-            <div className="flex-1 min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-slate-900">
                 {user?.full_name || 'Usuário'}
               </p>
@@ -111,14 +112,14 @@ export function Sidebar() {
               href="/settings"
               className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
             >
-              <Settings className="h-5 w-5" />
+              <Settings className="size-5" />
               Configurações
             </Link>
             <button
               onClick={logout}
               className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 hover:text-red-700"
             >
-              <LogOut className="h-5 w-5" />
+              <LogOut className="size-5" />
               Sair
             </button>
           </div>

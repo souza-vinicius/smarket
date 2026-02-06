@@ -1,9 +1,10 @@
 'use client';
 
 import { Bell, Search, Menu } from 'lucide-react';
+
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/use-auth';
 
 interface HeaderProps {
@@ -24,7 +25,7 @@ export function Header({ title, subtitle }: HeaderProps) {
             size="sm"
             className="lg:hidden"
           >
-            <Menu className="h-5 w-5" />
+            <Menu className="size-5" />
           </Button>
           <div>
             <h1 className="text-xl font-bold text-slate-900">{title}</h1>
@@ -37,12 +38,12 @@ export function Header({ title, subtitle }: HeaderProps) {
         {/* Right Side - Actions */}
         <div className="flex items-center gap-3">
           {/* Search */}
-          <div className="hidden md:block relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <div className="relative hidden md:block">
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
             <Input
               type="text"
               placeholder="Buscar..."
-              className="w-64 pl-10 h-9"
+              className="h-9 w-64 pl-10"
             />
           </div>
 
@@ -52,19 +53,19 @@ export function Header({ title, subtitle }: HeaderProps) {
             size="sm"
             className="relative"
           >
-            <Bell className="h-5 w-5" />
+            <Bell className="size-5" />
             <Badge
               variant="destructive"
-              className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+              className="absolute -right-1 -top-1 flex size-5 items-center justify-center p-0 text-xs"
             >
               3
             </Badge>
           </Button>
 
           {/* User Avatar */}
-          <div className="hidden sm:flex items-center gap-3 pl-3 border-l border-slate-200">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-white font-semibold text-sm">
-              {user?.full_name?.charAt(0).toUpperCase() || 'U'}
+          <div className="hidden items-center gap-3 border-l border-slate-200 pl-3 sm:flex">
+            <div className="flex size-9 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-sm font-semibold text-white">
+              {user?.full_name.charAt(0).toUpperCase() || 'U'}
             </div>
             <div className="hidden lg:block">
               <p className="text-sm font-medium text-slate-900">

@@ -1,7 +1,12 @@
-import axios, { AxiosError, AxiosInstance } from 'axios';
-import { Token, LoginRequest, RegisterRequest, User, UserProfile, UserProfileUpdate } from '@/types';
+import axios, { type AxiosError, type AxiosInstance, type InternalAxiosRequestConfig } from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+import { type Token, type LoginRequest, type RegisterRequest, type User, type UserProfile, type UserProfileUpdate } from '@/types';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/api/v1';
+
+interface RetryableRequest extends InternalAxiosRequestConfig {
+  _retry?: boolean;
+}
 
 class ApiClient {
   private client: AxiosInstance;
@@ -18,7 +23,7 @@ class ApiClient {
     this.setupInterceptors();
   }
 
-  private setupInterceptors() {
+  private setupInterceptors(): void {
     // Request interceptor to add auth token
     this.client.interceptors.request.use(
       (config) => {
@@ -28,22 +33,22 @@ class ApiClient {
         }
         return config;
       },
-      (error) => Promise.reject(error)
+      (error: Error) => Promise.reject(error)
     );
 
     // Response interceptor to handle token refresh
     this.client.interceptors.response.use(
       (response) => response,
       async (error: AxiosError) => {
-        const originalRequest = error.config;
+        const originalRequest = error.config as RetryableRequest | undefined;
 
         if (!originalRequest) {
           return Promise.reject(error);
         }
 
         // If 401 and not already retrying
-        if (error.response?.status === 401 && !(originalRequest as any)._retry) {
-          (originalRequest as any)._retry = true;
+        if (error.response?.status === 401 && !originalRequest._retry) {
+          originalRequest._retry = true;
 
           try {
             const newToken = await this.refreshAccessToken();
@@ -52,7 +57,7 @@ class ApiClient {
           } catch (refreshError) {
             this.logout();
             window.location.href = '/login';
-            return Promise.reject(refreshError);
+            return Promise.reject(refreshError instanceof Error ? refreshError : new Error(String(refreshError)));
           }
         }
 
@@ -121,7 +126,7 @@ class ApiClient {
     return response.data;
   }
 
-  logout() {
+  logout(): void {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
@@ -149,33 +154,33 @@ class ApiClient {
   }
 
   // Generic HTTP methods
-  async get<T>(url: string, params?: Record<string, unknown>) {
+  async get<T>(url: string, params?: Record<string, unknown>): Promise<T> {
     const response = await this.client.get<T>(url, { params });
     return response.data;
   }
 
-  async post<T>(url: string, data?: unknown) {
+  async post<T>(url: string, data?: unknown): Promise<T> {
     const response = await this.client.post<T>(url, data);
     return response.data;
   }
 
-  async put<T>(url: string, data?: unknown) {
+  async put<T>(url: string, data?: unknown): Promise<T> {
     const response = await this.client.put<T>(url, data);
     return response.data;
   }
 
-  async patch<T>(url: string, data?: unknown) {
+  async patch<T>(url: string, data?: unknown): Promise<T> {
     const response = await this.client.patch<T>(url, data);
     return response.data;
   }
 
-  async delete<T>(url: string) {
+  async delete<T>(url: string): Promise<T> {
     const response = await this.client.delete<T>(url);
     return response.data;
   }
 
   // File upload method
-  async uploadFile<T>(url: string, file: File, fieldName: string = 'file') {
+  async uploadFile<T>(url: string, file: File, fieldName = 'file'): Promise<T> {
     const formData = new FormData();
     formData.append(fieldName, file);
 
@@ -188,7 +193,7 @@ class ApiClient {
   }
 
   // Multiple files upload method
-  async uploadFiles<T>(url: string, files: File[], fieldName: string = 'files') {
+  async uploadFiles<T>(url: string, files: File[], fieldName = 'files'): Promise<T> {
     const formData = new FormData();
     files.forEach((file) => {
       formData.append(fieldName, file);

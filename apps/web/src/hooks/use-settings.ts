@@ -1,14 +1,15 @@
 'use client';
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, type UseQueryResult, type UseMutationResult } from '@tanstack/react-query';
+
 import { apiClient } from '@/lib/api';
-import { UserProfile, UserProfileUpdate } from '@/types';
+import { type UserProfile, type UserProfileUpdate } from '@/types';
 
 const SETTINGS_KEYS = {
   profile: ['settings', 'profile'] as const,
 };
 
-export function useProfile() {
+export function useProfile(): UseQueryResult<UserProfile> {
   return useQuery({
     queryKey: SETTINGS_KEYS.profile,
     queryFn: async (): Promise<UserProfile> => {
@@ -17,7 +18,7 @@ export function useProfile() {
   });
 }
 
-export function useUpdateProfile() {
+export function useUpdateProfile(): UseMutationResult<UserProfile, Error, UserProfileUpdate> {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -25,7 +26,7 @@ export function useUpdateProfile() {
       return apiClient.updateProfile(data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: SETTINGS_KEYS.profile });
+      void queryClient.invalidateQueries({ queryKey: SETTINGS_KEYS.profile });
     },
   });
 }

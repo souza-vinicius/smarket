@@ -14,6 +14,7 @@ import {
   Pie,
   Cell,
 } from 'recharts';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
 
@@ -62,7 +63,8 @@ export function MonthlySpendingChart({
               <YAxis
                 tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
                 axisLine={{ stroke: 'hsl(var(--border))' }}
-                tickFormatter={(value) => `R$ ${value}`}
+                // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+                tickFormatter={(value: number) => `R$ ${value}`}
               />
               <Tooltip
                 formatter={(value: number) => formatCurrency(value)}
@@ -109,7 +111,7 @@ export function CategorySpendingChart({
               >
                 {data.map((entry, index) => (
                   <Cell
-                    key={`cell-${index}`}
+                    key={`cell-${String(index)}`}
                     fill={entry.color || COLORS[index % COLORS.length]}
                   />
                 ))}
@@ -130,7 +132,7 @@ export function CategorySpendingChart({
             <div key={item.category} className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-2">
                 <div
-                  className="h-3 w-3 rounded-full"
+                  className="size-3 rounded-full"
                   style={{
                     backgroundColor: item.color || COLORS[index % COLORS.length],
                   }}
@@ -168,7 +170,8 @@ export function TrendLineChart({
               <YAxis
                 tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
                 axisLine={{ stroke: 'hsl(var(--border))' }}
-                tickFormatter={(value) => `R$ ${value}`}
+                // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+                tickFormatter={(value: number) => `R$ ${value}`}
               />
               <Tooltip
                 formatter={(value: number) => formatCurrency(value)}

@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+
 import { Upload, QrCode, X, FileText, Camera, Loader2 } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -47,7 +49,7 @@ export function UploadModal({
       e.stopPropagation();
       setDragActive(false);
 
-      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      if (e.dataTransfer.files?.[0]) {
         const file = e.dataTransfer.files[0];
         if (activeTab === 'xml' && file.name.endsWith('.xml')) {
           onUploadXML(file);
@@ -60,7 +62,7 @@ export function UploadModal({
   );
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
+    if (e.target.files?.[0]) {
       if (activeTab === 'xml') {
         onUploadXML(e.target.files[0]);
       } else if (activeTab === 'photo') {
@@ -76,7 +78,7 @@ export function UploadModal({
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen) {return null;}
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -87,14 +89,14 @@ export function UploadModal({
             onClick={onClose}
             className="rounded-full p-1 hover:bg-accent"
           >
-            <X className="h-5 w-5" />
+            <X className="size-5" />
           </button>
         </div>
 
         {/* Tabs */}
         <div className="mb-4 flex gap-2">
           <button
-            onClick={() => setActiveTab('xml')}
+            onClick={() => { setActiveTab('xml'); }}
             className={cn(
               'flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors',
               activeTab === 'xml'
@@ -102,11 +104,11 @@ export function UploadModal({
                 : 'bg-muted text-muted-foreground hover:bg-accent'
             )}
           >
-            <FileText className="h-4 w-4" />
+            <FileText className="size-4" />
             XML
           </button>
           <button
-            onClick={() => setActiveTab('photo')}
+            onClick={() => { setActiveTab('photo'); }}
             className={cn(
               'flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors',
               activeTab === 'photo'
@@ -114,11 +116,11 @@ export function UploadModal({
                 : 'bg-muted text-muted-foreground hover:bg-accent'
             )}
           >
-            <Camera className="h-4 w-4" />
+            <Camera className="size-4" />
             Foto
           </button>
           <button
-            onClick={() => setActiveTab('qrcode')}
+            onClick={() => { setActiveTab('qrcode'); }}
             className={cn(
               'flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors',
               activeTab === 'qrcode'
@@ -126,7 +128,7 @@ export function UploadModal({
                 : 'bg-muted text-muted-foreground hover:bg-accent'
             )}
           >
-            <QrCode className="h-4 w-4" />
+            <QrCode className="size-4" />
             QR Code
           </button>
         </div>
@@ -141,7 +143,7 @@ export function UploadModal({
             className={cn(
               'rounded-lg border-2 border-dashed p-8 text-center transition-colors',
               isUploading
-                ? 'border-muted bg-muted/20 cursor-wait'
+                ? 'cursor-wait border-muted bg-muted/20'
                 : dragActive
                 ? 'border-primary bg-primary/5'
                 : 'border-muted-foreground/25 hover:border-muted-foreground/50'
@@ -149,13 +151,13 @@ export function UploadModal({
           >
             {isUploading ? (
               <div className="flex flex-col items-center justify-center py-4">
-                <Loader2 className="h-10 w-10 text-primary animate-spin mb-3" />
+                <Loader2 className="mb-3 size-10 animate-spin text-primary" />
                 <p className="text-sm font-medium">Enviando arquivo...</p>
-                <p className="text-xs text-muted-foreground mt-1">Por favor, aguarde.</p>
+                <p className="mt-1 text-xs text-muted-foreground">Por favor, aguarde.</p>
               </div>
             ) : (
               <>
-                <Upload className="mx-auto h-10 w-10 text-muted-foreground" />
+                <Upload className="mx-auto size-10 text-muted-foreground" />
                 <p className="mt-2 text-sm font-medium">
                   {activeTab === 'xml' ? 'Arraste e solte um arquivo XML' : 'Arraste e solte uma foto (JPEG)'}
                 </p>
@@ -181,7 +183,7 @@ export function UploadModal({
                 label="URL do QR Code"
                 placeholder="https://www.sefaz..."
                 value={qrCodeUrl}
-                onChange={(e) => setQrCodeUrl(e.target.value)}
+                onChange={(e) => { setQrCodeUrl(e.target.value); }}
                 helperText="Cole a URL do QR Code da nota fiscal"
               />
             </div>
@@ -191,7 +193,7 @@ export function UploadModal({
               isLoading={isUploading}
               disabled={!qrCodeUrl.trim()}
             >
-              <QrCode className="mr-2 h-4 w-4" />
+              <QrCode className="mr-2 size-4" />
               Processar QR Code
             </Button>
           </form>

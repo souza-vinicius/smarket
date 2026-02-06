@@ -1,15 +1,17 @@
 'use client';
 
 import { useState } from 'react';
+
 import { useRouter } from 'next/navigation';
-import { Plus, Upload, Search, Filter, FileText, Calendar, Store, MoreVertical, Download, Trash2 } from 'lucide-react';
-import { Sidebar } from '@/components/layout/sidebar';
-import { Header } from '@/components/layout/header';
-import { InvoiceList } from '@/components/invoices/invoice-list';
+
+import { Plus, Search, FileText, Calendar, Store, MoreVertical } from 'lucide-react';
+
 import { UploadModal } from '@/components/invoices/upload-modal';
+import { Header } from '@/components/layout/header';
+import { Sidebar } from '@/components/layout/sidebar';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useInvoices, useUploadXML, useProcessQRCode, useUploadPhotos } from '@/hooks/use-invoices';
 import { formatCurrency, formatDate } from '@/lib/utils';
@@ -78,41 +80,41 @@ export default function InvoicesPage() {
         <main className="p-6">
           {/* Stats Cards */}
           <div className="mb-6 grid gap-4 md:grid-cols-3">
-            <div className="rounded-xl bg-white p-6 shadow-sm border border-slate-200">
+            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-slate-600">Total de Notas</p>
-                  <p className="text-3xl font-bold text-slate-900 mt-1">
+                  <p className="mt-1 text-3xl font-bold text-slate-900">
                     {invoices?.length || 0}
                   </p>
                 </div>
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-emerald-100">
-                  <FileText className="h-6 w-6 text-emerald-600" />
+                <div className="flex size-12 items-center justify-center rounded-lg bg-emerald-100">
+                  <FileText className="size-6 text-emerald-600" />
                 </div>
               </div>
             </div>
 
-            <div className="rounded-xl bg-white p-6 shadow-sm border border-slate-200">
+            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-slate-600">Total Gasto</p>
-                  <p className="text-3xl font-bold text-slate-900 mt-1">
+                  <p className="mt-1 text-3xl font-bold text-slate-900">
                     {formatCurrency(
                       invoices?.reduce((sum, inv) => sum + inv.total_value, 0) || 0
                     )}
                   </p>
                 </div>
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-100">
-                  <Store className="h-6 w-6 text-blue-600" />
+                <div className="flex size-12 items-center justify-center rounded-lg bg-blue-100">
+                  <Store className="size-6 text-blue-600" />
                 </div>
               </div>
             </div>
 
-            <div className="rounded-xl bg-white p-6 shadow-sm border border-slate-200">
+            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-slate-600">Este Mês</p>
-                  <p className="text-3xl font-bold text-slate-900 mt-1">
+                  <p className="mt-1 text-3xl font-bold text-slate-900">
                     {
                       invoices?.filter(inv => {
                         const invoiceDate = new Date(inv.issue_date);
@@ -123,8 +125,8 @@ export default function InvoicesPage() {
                     }
                   </p>
                 </div>
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-purple-100">
-                  <Calendar className="h-6 w-6 text-purple-600" />
+                <div className="flex size-12 items-center justify-center rounded-lg bg-purple-100">
+                  <Calendar className="size-6 text-purple-600" />
                 </div>
               </div>
             </div>
@@ -133,14 +135,14 @@ export default function InvoicesPage() {
           {/* Actions and Filters */}
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-1 gap-3">
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <div className="relative max-w-md flex-1">
+                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
                 <Input
                   type="text"
                   placeholder="Buscar por estabelecimento ou chave de acesso..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 h-11"
+                  onChange={(e) => { setSearchQuery(e.target.value); }}
+                  className="h-11 pl-10"
                 />
               </div>
               
@@ -148,21 +150,21 @@ export default function InvoicesPage() {
                 <Button
                   variant={filterType === 'all' ? 'primary' : 'outline'}
                   size="md"
-                  onClick={() => setFilterType('all')}
+                  onClick={() => { setFilterType('all'); }}
                 >
                   Todas
                 </Button>
                 <Button
                   variant={filterType === 'nfce' ? 'primary' : 'outline'}
                   size="md"
-                  onClick={() => setFilterType('nfce')}
+                  onClick={() => { setFilterType('nfce'); }}
                 >
                   NFC-e
                 </Button>
                 <Button
                   variant={filterType === 'nfe' ? 'primary' : 'outline'}
                   size="md"
-                  onClick={() => setFilterType('nfe')}
+                  onClick={() => { setFilterType('nfe'); }}
                 >
                   NF-e
                 </Button>
@@ -172,8 +174,8 @@ export default function InvoicesPage() {
             <Button
               variant="primary"
               size="lg"
-              leftIcon={<Plus className="h-4 w-4" />}
-              onClick={() => setIsUploadModalOpen(true)}
+              leftIcon={<Plus className="size-4" />}
+              onClick={() => { setIsUploadModalOpen(true); }}
               className="shadow-md"
             >
               Adicionar Nota Fiscal
@@ -181,12 +183,12 @@ export default function InvoicesPage() {
           </div>
 
           {/* Invoice List */}
-          <div className="rounded-xl bg-white shadow-sm border border-slate-200 overflow-hidden">
+          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
             {isLoading ? (
-              <div className="p-8 space-y-4">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="flex items-center gap-4 p-4 border-b border-slate-100">
-                    <Skeleton className="h-12 w-12 rounded-lg" />
+              <div className="space-y-4 p-8">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={`skeleton-${String(i)}`} className="flex items-center gap-4 border-b border-slate-100 p-4">
+                    <Skeleton className="size-12 rounded-lg" />
                     <div className="flex-1 space-y-2">
                       <Skeleton className="h-4 w-1/3" />
                       <Skeleton className="h-3 w-1/4" />
@@ -200,15 +202,15 @@ export default function InvoicesPage() {
                 {filteredInvoices.map((invoice) => (
                   <div
                     key={invoice.id}
-                    className="flex items-center gap-4 p-4 hover:bg-slate-50 transition-colors"
+                    className="flex items-center gap-4 p-4 transition-colors hover:bg-slate-50"
                   >
-                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-emerald-100 flex-shrink-0">
-                      <FileText className="h-6 w-6 text-emerald-600" />
+                    <div className="flex size-12 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-100">
+                      <FileText className="size-6 text-emerald-600" />
                     </div>
 
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold text-slate-900 truncate">
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-1 flex items-center gap-2">
+                        <h3 className="truncate font-semibold text-slate-900">
                           {invoice.issuer_name}
                         </h3>
                         <Badge variant="outline" className="text-xs">
@@ -217,17 +219,17 @@ export default function InvoicesPage() {
                       </div>
                       <div className="flex items-center gap-4 text-sm text-slate-600">
                         <span className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
+                          <Calendar className="size-3" />
                           {formatDate(invoice.issue_date)}
                         </span>
                         <span className="flex items-center gap-1">
-                          <FileText className="h-3 w-3" />
+                          <FileText className="size-3" />
                           {invoice.product_count} itens
                         </span>
                       </div>
                     </div>
 
-                    <div className="text-right flex-shrink-0">
+                    <div className="flex-shrink-0 text-right">
                       <p className="text-lg font-bold text-slate-900">
                         {formatCurrency(invoice.total_value)}
                       </p>
@@ -236,11 +238,11 @@ export default function InvoicesPage() {
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex flex-shrink-0 items-center gap-2">
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleViewDetails(invoice.id)}
+                        onClick={() => { handleViewDetails(invoice.id); }}
                       >
                         Ver Detalhes
                       </Button>
@@ -249,7 +251,7 @@ export default function InvoicesPage() {
                         size="sm"
                         className="p-2"
                       >
-                        <MoreVertical className="h-4 w-4" />
+                        <MoreVertical className="size-4" />
                       </Button>
                     </div>
                   </div>
@@ -257,15 +259,15 @@ export default function InvoicesPage() {
               </div>
             ) : (
               <div className="p-12 text-center">
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
-                  <FileText className="h-8 w-8 text-slate-400" />
+                <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-slate-100">
+                  <FileText className="size-8 text-slate-400" />
                 </div>
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                <h3 className="mb-2 text-lg font-semibold text-slate-900">
                   {searchQuery || filterType !== 'all' 
                     ? 'Nenhuma nota fiscal encontrada' 
                     : 'Nenhuma nota fiscal registrada'}
                 </h3>
-                <p className="text-slate-600 mb-4">
+                <p className="mb-4 text-slate-600">
                   {searchQuery || filterType !== 'all'
                     ? 'Tente ajustar os filtros de busca'
                     : 'Adicione sua primeira nota fiscal para começar'}
@@ -273,8 +275,8 @@ export default function InvoicesPage() {
                 {!searchQuery && filterType === 'all' && (
                   <Button
                     variant="primary"
-                    leftIcon={<Plus className="h-4 w-4" />}
-                    onClick={() => setIsUploadModalOpen(true)}
+                    leftIcon={<Plus className="size-4" />}
+                    onClick={() => { setIsUploadModalOpen(true); }}
                   >
                     Adicionar Primeira Nota
                   </Button>
@@ -288,7 +290,7 @@ export default function InvoicesPage() {
       {/* Upload Modal */}
       <UploadModal
         isOpen={isUploadModalOpen}
-        onClose={() => setIsUploadModalOpen(false)}
+        onClose={() => { setIsUploadModalOpen(false); }}
         onUploadXML={handleUploadXML}
         onUploadPhoto={handleUploadPhoto}
         onProcessQRCode={handleProcessQRCode}

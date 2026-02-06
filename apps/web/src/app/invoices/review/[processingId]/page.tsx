@@ -1,29 +1,20 @@
 'use client';
 
 import { useState } from 'react';
+
 import { useParams, useRouter } from 'next/navigation';
-import { useProcessingStatus, useConfirmInvoice } from '@/hooks/use-invoices';
 
-interface InvoiceItem {
-  description: string;
-  quantity: number;
-  unit: string;
-  unit_price: number;
-  total_price: number;
-}
+import { type AxiosError } from 'axios';
 
-interface ExtractedInvoiceData {
-  access_key: string;
-  number: string;
-  series: string;
-  issue_date: string;
-  issuer_name: string;
-  issuer_cnpj: string;
-  total_value: number;
-  items: InvoiceItem[];
-  confidence: number;
-  warnings: string[];
-  image_count?: number;
+import { useProcessingStatus, useConfirmInvoice, type ExtractedInvoiceData } from '@/hooks/use-invoices';
+import { type InvoiceItem } from '@/types';
+
+interface DuplicateErrorData {
+  message: string;
+  existingId?: string;
+  existingNumber?: string;
+  existingDate?: string;
+  existingTotal?: number;
 }
 
 export default function InvoiceReviewPage() {
@@ -35,13 +26,7 @@ export default function InvoiceReviewPage() {
   const confirmMutation = useConfirmInvoice();
 
   const [editedData, setEditedData] = useState<ExtractedInvoiceData | null>(null);
-  const [duplicateError, setDuplicateError] = useState<{
-    message: string;
-    existingId?: string;
-    existingNumber?: string;
-    existingDate?: string;
-    existingTotal?: number;
-  } | null>(null);
+  const [duplicateError, setDuplicateError] = useState<DuplicateErrorData | null>(null);
 
   // Update editedData when processingData changes
   if (processingData?.extracted_data && !editedData) {
@@ -50,7 +35,7 @@ export default function InvoiceReviewPage() {
       ...processingData.extracted_data,
       total_value: Number(processingData.extracted_data.total_value) || 0,
       confidence: Number(processingData.extracted_data.confidence) || 0,
-      items: processingData.extracted_data.items?.map((item: any) => ({
+      items: (processingData.extracted_data.items as InvoiceItem[] | undefined)?.map((item) => ({
         ...item,
         quantity: Number(item.quantity) || 0,
         unit_price: Number(item.unit_price) || 0,
@@ -61,22 +46,27 @@ export default function InvoiceReviewPage() {
   }
 
   const handleItemChange = (index: number, field: keyof InvoiceItem, value: string | number) => {
-    if (!editedData) return;
+    if (!editedData) {return;}
 
     const newItems = [...editedData.items];
 
     // Convert to number if it's a numeric field
     if (field === 'quantity' || field === 'unit_price' || field === 'total_price') {
       const numValue = typeof value === 'string' ? parseFloat(value) || 0 : Number(value) || 0;
+      // eslint-disable-next-line security/detect-object-injection
       newItems[index] = { ...newItems[index], [field]: numValue };
     } else {
+      // eslint-disable-next-line security/detect-object-injection
       newItems[index] = { ...newItems[index], [field]: value };
     }
 
     // Recalculate total_price if quantity or unit_price changed
     if (field === 'quantity' || field === 'unit_price') {
+      // eslint-disable-next-line security/detect-object-injection
       const quantity = Number(newItems[index].quantity) || 0;
+      // eslint-disable-next-line security/detect-object-injection
       const unitPrice = Number(newItems[index].unit_price) || 0;
+      // eslint-disable-next-line security/detect-object-injection
       newItems[index].total_price = quantity * unitPrice;
     }
 
@@ -93,38 +83,39 @@ export default function InvoiceReviewPage() {
   };
 
   const handleHeaderChange = (field: keyof ExtractedInvoiceData, value: string) => {
-    if (!editedData) return;
+    if (!editedData) {return;}
     setEditedData({ ...editedData, [field]: value });
   };
 
   const handleConfirm = async () => {
-    if (!editedData) return;
+    if (!editedData) {return;}
 
     try {
       await confirmMutation.mutateAsync({
         processingId,
-        data: editedData,
+        data: editedData as ExtractedInvoiceData & Record<string, unknown>,
       });
       router.push('/invoices');
-    } catch (err: any) {
+    } catch (err) {
       // Check if it's a duplicate invoice error (409 Conflict)
-      if (err?.response?.status === 409) {
-        const detail = err?.response?.data?.detail;
-        if (typeof detail === 'object') {
+      const axiosError = err as AxiosError<{ detail?: { message?: string; existing_invoice_id?: string; existing_invoice_number?: string; existing_invoice_date?: string; existing_invoice_total?: number } | string; }>;
+      if (axiosError.response?.status === 409) {
+        const detail = axiosError?.response?.data?.detail;
+        if (typeof detail === 'object' && detail !== null) {
           setDuplicateError({
-            message: detail.message || 'Esta nota fiscal já foi cadastrada',
-            existingId: detail.existing_invoice_id,
-            existingNumber: detail.existing_invoice_number,
-            existingDate: detail.existing_invoice_date,
-            existingTotal: detail.existing_invoice_total,
+            message: (detail as { message?: string }).message || 'Esta nota fiscal já foi cadastrada',
+            existingId: (detail as { existing_invoice_id?: string }).existing_invoice_id,
+            existingNumber: (detail as { existing_invoice_number?: string }).existing_invoice_number,
+            existingDate: (detail as { existing_invoice_date?: string }).existing_invoice_date,
+            existingTotal: (detail as { existing_invoice_total?: number }).existing_invoice_total,
           });
         } else {
           setDuplicateError({
-            message: detail || 'Esta nota fiscal já foi cadastrada',
+            message: (typeof detail === 'string' ? detail : 'Esta nota fiscal já foi cadastrada'),
           });
         }
       } else {
-        alert(err?.response?.data?.detail || err.message || 'Falha ao salvar nota fiscal');
+        alert(axiosError?.response?.data?.detail || axiosError.message || 'Falha ao salvar nota fiscal');
       }
     }
   };
@@ -136,9 +127,9 @@ export default function InvoiceReviewPage() {
   // Loading state - initial fetch
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#faf9f7] flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-[#faf9f7]">
         <div className="text-center">
-          <div className="inline-block w-8 h-8 border-2 border-[#2d2d2d] border-t-transparent rounded-full animate-spin mb-4" />
+          <div className="mb-4 inline-block size-8 animate-spin rounded-full border-2 border-[#2d2d2d] border-t-transparent" />
           <p className="font-mono text-sm text-[#666]">Carregando dados...</p>
         </div>
       </div>
@@ -148,14 +139,14 @@ export default function InvoiceReviewPage() {
   // Error state - only show if there's a real error AND we're not still processing
   if (fetchError) {
     return (
-      <div className="min-h-screen bg-[#faf9f7] flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-[#faf9f7]">
         <div className="text-center">
-          <p className="text-red-600 mb-4">
+          <p className="mb-4 text-red-600">
             {String(fetchError)}
           </p>
           <button
-            onClick={() => router.push('/invoices')}
-            className="px-6 py-2 bg-[#2d2d2d] text-white font-mono text-sm hover:bg-[#1a1a1a] transition-colors"
+            onClick={() => { router.push('/invoices'); }}
+            className="bg-[#2d2d2d] px-6 py-2 font-mono text-sm text-white transition-colors hover:bg-[#1a1a1a]"
           >
             Voltar
           </button>
@@ -174,10 +165,10 @@ export default function InvoiceReviewPage() {
         : 'Carregando dados...';
 
     return (
-      <div className="min-h-screen bg-[#faf9f7] flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-[#faf9f7]">
         <div className="text-center">
-          <div className="inline-block w-8 h-8 border-2 border-[#2d2d2d] border-t-transparent rounded-full animate-spin mb-4" />
-          <p className="font-mono text-sm text-[#666] mb-2">{statusMessage}</p>
+          <div className="mb-4 inline-block size-8 animate-spin rounded-full border-2 border-[#2d2d2d] border-t-transparent" />
+          <p className="mb-2 font-mono text-sm text-[#666]">{statusMessage}</p>
           <p className="font-mono text-xs text-[#999]">
             Isso pode levar alguns segundos...
           </p>
@@ -189,24 +180,24 @@ export default function InvoiceReviewPage() {
   // Error status from backend
   if (processingData.status === 'error') {
     return (
-      <div className="min-h-screen bg-[#faf9f7] flex items-center justify-center">
-        <div className="text-center max-w-md">
-          <div className="inline-block p-4 bg-red-100 rounded-full mb-4">
-            <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="flex min-h-screen items-center justify-center bg-[#faf9f7]">
+        <div className="max-w-md text-center">
+          <div className="mb-4 inline-block rounded-full bg-red-100 p-4">
+            <svg className="size-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </div>
-          <h3 className="text-lg font-bold mb-2" style={{ fontFamily: 'Crimson Text, serif' }}>
+          <h3 className="mb-2 text-lg font-bold" style={{ fontFamily: 'Crimson Text, serif' }}>
             Erro no Processamento
           </h3>
-          <p className="text-red-600 mb-4 font-mono text-sm">
-            {processingData.errors?.length > 0
+          <p className="mb-4 font-mono text-sm text-red-600">
+            {processingData.errors.length > 0
               ? processingData.errors.join(', ')
               : 'Não foi possível processar a nota fiscal'}
           </p>
           <button
-            onClick={() => router.push('/invoices')}
-            className="px-6 py-2 bg-[#2d2d2d] text-white font-mono text-sm hover:bg-[#1a1a1a] transition-colors"
+            onClick={() => { router.push('/invoices'); }}
+            className="bg-[#2d2d2d] px-6 py-2 font-mono text-sm text-white transition-colors hover:bg-[#1a1a1a]"
           >
             Voltar
           </button>
@@ -218,12 +209,12 @@ export default function InvoiceReviewPage() {
   // Data not available after extraction
   if (!editedData) {
     return (
-      <div className="min-h-screen bg-[#faf9f7] flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-[#faf9f7]">
         <div className="text-center">
-          <p className="text-red-600 mb-4">Dados extraídos não disponíveis</p>
+          <p className="mb-4 text-red-600">Dados extraídos não disponíveis</p>
           <button
-            onClick={() => router.push('/invoices')}
-            className="px-6 py-2 bg-[#2d2d2d] text-white font-mono text-sm hover:bg-[#1a1a1a] transition-colors"
+            onClick={() => { router.push('/invoices'); }}
+            className="bg-[#2d2d2d] px-6 py-2 font-mono text-sm text-white transition-colors hover:bg-[#1a1a1a]"
           >
             Voltar
           </button>
@@ -249,66 +240,15 @@ export default function InvoiceReviewPage() {
       : 'REVISAR COM ATENÇÃO';
 
   return (
-    <div className="min-h-screen bg-[#faf9f7] py-8 px-4 sm:px-6 lg:px-8">
-      <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
-
-        body {
-          background: repeating-linear-gradient(
-            0deg,
-            #faf9f7 0px,
-            #faf9f7 1px,
-            transparent 1px,
-            transparent 2px
-          );
-        }
-
-        .receipt-texture {
-          background-image:
-            repeating-linear-gradient(
-              0deg,
-              transparent,
-              transparent 24px,
-              rgba(0, 0, 0, 0.02) 24px,
-              rgba(0, 0, 0, 0.02) 25px
-            );
-        }
-
-        .stamp-rotate {
-          transform: rotate(-2deg);
-        }
-
-        .editable-cell {
-          transition: all 0.2s ease;
-        }
-
-        .editable-cell:hover {
-          background: rgba(45, 45, 45, 0.03);
-        }
-
-        .editable-cell:focus {
-          outline: 2px solid #2d2d2d;
-          outline-offset: -2px;
-          background: white;
-        }
-      `}</style>
-
-      <div className="max-w-5xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2" style={{ fontFamily: 'Crimson Text, serif' }}>
-            Revisar Nota Fiscal
-          </h1>
-          <p className="text-[#666] font-mono text-sm">
-            Confirme os dados extraídos antes de salvar
-          </p>
-        </div>
-
-        {/* Main Receipt Container */}
-        <div className="bg-white shadow-lg receipt-texture border-2 border-[#e5e5e5] relative">
+    <div className="min-h-screen bg-[#faf9f7] px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-4xl">
+        {/* Import fonts via link or CSS file instead of jsx global */}
+        
+        {/* Receipt Container */}
+        <div className="receipt-texture relative overflow-hidden rounded-none border border-[#e5e5e5] bg-[#faf9f7] shadow-xl">
           {/* Confidence Stamp */}
           <div
-            className="absolute top-6 right-6 stamp-rotate"
+            className="stamp-rotate absolute right-6 top-6"
             style={{
               border: `3px solid ${confidenceColor}`,
               padding: '12px 20px',
@@ -323,7 +263,7 @@ export default function InvoiceReviewPage() {
               {confidenceLabel}
             </div>
             <div
-              className="font-mono text-2xl font-bold text-center mt-1"
+              className="mt-1 text-center font-mono text-2xl font-bold"
               style={{ color: confidenceColor }}
             >
               {Math.round(confidence * 100)}%
@@ -333,59 +273,60 @@ export default function InvoiceReviewPage() {
           <div className="p-8 sm:p-12">
             {/* Image Count Badge */}
             {editedData.image_count && editedData.image_count > 1 && (
-              <div className="inline-block mb-6 px-4 py-2 bg-[#2d2d2d] text-white font-mono text-xs">
+              <div className="mb-6 inline-block bg-[#2d2d2d] px-4 py-2 font-mono text-xs text-white">
                 {editedData.image_count} IMAGENS PROCESSADAS
               </div>
             )}
 
             {/* Invoice Header Info */}
-            <div className="border-b-2 border-dotted border-[#ccc] pb-8 mb-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="mb-8 border-b-2 border-dotted border-[#ccc] pb-8">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 {/* Issuer */}
                 <div>
-                  <label className="block text-xs font-mono text-[#666] mb-2 tracking-wider">
+                  <label htmlFor="issuer-name" className="mb-2 block font-mono text-xs tracking-wider text-[#666]">
                     ESTABELECIMENTO
                   </label>
                   <input
+                    id="issuer-name"
                     type="text"
                     value={editedData.issuer_name}
-                    onChange={(e) => handleHeaderChange('issuer_name', e.target.value)}
-                    className="w-full font-mono text-lg font-semibold border-b-2 border-transparent hover:border-[#e5e5e5] focus:border-[#2d2d2d] px-2 py-1 transition-colors bg-transparent editable-cell"
+                    onChange={(e) => { handleHeaderChange('issuer_name', e.target.value); }}
+                    className="editable-cell w-full border-b-2 border-transparent bg-transparent px-2 py-1 font-mono text-lg font-semibold transition-colors hover:border-[#e5e5e5] focus:border-[#2d2d2d]"
                     style={{ fontFamily: 'IBM Plex Mono, monospace' }}
                   />
                   <input
                     type="text"
                     value={editedData.issuer_cnpj}
-                    onChange={(e) => handleHeaderChange('issuer_cnpj', e.target.value)}
-                    className="w-full font-mono text-sm text-[#666] mt-1 border-b-2 border-transparent hover:border-[#e5e5e5] focus:border-[#2d2d2d] px-2 py-1 transition-colors bg-transparent editable-cell"
+                    onChange={(e) => { handleHeaderChange('issuer_cnpj', e.target.value); }}
+                    className="editable-cell mt-1 w-full border-b-2 border-transparent bg-transparent px-2 py-1 font-mono text-sm text-[#666] transition-colors hover:border-[#e5e5e5] focus:border-[#2d2d2d]"
                     style={{ fontFamily: 'IBM Plex Mono, monospace' }}
                   />
                 </div>
 
                 {/* Invoice Details */}
                 <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-mono text-[#666] tracking-wider">NF-e Nº</span>
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-xs tracking-wider text-[#666]">NF-e Nº</span>
                     <input
                       type="text"
                       value={editedData.number}
-                      onChange={(e) => handleHeaderChange('number', e.target.value)}
-                      className="font-mono text-sm font-semibold text-right border-b-2 border-transparent hover:border-[#e5e5e5] focus:border-[#2d2d2d] px-2 py-1 transition-colors bg-transparent editable-cell"
+                      onChange={(e) => { handleHeaderChange('number', e.target.value); }}
+                      className="editable-cell border-b-2 border-transparent bg-transparent px-2 py-1 text-right font-mono text-sm font-semibold transition-colors hover:border-[#e5e5e5] focus:border-[#2d2d2d]"
                       style={{ fontFamily: 'IBM Plex Mono, monospace' }}
                     />
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-mono text-[#666] tracking-wider">SÉRIE</span>
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-xs tracking-wider text-[#666]">SÉRIE</span>
                     <input
                       type="text"
                       value={editedData.series}
-                      onChange={(e) => handleHeaderChange('series', e.target.value)}
-                      className="font-mono text-sm font-semibold text-right border-b-2 border-transparent hover:border-[#e5e5e5] focus:border-[#2d2d2d] px-2 py-1 transition-colors bg-transparent editable-cell"
+                      onChange={(e) => { handleHeaderChange('series', e.target.value); }}
+                      className="editable-cell border-b-2 border-transparent bg-transparent px-2 py-1 text-right font-mono text-sm font-semibold transition-colors hover:border-[#e5e5e5] focus:border-[#2d2d2d]"
                       style={{ fontFamily: 'IBM Plex Mono, monospace' }}
                     />
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-mono text-[#666] tracking-wider">DATA</span>
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-xs tracking-wider text-[#666]">DATA</span>
                     <input
                       type="text"
                       value={
@@ -399,8 +340,8 @@ export default function InvoiceReviewPage() {
                             })
                           : ''
                       }
-                      onChange={(e) => handleHeaderChange('issue_date', e.target.value)}
-                      className="font-mono text-sm font-semibold text-right border-b-2 border-transparent hover:border-[#e5e5e5] focus:border-[#2d2d2d] px-2 py-1 transition-colors bg-transparent editable-cell"
+                      onChange={(e) => { handleHeaderChange('issue_date', e.target.value); }}
+                      className="editable-cell border-b-2 border-transparent bg-transparent px-2 py-1 text-right font-mono text-sm font-semibold transition-colors hover:border-[#e5e5e5] focus:border-[#2d2d2d]"
                       style={{ fontFamily: 'IBM Plex Mono, monospace' }}
                     />
                   </div>
@@ -409,14 +350,15 @@ export default function InvoiceReviewPage() {
 
               {/* Access Key */}
               <div className="mt-6">
-                <label className="block text-xs font-mono text-[#666] mb-2 tracking-wider">
+                <label htmlFor="access-key" className="mb-2 block font-mono text-xs tracking-wider text-[#666]">
                   CHAVE DE ACESSO
                 </label>
                 <input
+                  id="access-key"
                   type="text"
                   value={editedData.access_key}
-                  onChange={(e) => handleHeaderChange('access_key', e.target.value)}
-                  className="w-full font-mono text-xs text-[#666] tracking-wider border-b-2 border-transparent hover:border-[#e5e5e5] focus:border-[#2d2d2d] px-2 py-1 transition-colors bg-transparent editable-cell"
+                  onChange={(e) => { handleHeaderChange('access_key', e.target.value); }}
+                  className="editable-cell w-full border-b-2 border-transparent bg-transparent px-2 py-1 font-mono text-xs tracking-wider text-[#666] transition-colors hover:border-[#e5e5e5] focus:border-[#2d2d2d]"
                   style={{ fontFamily: 'IBM Plex Mono, monospace' }}
                 />
               </div>
@@ -425,7 +367,7 @@ export default function InvoiceReviewPage() {
             {/* Items Table */}
             <div className="mb-8">
               <h2
-                className="text-2xl font-bold mb-6"
+                className="mb-6 text-2xl font-bold"
                 style={{ fontFamily: 'Crimson Text, serif' }}
               >
                 Itens
@@ -435,19 +377,19 @@ export default function InvoiceReviewPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b-2 border-[#2d2d2d]">
-                      <th className="text-left py-3 px-2 font-mono text-xs tracking-wider text-[#666]">
+                      <th className="px-2 py-3 text-left font-mono text-xs tracking-wider text-[#666]">
                         DESCRIÇÃO
                       </th>
-                      <th className="text-right py-3 px-2 font-mono text-xs tracking-wider text-[#666] w-24">
+                      <th className="w-24 px-2 py-3 text-right font-mono text-xs tracking-wider text-[#666]">
                         QTD
                       </th>
-                      <th className="text-center py-3 px-2 font-mono text-xs tracking-wider text-[#666] w-16">
+                      <th className="w-16 px-2 py-3 text-center font-mono text-xs tracking-wider text-[#666]">
                         UN
                       </th>
-                      <th className="text-right py-3 px-2 font-mono text-xs tracking-wider text-[#666] w-32">
+                      <th className="w-32 px-2 py-3 text-right font-mono text-xs tracking-wider text-[#666]">
                         PREÇO UN.
                       </th>
-                      <th className="text-right py-3 px-2 font-mono text-xs tracking-wider text-[#666] w-32">
+                      <th className="w-32 px-2 py-3 text-right font-mono text-xs tracking-wider text-[#666]">
                         TOTAL
                       </th>
                     </tr>
@@ -455,54 +397,54 @@ export default function InvoiceReviewPage() {
                   <tbody>
                     {editedData.items.map((item, index) => (
                       <tr
-                        key={index}
-                        className="border-b border-dotted border-[#e5e5e5] hover:bg-[#faf9f7] transition-colors"
+                        key={`${String(index)}-${item.description}`}
+                        className="border-b border-dotted border-[#e5e5e5] transition-colors hover:bg-[#faf9f7]"
                       >
-                        <td className="py-3 px-2">
+                        <td className="px-2 py-3">
                           <input
                             type="text"
                             value={item.description}
                             onChange={(e) =>
-                              handleItemChange(index, 'description', e.target.value)
+                              { handleItemChange(index, 'description', e.target.value); }
                             }
-                            className="w-full font-mono text-sm border-b-2 border-transparent hover:border-[#e5e5e5] focus:border-[#2d2d2d] px-1 py-1 transition-colors bg-transparent editable-cell"
+                            className="editable-cell w-full border-b-2 border-transparent bg-transparent p-1 font-mono text-sm transition-colors hover:border-[#e5e5e5] focus:border-[#2d2d2d]"
                             style={{ fontFamily: 'IBM Plex Mono, monospace' }}
                           />
                         </td>
-                        <td className="py-3 px-2">
+                        <td className="px-2 py-3">
                           <input
                             type="number"
                             step="0.001"
                             value={Number(item.quantity) || 0}
                             onChange={(e) =>
-                              handleItemChange(index, 'quantity', e.target.value)
+                              { handleItemChange(index, 'quantity', e.target.value); }
                             }
-                            className="w-full font-mono text-sm text-right border-b-2 border-transparent hover:border-[#e5e5e5] focus:border-[#2d2d2d] px-1 py-1 transition-colors bg-transparent editable-cell"
+                            className="editable-cell w-full border-b-2 border-transparent bg-transparent p-1 text-right font-mono text-sm transition-colors hover:border-[#e5e5e5] focus:border-[#2d2d2d]"
                             style={{ fontFamily: 'IBM Plex Mono, monospace' }}
                           />
                         </td>
-                        <td className="py-3 px-2">
+                        <td className="px-2 py-3">
                           <input
                             type="text"
                             value={item.unit || ''}
-                            onChange={(e) => handleItemChange(index, 'unit', e.target.value)}
-                            className="w-full font-mono text-sm text-center border-b-2 border-transparent hover:border-[#e5e5e5] focus:border-[#2d2d2d] px-1 py-1 transition-colors bg-transparent editable-cell"
+                            onChange={(e) => { handleItemChange(index, 'unit', e.target.value); }}
+                            className="editable-cell w-full border-b-2 border-transparent bg-transparent p-1 text-center font-mono text-sm transition-colors hover:border-[#e5e5e5] focus:border-[#2d2d2d]"
                             style={{ fontFamily: 'IBM Plex Mono, monospace' }}
                           />
                         </td>
-                        <td className="py-3 px-2">
+                        <td className="px-2 py-3">
                           <input
                             type="number"
                             step="0.01"
                             value={Number(item.unit_price) || 0}
                             onChange={(e) =>
-                              handleItemChange(index, 'unit_price', e.target.value)
+                              { handleItemChange(index, 'unit_price', e.target.value); }
                             }
-                            className="w-full font-mono text-sm text-right border-b-2 border-transparent hover:border-[#e5e5e5] focus:border-[#2d2d2d] px-1 py-1 transition-colors bg-transparent editable-cell"
+                            className="editable-cell w-full border-b-2 border-transparent bg-transparent p-1 text-right font-mono text-sm transition-colors hover:border-[#e5e5e5] focus:border-[#2d2d2d]"
                             style={{ fontFamily: 'IBM Plex Mono, monospace' }}
                           />
                         </td>
-                        <td className="py-3 px-2 font-mono text-sm text-right font-semibold">
+                        <td className="px-2 py-3 text-right font-mono text-sm font-semibold">
                           R$ {(Number(item.total_price) || 0).toFixed(2)}
                         </td>
                       </tr>
@@ -513,8 +455,8 @@ export default function InvoiceReviewPage() {
             </div>
 
             {/* Total */}
-            <div className="border-t-2 border-[#2d2d2d] pt-6 mb-8">
-              <div className="flex justify-between items-center">
+            <div className="mb-8 border-t-2 border-[#2d2d2d] pt-6">
+              <div className="flex items-center justify-between">
                 <span
                   className="text-2xl font-bold"
                   style={{ fontFamily: 'Crimson Text, serif' }}
@@ -532,13 +474,13 @@ export default function InvoiceReviewPage() {
 
             {/* Warnings */}
             {editedData.warnings && editedData.warnings.length > 0 && (
-              <div className="mb-8 p-6 bg-amber-50 border-l-4 border-amber-500">
-                <h3 className="font-mono text-xs font-bold text-amber-800 mb-3 tracking-wider">
+              <div className="mb-8 border-l-4 border-amber-500 bg-amber-50 p-6">
+                <h3 className="mb-3 font-mono text-xs font-bold tracking-wider text-amber-800">
                   ⚠ AVISOS
                 </h3>
                 <ul className="space-y-2">
                   {editedData.warnings.map((warning, index) => (
-                    <li key={index} className="font-mono text-sm text-amber-700">
+                    <li key={`warning-${String(index)}-${warning.substring(0, 10)}`} className="font-mono text-sm text-amber-700">
                       • {warning}
                     </li>
                   ))}
@@ -547,18 +489,18 @@ export default function InvoiceReviewPage() {
             )}
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col gap-4 sm:flex-row">
               <button
-                onClick={handleConfirm}
+                onClick={() => { void handleConfirm(); }}
                 disabled={confirmMutation.isPending}
-                className="flex-1 py-4 bg-[#2d2d2d] text-white font-mono text-sm font-semibold tracking-wider hover:bg-[#1a1a1a] transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98]"
+                className="flex-1 transform bg-[#2d2d2d] py-4 font-mono text-sm font-semibold tracking-wider text-white transition-all hover:scale-[1.02] hover:bg-[#1a1a1a] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {confirmMutation.isPending ? 'SALVANDO...' : 'CONFIRMAR E SALVAR'}
               </button>
               <button
                 onClick={handleCancel}
                 disabled={confirmMutation.isPending}
-                className="flex-1 sm:flex-none px-8 py-4 border-2 border-[#2d2d2d] text-[#2d2d2d] font-mono text-sm font-semibold tracking-wider hover:bg-[#2d2d2d] hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 border-2 border-[#2d2d2d] px-8 py-4 font-mono text-sm font-semibold tracking-wider text-[#2d2d2d] transition-all hover:bg-[#2d2d2d] hover:text-white disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
               >
                 CANCELAR
               </button>
@@ -567,20 +509,20 @@ export default function InvoiceReviewPage() {
         </div>
 
         {/* Footer Note */}
-        <p className="text-center text-xs font-mono text-[#999] mt-8">
+        <p className="mt-8 text-center font-mono text-xs text-[#999]">
           Clique nos campos para editar • Alterações são salvas ao confirmar
         </p>
       </div>
 
       {/* Duplicate Error Modal */}
       {duplicateError && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white max-w-md w-full receipt-texture border-2 border-red-500 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="receipt-texture w-full max-w-md border-2 border-red-500 bg-white shadow-2xl">
             <div className="p-8">
               {/* Error Icon */}
-              <div className="flex justify-center mb-6">
-                <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
-                  <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="mb-6 flex justify-center">
+                <div className="flex size-16 items-center justify-center rounded-full bg-red-100">
+                  <svg className="size-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
                 </div>
@@ -588,21 +530,21 @@ export default function InvoiceReviewPage() {
 
               {/* Title */}
               <h2
-                className="text-2xl font-bold text-center mb-4 text-red-600"
+                className="mb-4 text-center text-2xl font-bold text-red-600"
                 style={{ fontFamily: 'Crimson Text, serif' }}
               >
                 Nota Fiscal Duplicada
               </h2>
 
               {/* Message */}
-              <p className="text-center font-mono text-sm text-gray-700 mb-6">
+              <p className="mb-6 text-center font-mono text-sm text-gray-700">
                 {duplicateError.message}
               </p>
 
               {/* Existing Invoice Info */}
               {duplicateError.existingNumber && (
-                <div className="bg-gray-50 p-4 mb-6 border-l-4 border-red-500">
-                  <p className="font-mono text-xs text-gray-600 mb-2">NOTA EXISTENTE:</p>
+                <div className="mb-6 border-l-4 border-red-500 bg-gray-50 p-4">
+                  <p className="mb-2 font-mono text-xs text-gray-600">NOTA EXISTENTE:</p>
                   <div className="space-y-1 font-mono text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Número:</span>
@@ -635,13 +577,13 @@ export default function InvoiceReviewPage() {
                     setDuplicateError(null);
                     router.push('/invoices');
                   }}
-                  className="w-full py-3 bg-[#2d2d2d] text-white font-mono text-sm font-semibold tracking-wider hover:bg-[#1a1a1a] transition-colors"
+                  className="w-full bg-[#2d2d2d] py-3 font-mono text-sm font-semibold tracking-wider text-white transition-colors hover:bg-[#1a1a1a]"
                 >
                   VER TODAS AS NOTAS
                 </button>
                 <button
-                  onClick={() => setDuplicateError(null)}
-                  className="w-full py-3 border-2 border-[#2d2d2d] text-[#2d2d2d] font-mono text-sm font-semibold tracking-wider hover:bg-[#f5f5f5] transition-colors"
+                  onClick={() => { setDuplicateError(null); }}
+                  className="w-full border-2 border-[#2d2d2d] py-3 font-mono text-sm font-semibold tracking-wider text-[#2d2d2d] transition-colors hover:bg-[#f5f5f5]"
                 >
                   FECHAR
                 </button>

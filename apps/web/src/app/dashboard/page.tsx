@@ -1,10 +1,11 @@
 'use client';
 
-import { DollarSign, FileText, AlertCircle, TrendingUp, Plus, ArrowUpRight, ArrowDownRight, Sparkles } from 'lucide-react';
-import { Sidebar } from '@/components/layout/sidebar';
-import { Header } from '@/components/layout/header';
-import { SummaryCard } from '@/components/dashboard/summary-card';
+import { DollarSign, FileText, AlertCircle, TrendingUp, Plus, ArrowUpRight, Sparkles } from 'lucide-react';
+
 import { InsightCard } from '@/components/dashboard/insight-card';
+import { SummaryCard } from '@/components/dashboard/summary-card';
+import { Header } from '@/components/layout/header';
+import { Sidebar } from '@/components/layout/sidebar';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDashboardSummary, useRecentInsights } from '@/hooks/use-dashboard';
@@ -30,13 +31,13 @@ export default function DashboardPage() {
           <div className="mb-8 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 p-6 text-white shadow-lg">
             <div className="flex items-start justify-between">
               <div>
-                <h1 className="text-2xl font-bold mb-2">Olá! 👋</h1>
+                <h1 className="mb-2 text-2xl font-bold">Olá! 👋</h1>
                 <p className="text-emerald-100">
                   Aqui está o resumo das suas compras e insights para economizar
                 </p>
               </div>
               <div className="hidden sm:block">
-                <Sparkles className="h-12 w-12 text-emerald-200" />
+                <Sparkles className="size-12 text-emerald-200" />
               </div>
             </div>
           </div>
@@ -56,28 +57,28 @@ export default function DashboardPage() {
                   title="Gastos do Mês"
                   value={summary.total_spent_this_month}
                   change={summary.month_over_month_change_percent}
-                  icon={<DollarSign className="h-5 w-5" />}
+                  icon={<DollarSign className="size-5" />}
                   format="currency"
                 />
                 <SummaryCard
                   title="Notas Fiscais"
                   value={summary.invoice_count_this_month}
                   subtitle="Este mês"
-                  icon={<FileText className="h-5 w-5" />}
+                  icon={<FileText className="size-5" />}
                   format="number"
                 />
                 <SummaryCard
                   title="Insights Não Lidos"
                   value={summary.unread_insights_count}
                   subtitle="Aguardando sua atenção"
-                  icon={<AlertCircle className="h-5 w-5" />}
+                  icon={<AlertCircle className="size-5" />}
                   format="number"
                 />
                 <SummaryCard
                   title="Top Estabelecimento"
                   value={summary.top_merchant_this_month?.total || 0}
                   subtitle={summary.top_merchant_this_month?.name || 'N/A'}
-                  icon={<TrendingUp className="h-5 w-5" />}
+                  icon={<TrendingUp className="size-5" />}
                   format="currency"
                 />
               </>
@@ -89,7 +90,7 @@ export default function DashboardPage() {
             <Button
               variant="primary"
               size="lg"
-              leftIcon={<Plus className="h-4 w-4" />}
+              leftIcon={<Plus className="size-4" />}
               className="shadow-md"
             >
               Adicionar Nota Fiscal
@@ -97,7 +98,7 @@ export default function DashboardPage() {
             <Button
               variant="outline"
               size="lg"
-              leftIcon={<TrendingUp className="h-4 w-4" />}
+              leftIcon={<TrendingUp className="size-4" />}
             >
               Ver Análises
             </Button>
@@ -114,14 +115,14 @@ export default function DashboardPage() {
               </div>
               <Button variant="ghost" size="sm">
                 Ver todos
-                <ArrowUpRight className="ml-2 h-4 w-4" />
+                <ArrowUpRight className="ml-2 size-4" />
               </Button>
             </div>
             
             {isInsightsLoading ? (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {[...Array(3)].map((_, i) => (
-                  <Skeleton key={i} className="h-48 rounded-xl" />
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={`skeleton-${String(i)}`} className="h-48 rounded-xl" />
                 ))}
               </div>
             ) : insights && insights.length > 0 ? (
@@ -130,24 +131,24 @@ export default function DashboardPage() {
                   <InsightCard
                     key={insight.id}
                     insight={insight}
-                    onMarkAsRead={(id) => markAsReadMutation.mutate(id)}
+                    onMarkAsRead={(id) => { markAsReadMutation.mutate(id); }}
                   />
                 ))}
               </div>
             ) : (
               <div className="rounded-xl border-2 border-dashed border-slate-200 p-12 text-center">
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
-                  <Sparkles className="h-8 w-8 text-slate-400" />
+                <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-slate-100">
+                  <Sparkles className="size-8 text-slate-400" />
                 </div>
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                <h3 className="mb-2 text-lg font-semibold text-slate-900">
                   Nenhum insight ainda
                 </h3>
-                <p className="text-slate-600 mb-4">
+                <p className="mb-4 text-slate-600">
                   Adicione suas notas fiscais para começar a receber insights personalizados
                 </p>
                 <Button
                   variant="primary"
-                  leftIcon={<Plus className="h-4 w-4" />}
+                  leftIcon={<Plus className="size-4" />}
                 >
                   Adicionar Primeira Nota
                 </Button>
