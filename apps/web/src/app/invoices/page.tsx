@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useInvoices, useUploadXML, useProcessQRCode } from '@/hooks/use-invoices';
+import { useInvoices, useUploadXML, useUploadImages, useProcessQRCode } from '@/hooks/use-invoices';
 import { formatCurrency, formatDate } from '@/lib/utils';
 
 export default function InvoicesPage() {
@@ -19,10 +19,19 @@ export default function InvoicesPage() {
   const [filterType, setFilterType] = useState<'all' | 'nfce' | 'nfe'>('all');
   const { data: invoices, isLoading } = useInvoices();
   const uploadXMLMutation = useUploadXML();
+  const uploadImagesMutation = useUploadImages();
   const processQRCodeMutation = useProcessQRCode();
 
   const handleUploadXML = (file: File) => {
     uploadXMLMutation.mutate(file, {
+      onSuccess: () => {
+        setIsUploadModalOpen(false);
+      },
+    });
+  };
+
+  const handleUploadImages = (files: File[]) => {
+    uploadImagesMutation.mutate(files, {
       onSuccess: () => {
         setIsUploadModalOpen(false);
       },
@@ -278,8 +287,9 @@ export default function InvoicesPage() {
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
         onUploadXML={handleUploadXML}
+        onUploadImages={handleUploadImages}
         onProcessQRCode={handleProcessQRCode}
-        isUploading={uploadXMLMutation.isPending || processQRCodeMutation.isPending}
+        isUploading={uploadXMLMutation.isPending || uploadImagesMutation.isPending || processQRCodeMutation.isPending}
       />
     </div>
   );

@@ -14,7 +14,7 @@ import { AddInvoiceOptions } from '@/components/invoices/add-invoice-options';
 import { UploadModal } from '@/components/invoices/upload-modal';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useInvoices, useUploadXML, useProcessQRCode } from '@/hooks/use-invoices';
+import { useInvoices, useUploadXML, useUploadImages, useProcessQRCode } from '@/hooks/use-invoices';
 import { formatCurrency, formatDate } from '@/lib/utils';
 
 type UploadMode = 'qrcode' | 'xml' | null;
@@ -23,6 +23,7 @@ export default function AddInvoicePage() {
     const [uploadMode, setUploadMode] = useState<UploadMode>(null);
     const { data: invoices, isLoading: isLoadingInvoices } = useInvoices();
     const uploadXMLMutation = useUploadXML();
+    const uploadImagesMutation = useUploadImages();
     const processQRCodeMutation = useProcessQRCode();
 
     // Get last 3 invoices
@@ -30,6 +31,14 @@ export default function AddInvoicePage() {
 
     const handleUploadXML = (file: File) => {
         uploadXMLMutation.mutate(file, {
+            onSuccess: () => {
+                setUploadMode(null);
+            },
+        });
+    };
+
+    const handleUploadImages = (files: File[]) => {
+        uploadImagesMutation.mutate(files, {
             onSuccess: () => {
                 setUploadMode(null);
             },
@@ -155,8 +164,9 @@ export default function AddInvoicePage() {
                 isOpen={uploadMode !== null}
                 onClose={() => setUploadMode(null)}
                 onUploadXML={handleUploadXML}
+                onUploadImages={handleUploadImages}
                 onProcessQRCode={handleProcessQRCode}
-                isUploading={uploadXMLMutation.isPending || processQRCodeMutation.isPending}
+                isUploading={uploadXMLMutation.isPending || uploadImagesMutation.isPending || processQRCodeMutation.isPending}
             />
         </div>
     );
