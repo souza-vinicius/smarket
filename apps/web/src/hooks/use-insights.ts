@@ -2,8 +2,9 @@
 
 import { useQuery, useMutation, useQueryClient, type UseQueryResult, type UseMutationResult } from '@tanstack/react-query';
 
-import { type Analysis } from '@/types';
+import { DASHBOARD_KEYS } from '@/hooks/use-dashboard';
 import { apiClient } from '@/lib/api';
+import { type Analysis } from '@/types';
 
 const INSIGHT_KEYS = {
   all: ['insights'] as const,
@@ -61,6 +62,8 @@ export function useMarkInsightAsRead(): UseMutationResult<Analysis, Error, strin
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: INSIGHT_KEYS.lists() });
+      void queryClient.invalidateQueries({ queryKey: DASHBOARD_KEYS.summary });
+      void queryClient.invalidateQueries({ queryKey: DASHBOARD_KEYS.insights });
     },
   });
 }
@@ -74,6 +77,8 @@ export function useDismissInsight(): UseMutationResult<Analysis, Error, string> 
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: INSIGHT_KEYS.lists() });
+      void queryClient.invalidateQueries({ queryKey: DASHBOARD_KEYS.summary });
+      void queryClient.invalidateQueries({ queryKey: DASHBOARD_KEYS.insights });
     },
   });
 }

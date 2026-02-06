@@ -2,10 +2,10 @@
 
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 
-import { type DashboardSummary, type Analysis } from '@/types';
 import { apiClient } from '@/lib/api';
+import { type DashboardSummary, type Analysis } from '@/types';
 
-const DASHBOARD_KEYS = {
+export const DASHBOARD_KEYS = {
   summary: ['dashboard', 'summary'] as const,
   insights: ['dashboard', 'insights'] as const,
 };
