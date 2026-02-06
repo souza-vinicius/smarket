@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 import { Upload, QrCode, X, FileText, Camera, Loader2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { FEATURE_FLAGS } from '@/lib/feature-flags';
 import { cn } from '@/lib/utils';
 
 interface UploadModalProps {
@@ -29,9 +30,23 @@ export function UploadModal({
   isUploading,
   initialTab = 'xml',
 }: UploadModalProps) {
-  const [activeTab, setActiveTab] = useState<UploadTab>(initialTab);
+  // Determine the effective initial tab based on flags
+  const getEffectiveInitialTab = (): UploadTab => {
+    if (initialTab === 'xml' && !FEATURE_FLAGS.ENABLE_XML_UPLOAD) return 'photo';
+    if (initialTab === 'qrcode' && !FEATURE_FLAGS.ENABLE_QR_CODE) return 'photo';
+    return initialTab;
+  };
+
+  const [activeTab, setActiveTab] = useState<UploadTab>(getEffectiveInitialTab());
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [dragActive, setDragActive] = useState(false);
+
+  // Reset tab when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab(getEffectiveInitialTab());
+    }
+  }, [isOpen, initialTab]);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -51,7 +66,7 @@ export function UploadModal({
 
       if (e.dataTransfer.files?.[0]) {
         const file = e.dataTransfer.files[0];
-        if (activeTab === 'xml' && file.name.endsWith('.xml')) {
+        if (activeTab === 'xml' && FEATURE_FLAGS.ENABLE_XML_UPLOAD && file.name.endsWith('.xml')) {
           onUploadXML(file);
         } else if (activeTab === 'photo' && (file.type === 'image/jpeg' || file.type === 'image/png' || file.type === 'image/heic')) {
           onUploadPhoto(file);
@@ -63,7 +78,7 @@ export function UploadModal({
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
-      if (activeTab === 'xml') {
+      if (activeTab === 'xml' && FEATURE_FLAGS.ENABLE_XML_UPLOAD) {
         onUploadXML(e.target.files[0]);
       } else if (activeTab === 'photo') {
         onUploadPhoto(e.target.files[0]);
@@ -73,12 +88,14 @@ export function UploadModal({
 
   const handleQRCodeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (qrCodeUrl.trim()) {
+    if (qrCodeUrl.trim() && FEATURE_FLAGS.ENABLE_QR_CODE) {
       onProcessQRCode(qrCodeUrl.trim());
     }
   };
 
-  if (!isOpen) {return null;}
+  if (!isOpen) { return null; }
+
+  const showTabs = FEATURE_FLAGS.ENABLE_XML_UPLOAD || FEATURE_FLAGS.ENABLE_QR_CODE;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -93,45 +110,51 @@ export function UploadModal({
           </button>
         </div>
 
-        {/* Tabs */}
-        <div className="mb-4 flex gap-2">
-          <button
-            onClick={() => { setActiveTab('xml'); }}
-            className={cn(
-              'flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors',
-              activeTab === 'xml'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-muted-foreground hover:bg-accent'
+        {/* Tabs - Only show if there's more than one option */}
+        {showTabs && (
+          <div className="mb-4 flex gap-2">
+            {FEATURE_FLAGS.ENABLE_XML_UPLOAD && (
+              <button
+                onClick={() => { setActiveTab('xml'); }}
+                className={cn(
+                  'flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors',
+                  activeTab === 'xml'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-accent'
+                )}
+              >
+                <FileText className="size-4" />
+                XML
+              </button>
             )}
-          >
-            <FileText className="size-4" />
-            XML
-          </button>
-          <button
-            onClick={() => { setActiveTab('photo'); }}
-            className={cn(
-              'flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors',
-              activeTab === 'photo'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-muted-foreground hover:bg-accent'
+            <button
+              onClick={() => { setActiveTab('photo'); }}
+              className={cn(
+                'flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors',
+                activeTab === 'photo'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-muted-foreground hover:bg-accent'
+              )}
+            >
+              <Camera className="size-4" />
+              Foto
+            </button>
+            {FEATURE_FLAGS.ENABLE_QR_CODE && (
+              <button
+                onClick={() => { setActiveTab('qrcode'); }}
+                className={cn(
+                  'flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors',
+                  activeTab === 'qrcode'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-accent'
+                )}
+              >
+                <QrCode className="size-4" />
+                QR Code
+              </button>
             )}
-          >
-            <Camera className="size-4" />
-            Foto
-          </button>
-          <button
-            onClick={() => { setActiveTab('qrcode'); }}
-            className={cn(
-              'flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors',
-              activeTab === 'qrcode'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-muted-foreground hover:bg-accent'
-            )}
-          >
-            <QrCode className="size-4" />
-            QR Code
-          </button>
-        </div>
+          </div>
+        )}
 
         {/* Content */}
         {activeTab === 'xml' || activeTab === 'photo' ? (
@@ -145,8 +168,8 @@ export function UploadModal({
               isUploading
                 ? 'cursor-wait border-muted bg-muted/20'
                 : dragActive
-                ? 'border-primary bg-primary/5'
-                : 'border-muted-foreground/25 hover:border-muted-foreground/50'
+                  ? 'border-primary bg-primary/5'
+                  : 'border-muted-foreground/25 hover:border-muted-foreground/50'
             )}
           >
             {isUploading ? (

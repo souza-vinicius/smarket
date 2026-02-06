@@ -3,6 +3,7 @@
 import { Camera, Upload, QrCode, Info } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { FEATURE_FLAGS } from '@/lib/feature-flags';
 import { cn } from '@/lib/utils';
 
 interface AddInvoiceOptionsProps {
@@ -42,7 +43,7 @@ export function AddInvoiceOptions({
                         leftIcon={<Upload className="size-4" />}
                         className="mb-4 shadow-md"
                     >
-                        Enviar foto ou PDF/XML
+                        {FEATURE_FLAGS.ENABLE_XML_UPLOAD ? "Enviar foto ou PDF/XML" : "Enviar foto"}
                     </Button>
 
                     {/* Helper text */}
@@ -54,30 +55,32 @@ export function AddInvoiceOptions({
             </div>
 
             {/* Secondary - Quick Scan QR Code */}
-            <div className="rounded-xl border border-slate-200 bg-white p-4">
-                <button
-                    onClick={onSelectQRCode}
-                    className={cn(
-                        'flex w-full items-center gap-4 text-left transition-colors',
-                        'hover:opacity-80'
-                    )}
-                >
-                    {/* Icon */}
-                    <div className="flex size-12 flex-shrink-0 items-center justify-center rounded-lg bg-slate-100">
-                        <QrCode className="size-6 text-slate-600" />
-                    </div>
+            {FEATURE_FLAGS.ENABLE_QR_CODE && (
+                <div className="rounded-xl border border-slate-200 bg-white p-4">
+                    <button
+                        onClick={onSelectQRCode}
+                        className={cn(
+                            'flex w-full items-center gap-4 text-left transition-colors',
+                            'hover:opacity-80'
+                        )}
+                    >
+                        {/* Icon */}
+                        <div className="flex size-12 flex-shrink-0 items-center justify-center rounded-lg bg-slate-100">
+                            <QrCode className="size-6 text-slate-600" />
+                        </div>
 
-                    {/* Content */}
-                    <div className="flex-1">
-                        <h4 className="font-semibold text-slate-900">
-                            Quick Scan
-                        </h4>
-                        <p className="text-sm text-slate-600">
-                            Ou aponte sua câmera para o QR Code da nota fiscal impressa
-                        </p>
-                    </div>
-                </button>
-            </div>
+                        {/* Content */}
+                        <div className="flex-1">
+                            <h4 className="font-semibold text-slate-900">
+                                Quick Scan
+                            </h4>
+                            <p className="text-sm text-slate-600">
+                                Ou aponte sua câmera para o QR Code da nota fiscal impressa
+                            </p>
+                        </div>
+                    </button>
+                </div>
+            )}
         </div>
     );
 }

@@ -1,31 +1,74 @@
 'use client';
 
+import { useState } from 'react';
+
+import { useRouter } from 'next/navigation';
+
 import { DollarSign, FileText, AlertCircle, TrendingUp, Plus, ArrowUpRight, Sparkles } from 'lucide-react';
 
 import { InsightCard } from '@/components/dashboard/insight-card';
 import { SummaryCard } from '@/components/dashboard/summary-card';
+import { UploadModal } from '@/components/invoices/upload-modal';
 import { Header } from '@/components/layout/header';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDashboardSummary, useRecentInsights } from '@/hooks/use-dashboard';
 import { useMarkInsightAsRead } from '@/hooks/use-insights';
+import { useUploadXML, useProcessQRCode, useUploadPhotos } from '@/hooks/use-invoices';
+
+type UploadMode = 'qrcode' | 'xml' | 'photo' | null;
 
 export default function DashboardPage() {
+  const router = useRouter();
   const { data: summary, isLoading: isSummaryLoading } = useDashboardSummary();
   const { data: insights, isLoading: isInsightsLoading } = useRecentInsights(6);
   const markAsReadMutation = useMarkInsightAsRead();
 
+  const [uploadMode, setUploadMode] = useState<UploadMode>(null);
+  const uploadXMLMutation = useUploadXML();
+  const uploadPhotosMutation = useUploadPhotos();
+  const processQRCodeMutation = useProcessQRCode();
+
+  const handleUploadXML = (file: File) => {
+    uploadXMLMutation.mutate(file, {
+      onSuccess: () => {
+        setUploadMode(null);
+        router.push('/invoices');
+      },
+    });
+  };
+
+  const handleUploadPhoto = (file: File) => {
+    uploadPhotosMutation.mutate([file], {
+      onSuccess: (data) => {
+        setUploadMode(null);
+        if (data.processing_id) {
+          router.push(`/invoices/review/${data.processing_id}`);
+        }
+      },
+    });
+  };
+
+  const handleProcessQRCode = (url: string) => {
+    processQRCodeMutation.mutate({ qrcode_url: url }, {
+      onSuccess: () => {
+        setUploadMode(null);
+        router.push('/invoices');
+      },
+    });
+  };
+
   return (
     <div className="flex min-h-screen bg-slate-50">
       <Sidebar />
-      
+
       <div className="flex-1 pl-64">
-        <Header 
-          title="Dashboard" 
+        <Header
+          title="Dashboard"
           subtitle="Visão geral dos seus gastos e insights"
         />
-        
+
         <main className="p-6">
           {/* Welcome Section */}
           <div className="mb-8 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 p-6 text-white shadow-lg">
@@ -92,6 +135,7 @@ export default function DashboardPage() {
               size="lg"
               leftIcon={<Plus className="size-4" />}
               className="shadow-md"
+              onClick={() => { setUploadMode('photo'); }}
             >
               Adicionar Nota Fiscal
             </Button>
@@ -118,7 +162,7 @@ export default function DashboardPage() {
                 <ArrowUpRight className="ml-2 size-4" />
               </Button>
             </div>
-            
+
             {isInsightsLoading ? (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {Array.from({ length: 3 }).map((_, i) => (
@@ -149,6 +193,7 @@ export default function DashboardPage() {
                 <Button
                   variant="primary"
                   leftIcon={<Plus className="size-4" />}
+                  onClick={() => { setUploadMode('photo'); }}
                 >
                   Adicionar Primeira Nota
                 </Button>
@@ -157,6 +202,17 @@ export default function DashboardPage() {
           </div>
         </main>
       </div>
+
+      {/* Upload Modal */}
+      <UploadModal
+        isOpen={uploadMode !== null}
+        onClose={() => { setUploadMode(null); }}
+        onUploadXML={handleUploadXML}
+        onUploadPhoto={handleUploadPhoto}
+        onProcessQRCode={handleProcessQRCode}
+        isUploading={uploadXMLMutation.isPending || processQRCodeMutation.isPending || uploadPhotosMutation.isPending}
+        initialTab={uploadMode === 'qrcode' ? 'qrcode' : uploadMode === 'photo' ? 'photo' : 'xml'}
+      />
     </div>
   );
 }
