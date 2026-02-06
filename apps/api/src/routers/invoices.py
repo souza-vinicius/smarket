@@ -106,8 +106,14 @@ async def list_pending_processing(
 
         if record.extracted_data:
             extracted_issuer_name = record.extracted_data.get("issuer_name")
-            extracted_total_value = record.extracted_data.get("total_value")
+            total_value = record.extracted_data.get("total_value")
+            # Convert Decimal to float for JSON serialization
+            if total_value is not None:
+                extracted_total_value = float(total_value)
             extracted_issue_date = record.extracted_data.get("issue_date")
+
+        # Ensure errors is a list of strings
+        errors = record.errors if isinstance(record.errors, list) else []
 
         items.append(
             InvoiceProcessingList(
@@ -118,7 +124,7 @@ async def list_pending_processing(
                 extracted_issuer_name=extracted_issuer_name,
                 extracted_total_value=extracted_total_value,
                 extracted_issue_date=extracted_issue_date,
-                errors=record.errors,
+                errors=errors,
                 created_at=record.created_at,
                 updated_at=record.updated_at
             )
