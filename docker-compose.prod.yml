@@ -1,0 +1,143 @@
+# ===========================================
+# SMarket - Production Docker Compose (Dokploy)
+# ===========================================
+#
+# Usage with Dokploy:
+#   1. Create a Compose service in Dokploy
+#   2. Point to this file (docker-compose.prod.yml)
+#   3. Set environment variables in Dokploy's UI
+#   4. Configure domains for "web" (frontend) and "api" (backend)
+#
+# Required environment variables (set in Dokploy):
+#   - POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB
+#   - SECRET_KEY (generate with: openssl rand -hex 32)
+#   - ALLOWED_ORIGINS (e.g. https://yourdomain.com)
+#   - NEXT_PUBLIC_API_URL (e.g. https://api.yourdomain.com)
+#   - At least one AI key: OPENAI_API_KEY, GEMINI_API_KEY, etc.
+#
+
+services:
+  # ---- PostgreSQL ----
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-smarket}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+    restart: always
+
+  # ---- Redis ----
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+    restart: always
+
+  # ---- FastAPI Backend ----
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    environment:
+      # Database (constructed from individual credentials)
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      DB_ECHO: "false"
+
+      # Cache
+      REDIS_URL: redis://redis:6379/0
+
+      # Auth
+      SECRET_KEY: ${SECRET_KEY}
+      ALGORITHM: ${ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS:-7}
+
+      # AI providers (configure at least one in Dokploy)
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.0-flash}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-3-5-sonnet-20241022}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-google/gemini-2.0-flash-001}
+      OPENROUTER_BASE_URL: ${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
+
+      # External services
+      SEFAZ_API_URL: ${SEFAZ_API_URL:-https://www.nfce.fazenda.sp.gov.br/NFCeConsultaPublica}
+
+      # CORS - must include the frontend domain
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+
+      # Uploads
+      UPLOAD_DIR: uploads
+
+      # App
+      DEBUG: "false"
+      APP_NAME: ${APP_NAME:-SMarket API}
+
+      # CNPJ features
+      ENABLE_CNPJ_FEATURES: ${ENABLE_CNPJ_FEATURES:-true}
+      ENABLE_CNPJ_VALIDATION: ${ENABLE_CNPJ_VALIDATION:-true}
+      ENABLE_CNPJ_ENRICHMENT: ${ENABLE_CNPJ_ENRICHMENT:-true}
+      CNPJ_API_TIMEOUT: ${CNPJ_API_TIMEOUT:-5}
+      CNPJ_CACHE_TTL: ${CNPJ_CACHE_TTL:-86400}
+
+      # Workers (adjust based on server resources: 2 * CPU cores + 1)
+      UVICORN_WORKERS: ${UVICORN_WORKERS:-2}
+    volumes:
+      - uploads_data:/app/uploads
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - internal
+    restart: always
+
+  # ---- Next.js Frontend ----
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+      args:
+        # NEXT_PUBLIC_ vars are baked in at build time by Next.js
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    environment:
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - internal
+    restart: always
+
+volumes:
+  postgres_data:
+  redis_data:
+  uploads_data:
+
+networks:
+  internal:
+    driver: bridge
