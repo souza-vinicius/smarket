@@ -23,6 +23,8 @@ class ProductInInvoice(ProductBase):
     id: uuid.UUID
     category_id: Optional[uuid.UUID] = None
     ai_category_suggestion: Optional[str] = None
+    category_name: Optional[str] = None
+    subcategory: Optional[str] = None
 
     class Config:
         from_attributes = True

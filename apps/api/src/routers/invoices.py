@@ -654,7 +654,9 @@ async def confirm_extracted_invoice(
                 quantity=item_data.quantity,
                 unit=item_data.unit or "UN",
                 unit_price=item_data.unit_price,
-                total_price=item_data.total_price
+                total_price=item_data.total_price,
+                category_name=item_data.category_name,
+                subcategory=item_data.subcategory,
             )
             db.add(item)
 

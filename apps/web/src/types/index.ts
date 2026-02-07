@@ -61,6 +61,8 @@ export interface Product {
   total_price: number;
   category_id?: string;
   ai_category_suggestion?: string;
+  category_name?: string;
+  subcategory?: string;
 }
 
 export interface Invoice {
