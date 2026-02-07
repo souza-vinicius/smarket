@@ -57,6 +57,5 @@ Dockerfile
 docker-compose*.yml
 .dockerignore
 
-# Alembic (will be copied separately)
-alembic/versions/*.py
-!alembic/versions/.gitkeep
+# Alembic - keep migration files (needed for alembic upgrade head)
+alembic/versions/.gitkeep

@@ -1,57 +1,51 @@
-# Multi-stage build for Next.js frontend
-# Stage 1: Dependencies
+# ===========================================
+# SMarket Web - Production Dockerfile
+# Multi-stage build using Next.js standalone
+# ===========================================
+
+# Stage 1: Install dependencies
 FROM node:18-alpine AS deps
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+COPY package.json package-lock.json* ./
+RUN npm ci --ignore-scripts && npm cache clean --force
 
-# Install dependencies with cache
-RUN npm install --only=production && \
-    npm cache clean --force
-
-# Stage 2: Build
+# Stage 2: Build the application
 FROM node:18-alpine AS build
 WORKDIR /app
 
-# Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
-COPY package*.json ./
-
-# Install all dependencies (including dev)
-RUN npm install
-
-# Copy source code
 COPY . .
 
-# Build application
-RUN npm run build && \
-    npm prune --production
+# NEXT_PUBLIC_ vars are inlined at build time by Next.js.
+# Pass via --build-arg or docker-compose build.args.
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
-# Stage 3: Production Runtime
+RUN npm run build
+
+# Stage 3: Production runtime (standalone output only)
 FROM node:18-alpine AS runtime
 
-# Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nextjs -u 1001 -G nodejs
 
 WORKDIR /app
 
-# Copy necessary files from build stage
-COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
-COPY --from=build --chown=nextjs:nodejs /app/.next ./.next
-COPY --from=build --chown=nextjs:nodejs /app/package*.json ./
-# COPY --from=build --chown=nextjs:nodejs /app/next.config.js ./
+# Copy only the standalone server and static assets.
+# standalone/ contains a minimal Node.js server with all dependencies bundled.
+COPY --from=build --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=build --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Set non-root user
 USER nextjs
 
-# Expose port
 EXPOSE 3000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD node -e "require('http').get('http://localhost:3000', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+ENV NODE_ENV=production
 
-# Start application
-CMD ["npm", "start"]
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:3000', (r) => { process.exit(r.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"
+
+CMD ["node", "server.js"]
