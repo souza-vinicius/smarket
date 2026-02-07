@@ -58,6 +58,19 @@ export function useUploadXML() {
   });
 }
 
+export function useUploadImages() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (files: File[]) => {
+      return apiClient.uploadFiles<Invoice>('/invoices/upload/images', files);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: INVOICE_KEYS.lists() });
+    },
+  });
+}
+
 export function useDeleteInvoice() {
   const queryClient = useQueryClient();
 

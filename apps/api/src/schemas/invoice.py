@@ -37,7 +37,7 @@ class InvoiceBase(BaseModel):
     issuer_name: str
     total_value: Decimal
     type: str = Field(..., pattern="^(NFC-e|NF-e)$")
-    source: str = Field(..., pattern="^(qrcode|xml|pdf|manual)$")
+    source: str = Field(..., pattern="^(qrcode|xml|pdf|manual|image)$")
 
 
 class InvoiceCreate(InvoiceBase):
