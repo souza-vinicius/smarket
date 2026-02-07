@@ -203,11 +203,65 @@ class AnthropicExtractor(BaseInvoiceExtractor):
         return parse_invoice_response(response.content)
 
 
+class OpenRouterExtractor(BaseInvoiceExtractor):
+    """Extrator usando OpenRouter (API compatível com OpenAI, acesso a múltiplos modelos)."""
+
+    def __init__(self, model: str | None = None):
+        self.model_name = model or settings.OPENROUTER_MODEL
+        self.llm = ChatOpenAI(
+            model=self.model_name,
+            api_key=settings.OPENROUTER_API_KEY,
+            base_url=settings.OPENROUTER_BASE_URL,
+            temperature=0.1,
+            max_tokens=4096,
+            default_headers={
+                "HTTP-Referer": "https://smarket.app",
+                "X-Title": "SMarket Invoice Extractor",
+            },
+        )
+
+    async def extract(
+        self,
+        image_bytes: bytes,
+        mime_type: str = "image/jpeg"
+    ) -> ExtractedInvoiceData:
+        logger.debug(
+            f"OpenRouterExtractor: Preparando imagem ({len(image_bytes)} bytes) "
+            f"com modelo {self.model_name}"
+        )
+        image_base64 = base64.standard_b64encode(image_bytes).decode("utf-8")
+        image_url = f"data:{mime_type};base64,{image_base64}"
+
+        message = HumanMessage(
+            content=[
+                {"type": "text", "text": SYSTEM_PROMPT},
+                {"type": "image_url", "image_url": {"url": image_url}}
+            ]
+        )
+
+        logger.debug(
+            f"OpenRouterExtractor: Enviando requisição para OpenRouter "
+            f"(modelo: {self.model_name})..."
+        )
+        response = await self.llm.ainvoke([message])
+        logger.debug(
+            f"OpenRouterExtractor: Resposta recebida ({len(response.content)} chars)"
+        )
+        return parse_invoice_response(response.content)
+
+
 class MultiProviderExtractor:
     """Extrator com fallback entre provedores."""
 
     def __init__(self):
         self.providers = []
+
+        # OpenRouter primeiro — permite trocar modelo rapidamente via env var
+        if settings.OPENROUTER_API_KEY:
+            self.providers.append(("openrouter", OpenRouterExtractor()))
+            logger.info(
+                f"OpenRouter provider initialized (model: {settings.OPENROUTER_MODEL})"
+            )
 
         # Inicializar Gemini se API key disponível
         if settings.GEMINI_API_KEY:

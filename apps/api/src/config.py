@@ -28,6 +28,11 @@ class Settings(BaseSettings):
     ANTHROPIC_API_KEY: str = ""
     ANTHROPIC_MODEL: str = "claude-3-5-sonnet-20241022"
 
+    # OpenRouter (unified multi-model API)
+    OPENROUTER_API_KEY: str = ""
+    OPENROUTER_MODEL: str = "google/gemini-2.0-flash-001"
+    OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
+
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
 

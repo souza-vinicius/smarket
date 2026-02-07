@@ -14,7 +14,8 @@ from src.routers import (
     invoice_items,
     analysis,
     purchase_patterns,
-    users
+    users,
+    debug
 )
 
 # Configurar logging
@@ -59,6 +60,7 @@ app.include_router(
 app.include_router(analysis.router, prefix="/api/v1/analysis", tags=["analysis"])
 app.include_router(purchase_patterns.router, prefix="/api/v1/purchase-patterns", tags=["purchase-patterns"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
+app.include_router(debug.router, prefix="/api/v1/debug", tags=["debug"])
 
 
 @app.get("/health")
