@@ -204,7 +204,7 @@ class AIAnalyzer:
         # Agrupar itens por categoria
         category_totals = {}
         for item in items:
-            category = item.category or "Outros"
+            category = item.category_name or "Outros"
             if category not in category_totals:
                 category_totals[category] = Decimal("0")
             category_totals[category] += item.total_price
@@ -451,7 +451,7 @@ class AIAnalyzer:
                 "quantity": item.quantity,
                 "unit_price": float(item.unit_price),
                 "total_price": float(item.total_price),
-                "category": item.category
+                "category": item.category_name
             }
             for item in items
         ]
@@ -496,7 +496,7 @@ class AIAnalyzer:
                 "item_count": len(items),
                 "merchant": merchant.name if merchant else None,
                 "categories": list(
-                    set(item.category for item in items if item.category)
+                    set(item.category_name for item in items if item.category_name)
                 )
             },
             ai_model=self.model,

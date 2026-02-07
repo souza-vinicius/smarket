@@ -23,13 +23,15 @@ class ProductInInvoice(ProductBase):
     id: uuid.UUID
     category_id: Optional[uuid.UUID] = None
     ai_category_suggestion: Optional[str] = None
+    category_name: Optional[str] = None
+    subcategory: Optional[str] = None
 
     class Config:
         from_attributes = True
 
 
 class InvoiceBase(BaseModel):
-    access_key: str = Field(..., min_length=44, max_length=44)
+    access_key: str = Field(..., max_length=44)  # Removed min_length to allow shorter keys
     number: str
     series: str
     issue_date: datetime
@@ -37,7 +39,7 @@ class InvoiceBase(BaseModel):
     issuer_name: str
     total_value: Decimal
     type: str = Field(..., pattern="^(NFC-e|NF-e)$")
-    source: str = Field(..., pattern="^(qrcode|xml|pdf|manual|image)$")
+    source: str = Field(..., pattern="^(qrcode|xml|pdf|manual|image|photo)$")
 
 
 class InvoiceCreate(InvoiceBase):

@@ -7,7 +7,7 @@ from src.config import settings
 # Create async engine
 engine = create_async_engine(
     settings.DATABASE_URL,
-    echo=settings.DEBUG,
+    echo=settings.DB_ECHO,
     future=True,
     poolclass=NullPool if settings.DEBUG else None,
 )

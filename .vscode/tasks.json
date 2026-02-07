@@ -1,0 +1,45 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "docker-compose: up",
+			"type": "shell",
+			"command": "docker-compose up -d",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "docker-build",
+			"type": "shell",
+			"command": "docker-compose build",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "docker-compose: debug",
+			"type": "shell",
+			"command": "docker-compose -f docker-compose.debug.yml up --build -d && echo 'Waiting for debugpy...' && until nc -z localhost 5678 2>/dev/null; do sleep 0.5; done && echo 'Debugpy ready!'",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"problemMatcher": [],
+			"presentation": {
+				"reveal": "always",
+				"panel": "new"
+			}
+		},
+		{
+			"label": "docker-compose: debug-down",
+			"type": "shell",
+			"command": "docker-compose -f docker-compose.debug.yml down",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"problemMatcher": []
+		}
+	]
+}

@@ -96,11 +96,13 @@ cd smarket
 cp .env.example .env
 ```
 
-Edite o arquivo `.env` e configure:
-- `DATABASE_URL` - URL de conexão PostgreSQL
+Edite o arquivo `.env` e configure as credenciais necessárias. **Todas as configurações podem ser feitas através de variáveis de ambiente** - não é necessário modificar o código.
+
+**📖 Veja o guia completo:** [ENV_CONFIG.md](ENV_CONFIG.md)
+
+Configurações mínimas obrigatórias:
 - `SECRET_KEY` - Chave secreta para JWT (gerar com `openssl rand -hex 32`)
-- `OPENAI_API_KEY` - Sua chave da API OpenAI
-- `ALLOWED_ORIGINS` - Origens permitidas para CORS
+- Pelo menos uma API key de IA: `GEMINI_API_KEY`, `OPENAI_API_KEY` ou `ANTHROPIC_API_KEY`
 
 ### 3. Inicie os serviços com Docker
 

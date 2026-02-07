@@ -1,4 +1,5 @@
 import * as React from 'react';
+
 import { cn } from '@/lib/utils';
 
 interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -12,7 +13,7 @@ interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
     | 'info';
 }
 
-function Badge({ className, variant = 'default', ...props }: BadgeProps) {
+function Badge({ className, variant = 'default', ...props }: BadgeProps): React.JSX.Element {
   const variants = {
     default: 'bg-primary text-primary-foreground hover:bg-primary/80',
     secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
@@ -28,6 +29,7 @@ function Badge({ className, variant = 'default', ...props }: BadgeProps) {
     <div
       className={cn(
         'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors',
+        // eslint-disable-next-line security/detect-object-injection
         variants[variant],
         className
       )}

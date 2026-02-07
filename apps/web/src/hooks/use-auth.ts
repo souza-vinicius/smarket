@@ -1,15 +1,30 @@
 'use client';
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
+
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
 import { apiClient } from '@/lib/api';
-import { LoginRequest, RegisterRequest, User } from '@/types';
+import { type LoginRequest, type RegisterRequest, type User } from '@/types';
 
 const AUTH_KEYS = {
   user: ['user'] as const,
 };
 
-export function useAuth() {
+interface UseAuthReturn {
+  user: User | null | undefined;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  login: (data: LoginRequest) => void;
+  register: (data: RegisterRequest) => void;
+  logout: () => void;
+  loginError: Error | null;
+  registerError: Error | null;
+  isLoginPending: boolean;
+  isRegisterPending: boolean;
+}
+
+export function useAuth(): UseAuthReturn {
   const queryClient = useQueryClient();
   const router = useRouter();
 
@@ -32,7 +47,7 @@ export function useAuth() {
   const loginMutation = useMutation({
     mutationFn: (data: LoginRequest) => apiClient.login(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: AUTH_KEYS.user });
+      void queryClient.invalidateQueries({ queryKey: AUTH_KEYS.user });
       router.push('/dashboard');
     },
   });
@@ -44,7 +59,7 @@ export function useAuth() {
     },
   });
 
-  const logout = () => {
+  const logout = (): void => {
     apiClient.logout();
     queryClient.clear();
     router.push('/login');

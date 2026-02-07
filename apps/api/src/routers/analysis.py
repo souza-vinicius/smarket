@@ -4,12 +4,13 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy import select, and_, or_, func
+from sqlalchemy import case, select, and_, or_, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database import get_db
 from src.dependencies import get_current_user
 from src.models.analysis import Analysis
+from src.models.category import Category
 from src.models.invoice import Invoice
 from src.models.invoice_item import InvoiceItem
 from src.models.merchant import Merchant
@@ -45,13 +46,16 @@ async def list_analysis(
         query = query.where(Analysis.is_read == is_read)
     
     if is_dismissed is not None:
-        query = query.where(Analysis.is_dismissed == is_dismissed)
+        if is_dismissed:
+            query = query.where(Analysis.dismissed_at.isnot(None))
+        else:
+            query = query.where(Analysis.dismissed_at.is_(None))
     else:
         # By default, exclude dismissed items
-        query = query.where(Analysis.is_dismissed == False)
+        query = query.where(Analysis.dismissed_at.is_(None))
     
     query = query.order_by(
-        func.case(
+        case(
             (Analysis.priority == "critical", 1),
             (Analysis.priority == "high", 2),
             (Analysis.priority == "medium", 3),
@@ -147,7 +151,7 @@ async def get_dashboard_summary(
             and_(
                 Analysis.user_id == current_user.id,
                 Analysis.is_read == False,
-                Analysis.is_dismissed == False
+                Analysis.dismissed_at.is_(None)
             )
         )
     )
@@ -215,7 +219,6 @@ async def mark_as_read(
         )
     
     analysis.is_read = True
-    analysis.read_at = datetime.utcnow()
     await db.commit()
     await db.refresh(analysis)
     
@@ -245,7 +248,6 @@ async def dismiss_analysis(
             detail="Analysis not found"
         )
     
-    analysis.is_dismissed = True
     analysis.dismissed_at = datetime.utcnow()
     await db.commit()
     await db.refresh(analysis)
@@ -261,14 +263,17 @@ async def get_spending_trends(
 ):
     """Get spending trends over time."""
     from dateutil.relativedelta import relativedelta
-    
+
     today = date.today()
     start_date = today - relativedelta(months=months)
-    
+
+    # Create the date_trunc expression once to reuse
+    month_trunc = func.date_trunc('month', Invoice.issue_date)
+
     # Get monthly totals
     result = await db.execute(
         select(
-            func.date_trunc('month', Invoice.issue_date).label("month"),
+            month_trunc.label("month"),
             func.sum(Invoice.total_value).label("total"),
             func.count(Invoice.id).label("invoice_count")
         ).where(
@@ -277,14 +282,14 @@ async def get_spending_trends(
                 Invoice.issue_date >= start_date
             )
         ).group_by(
-            func.date_trunc('month', Invoice.issue_date)
+            month_trunc
         ).order_by(
-            func.date_trunc('month', Invoice.issue_date)
+            month_trunc
         )
     )
-    
+
     trends = result.all()
-    
+
     return {
         "period_months": months,
         "trends": [
@@ -323,9 +328,9 @@ async def get_merchant_insights(
             func.sum(Invoice.total_value).desc()
         ).limit(limit)
     )
-    
+
     merchants = result.all()
-    
+
     return {
         "merchants": [
             {
@@ -337,5 +342,103 @@ async def get_merchant_insights(
                 "average_ticket": round(m.average_ticket or Decimal("0.00"), 2)
             }
             for m in merchants
+        ]
+    }
+
+
+@router.get("/category-spending/data", response_model=dict)
+async def get_category_spending(
+    months: int = Query(6, ge=1, le=24),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get spending by category and subcategory.
+
+    Uses the category_name and subcategory string fields on InvoiceItem
+    (populated during invoice confirmation by the LLM extraction) instead
+    of the category_id FK which may not always be set.
+    """
+    from dateutil.relativedelta import relativedelta
+
+    today = date.today()
+    start_date = today - relativedelta(months=months)
+
+    palette = [
+        "#3b82f6", "#10b981", "#f59e0b", "#ef4444",
+        "#8b5cf6", "#ec4899", "#14b8a6", "#f97316",
+        "#6366f1", "#84cc16",
+    ]
+
+    # Get spending grouped by category_name string field
+    category_result = await db.execute(
+        select(
+            InvoiceItem.category_name,
+            func.sum(InvoiceItem.total_price).label("total_spent")
+        ).join(
+            Invoice, InvoiceItem.invoice_id == Invoice.id
+        ).where(
+            and_(
+                Invoice.user_id == current_user.id,
+                Invoice.issue_date >= start_date,
+                InvoiceItem.category_name.isnot(None),
+                InvoiceItem.category_name != "",
+            )
+        ).group_by(
+            InvoiceItem.category_name
+        ).order_by(
+            func.sum(InvoiceItem.total_price).desc()
+        )
+    )
+
+    categories = category_result.all()
+
+    # Get spending grouped by subcategory string field
+    subcategory_result = await db.execute(
+        select(
+            InvoiceItem.subcategory,
+            InvoiceItem.category_name,
+            func.sum(InvoiceItem.total_price).label("total_spent")
+        ).join(
+            Invoice, InvoiceItem.invoice_id == Invoice.id
+        ).where(
+            and_(
+                Invoice.user_id == current_user.id,
+                Invoice.issue_date >= start_date,
+                InvoiceItem.subcategory.isnot(None),
+                InvoiceItem.subcategory != "",
+            )
+        ).group_by(
+            InvoiceItem.subcategory,
+            InvoiceItem.category_name,
+        ).order_by(
+            func.sum(InvoiceItem.total_price).desc()
+        )
+    )
+
+    subcategories = subcategory_result.all()
+
+    return {
+        "period_months": months,
+        "categories": [
+            {
+                "id": str(i),
+                "name": c.category_name,
+                "color": palette[i % len(palette)],
+                "icon": None,
+                "total_spent": float(c.total_spent or Decimal("0.00"))
+            }
+            for i, c in enumerate(categories)
+        ],
+        "subcategories": [
+            {
+                "id": str(i),
+                "name": s.subcategory,
+                "color": palette[i % len(palette)],
+                "icon": None,
+                "parent_id": None,
+                "parent_name": s.category_name or "Sem Categoria",
+                "total_spent": float(s.total_spent or Decimal("0.00"))
+            }
+            for i, s in enumerate(subcategories)
         ]
     }

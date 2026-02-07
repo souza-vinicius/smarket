@@ -1,8 +1,9 @@
 import uuid
 from datetime import datetime
-from typing import TYPE_CHECKING, List
+from decimal import Decimal
+from typing import TYPE_CHECKING, List, Optional
 
-from sqlalchemy import String, Boolean, JSON
+from sqlalchemy import String, Boolean, JSON, Numeric, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.database import Base
@@ -14,6 +15,7 @@ if TYPE_CHECKING:
     from src.models.merchant import Merchant
     from src.models.purchase_pattern import PurchasePattern
     from src.models.product import Product
+    from src.models.invoice_processing import InvoiceProcessing
 
 
 class User(Base):
@@ -50,6 +52,23 @@ class User(Base):
         nullable=False
     )  # {currency, language, notifications_enabled, etc.}
 
+    # Informações do perfil para IA
+    household_income: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(12, 2),
+        nullable=True,
+        default=None
+    )
+    adults_count: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        nullable=True,
+        default=1
+    )
+    children_count: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        nullable=True,
+        default=0
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         default=datetime.utcnow,
         nullable=False
@@ -82,6 +101,10 @@ class User(Base):
         lazy="selectin"
     )
     products: Mapped[List["Product"]] = relationship(
+        back_populates="user",
+        lazy="selectin"
+    )
+    invoice_processing: Mapped[List["InvoiceProcessing"]] = relationship(
         back_populates="user",
         lazy="selectin"
     )

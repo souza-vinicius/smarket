@@ -1,7 +1,7 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
-export function cn(...inputs: ClassValue[]) {
+export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs));
 }
 
@@ -49,8 +49,8 @@ export function formatPercentage(value: number, decimals = 1): string {
 }
 
 export function truncateText(text: string, maxLength: number): string {
-  if (text.length <= maxLength) return text;
-  return text.slice(0, maxLength) + '...';
+  if (text.length <= maxLength) {return text;}
+  return `${text.slice(0, maxLength)  }...`;
 }
 
 export function getInitials(name: string): string {
@@ -69,7 +69,8 @@ export function getPriorityColor(priority: string): string {
     medium: 'bg-yellow-500 text-black',
     low: 'bg-green-500 text-white',
   };
-  return colors[priority] || colors.low;
+  // eslint-disable-next-line security/detect-object-injection
+  return colors[priority] ?? colors.low;
 }
 
 export function getPriorityBorderColor(priority: string): string {
@@ -79,7 +80,8 @@ export function getPriorityBorderColor(priority: string): string {
     medium: 'border-yellow-500',
     low: 'border-green-500',
   };
-  return colors[priority] || colors.low;
+  // eslint-disable-next-line security/detect-object-injection
+  return colors[priority] ?? colors.low;
 }
 
 export function getPriorityBgColor(priority: string): string {
@@ -89,7 +91,8 @@ export function getPriorityBgColor(priority: string): string {
     medium: 'bg-yellow-50 border-yellow-200',
     low: 'bg-green-50 border-green-200',
   };
-  return colors[priority] || colors.low;
+  // eslint-disable-next-line security/detect-object-injection
+  return colors[priority] ?? colors.low;
 }
 
 export function debounce<T extends (...args: unknown[]) => unknown>(

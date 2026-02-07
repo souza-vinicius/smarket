@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from src.models.user import User
     from src.models.merchant import Merchant
     from src.models.invoice_item import InvoiceItem
+    from src.models.invoice_processing import InvoiceProcessing
 
 
 class Invoice(Base):
@@ -49,6 +50,16 @@ class Invoice(Base):
     )
     issue_date: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
+        nullable=False
+    )
+
+    # Dados do emissor
+    issuer_name: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False
+    )
+    issuer_cnpj: Mapped[str] = mapped_column(
+        String(14),
         nullable=False
     )
 
@@ -127,3 +138,18 @@ class Invoice(Base):
         lazy="selectin",
         cascade="all, delete-orphan"
     )
+    processing_records: Mapped[List["InvoiceProcessing"]] = relationship(
+        back_populates="invoice",
+        cascade="all, delete-orphan"
+    )
+
+    # Properties for schema compatibility
+    @property
+    def type(self) -> str:
+        """Alias for invoice_type to match schema"""
+        return self.invoice_type
+
+    @property
+    def products(self) -> List["InvoiceItem"]:
+        """Alias for items to match schema"""
+        return self.items

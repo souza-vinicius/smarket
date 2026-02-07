@@ -1,3 +1,6 @@
+import logging
+import sys
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -10,8 +13,22 @@ from src.routers import (
     products,
     invoice_items,
     analysis,
-    purchase_patterns
+    purchase_patterns,
+    users
 )
+
+# Configurar logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+
+# Set specific loggers to DEBUG for detailed tracking
+logging.getLogger("src.services.multi_provider_extractor").setLevel(logging.DEBUG)
+logging.getLogger("src.tasks.process_invoice_photos").setLevel(logging.DEBUG)
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -41,6 +58,7 @@ app.include_router(
 )
 app.include_router(analysis.router, prefix="/api/v1/analysis", tags=["analysis"])
 app.include_router(purchase_patterns.router, prefix="/api/v1/purchase-patterns", tags=["purchase-patterns"])
+app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
 
 
 @app.get("/health")
@@ -48,10 +66,33 @@ async def health_check():
     return {"status": "ok", "version": "1.0.0"}
 
 
+@app.get("/features")
+async def feature_status():
+    """Get status of feature flags."""
+    return {
+        "cnpj_features": {
+            "master_enabled": settings.ENABLE_CNPJ_FEATURES,
+            "validation": {
+                "flag": settings.ENABLE_CNPJ_VALIDATION,
+                "enabled": settings.cnpj_validation_enabled,
+                "description": "Validates CNPJ checksum before saving invoices"
+            },
+            "enrichment": {
+                "flag": settings.ENABLE_CNPJ_ENRICHMENT,
+                "enabled": settings.cnpj_enrichment_enabled,
+                "description": "Enriches merchant data from BrasilAPI/ReceitaWS",
+                "timeout": settings.CNPJ_API_TIMEOUT,
+                "cache_ttl": settings.CNPJ_CACHE_TTL
+            }
+        }
+    }
+
+
 @app.get("/")
 async def root():
     return {
         "name": settings.APP_NAME,
         "version": "1.0.0",
-        "docs": "/docs"
+        "docs": "/docs",
+        "features": "/features"
     }

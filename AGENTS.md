@@ -51,6 +51,48 @@ docker-compose up -d --build api
 docker-compose logs -f api
 ```
 
+## Configuration Guidelines
+
+**All configurations MUST be done via environment variables in the `.env` file.**
+
+### Never:
+- ❌ Hardcode configuration values in Python code
+- ❌ Modify `config.py` defaults when a new config is needed
+- ❌ Put secrets or API keys in `docker-compose.yml`
+
+### Always:
+- ✅ Add new configs to `.env.example` with documentation
+- ✅ Use `settings.VARIABLE_NAME` in code to access configs
+- ✅ Add environment variables to `docker-compose.yml` using `${VAR:-default}` syntax
+- ✅ Update `ENV_CONFIG.md` when adding new configuration options
+- ✅ Provide sensible defaults in `config.py` for optional settings
+
+### Example: Adding a new configuration
+
+1. Add to `apps/api/src/config.py`:
+```python
+class Settings(BaseSettings):
+    # New Service
+    NEW_SERVICE_API_KEY: str = ""
+    NEW_SERVICE_MODEL: str = "default-model"
+```
+
+2. Add to `.env.example`:
+```bash
+# New Service Configuration
+# NEW_SERVICE_API_KEY=your-api-key
+# NEW_SERVICE_MODEL=default-model
+```
+
+3. Add to `docker-compose.yml`:
+```yaml
+environment:
+  NEW_SERVICE_API_KEY: ${NEW_SERVICE_API_KEY:-}
+  NEW_SERVICE_MODEL: ${NEW_SERVICE_MODEL:-default-model}
+```
+
+4. Document in `ENV_CONFIG.md`
+
 ## Code Style Guidelines
 
 ### Python Style
@@ -206,11 +248,14 @@ async def test_register_user(client: AsyncClient):
 
 ## Environment Variables
 
-Required in `.env` file:
+**See [ENV_CONFIG.md](../ENV_CONFIG.md) for the complete configuration guide.**
+
+Minimum required in `.env` file:
 - `DATABASE_URL` - PostgreSQL connection string
-- `SECRET_KEY` - JWT signing key
-- `OPENAI_API_KEY` - OpenAI API access
-- `ALLOWED_ORIGINS` - CORS origins (comma-separated)
+- `SECRET_KEY` - JWT signing key (generate with `openssl rand -hex 32`)
+- At least one AI provider API key: `GEMINI_API_KEY`, `OPENAI_API_KEY`, or `ANTHROPIC_API_KEY`
+
+All configuration values can be set via environment variables. The system supports multiple AI providers with automatic fallback.
 
 ## Key Technologies
 

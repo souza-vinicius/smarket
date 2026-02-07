@@ -1,6 +1,7 @@
 'use client';
 
 import { TrendingUp, TrendingDown } from 'lucide-react';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency, formatPercentage } from '@/lib/utils';
 
@@ -52,9 +53,9 @@ export function SummaryCard({
             }`}
           >
             {change > 0 ? (
-              <TrendingUp className="mr-1 h-3 w-3" />
+              <TrendingUp className="mr-1 size-3" />
             ) : (
-              <TrendingDown className="mr-1 h-3 w-3" />
+              <TrendingDown className="mr-1 size-3" />
             )}
             {formatPercentage(change)} vs mês anterior
           </div>

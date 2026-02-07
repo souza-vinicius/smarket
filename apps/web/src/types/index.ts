@@ -6,6 +6,23 @@ export interface User {
   created_at: string;
 }
 
+export interface UserProfile {
+  id: string;
+  email: string;
+  full_name: string;
+  household_income?: number;
+  adults_count?: number;
+  children_count?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserProfileUpdate {
+  household_income?: number;
+  adults_count?: number;
+  children_count?: number;
+}
+
 export interface LoginRequest {
   email: string;
   password: string;
@@ -24,6 +41,16 @@ export interface Token {
 }
 
 // Invoice Types
+export interface InvoiceItem {
+  description: string;
+  quantity: number;
+  unit: string;
+  unit_price: number;
+  total_price: number;
+  category_name?: string;
+  subcategory?: string;
+}
+
 export interface Product {
   id: string;
   code: string;
@@ -34,6 +61,8 @@ export interface Product {
   total_price: number;
   category_id?: string;
   ai_category_suggestion?: string;
+  category_name?: string;
+  subcategory?: string;
 }
 
 export interface Invoice {
@@ -65,6 +94,26 @@ export interface InvoiceList {
 
 export interface QRCodeRequest {
   qrcode_url: string;
+}
+
+export interface ProcessingResponse {
+  processing_id: string;
+  status: string;
+  message: string;
+  estimated_seconds: number;
+}
+
+export interface InvoiceProcessingList {
+  processing_id: string;
+  status: 'pending' | 'processing' | 'extracted' | 'error';
+  image_count: number;
+  confidence_score?: number;
+  extracted_issuer_name?: string;
+  extracted_total_value?: number;
+  extracted_issue_date?: string;
+  errors: string[];
+  created_at: string;
+  updated_at: string;
 }
 
 // Analysis Types
