@@ -38,6 +38,7 @@ smarket/
 - **Styling**: Tailwind CSS
 - **State Management**: TanStack React Query
 - **Charts**: Recharts
+- **Linting**: ESLint with comprehensive plugins (TypeScript, React, a11y, Tailwind, Security)
 
 ## Data Model (8 Core Entities)
 
@@ -193,6 +194,52 @@ class EntityResponse(EntityBase):
         from_attributes = True
 ```
 
+### TypeScript (Frontend)
+- ESLint with Flat Config format
+- Strict type checking with TypeScript ESLint
+- React best practices with React Hooks rules
+- Accessibility (a11y) compliance via jsx-a11y
+- Import organization with eslint-plugin-import
+- Tailwind CSS class validation
+- Security vulnerability detection
+- Line length: 100 characters (ESLint-compatible)
+
+### ESLint Plugins (Frontend)
+| Plugin | Purpose |
+|--------|-----------|
+| `@typescript-eslint` | Strict type checking and TypeScript best practices |
+| `eslint-plugin-react` | React and JSX patterns |
+| `eslint-plugin-react-hooks` | Hooks rules (exhaustive-deps) |
+| `eslint-plugin-jsx-a11y` | WCAG accessibility compliance |
+| `eslint-plugin-import` | Import organization and validation |
+| `eslint-plugin-tailwindcss` | Tailwind class validation |
+| `eslint-plugin-security` | Security vulnerability detection |
+
+### Frontend Lint Commands
+```bash
+cd apps/web
+npm run lint         # Check for errors
+npm run lint:fix     # Auto-fix issues
+npm run type-check   # TypeScript type checking
+```
+
+### Key ESLint Rules
+- **TypeScript**: `no-floating-promises`, `no-misused-promises`, `consistent-type-imports`
+- **React**: `react-hooks/exhaustive-deps`, `react/jsx-key`, `react/jsx-no-target-blank`
+- **Accessibility**: `jsx-a11y/alt-text`, `jsx-a11y/label-has-associated-control`
+- **Security**: `security/detect-object-injection`, `security/detect-unsafe-regex`
+- **Imports**: `import/order` (organized groups: builtin, external, internal, sibling, index)
+
+### Frontend Naming Conventions
+| Element | Convention | Example |
+|----------|------------|---------|
+| Files | kebab-case | `user-profile.tsx` |
+| Components | PascalCase | `UserProfile`, `InvoiceList` |
+| Hooks | useCamelCase | `useAuth`, `useDashboard` |
+| Functions | camelCase | `fetchUser()`, `calculateTotal()` |
+| Variables | camelCase | `userName`, `invoiceId` |
+| Constants | UPPER_SNAKE | `API_BASE_URL`, `MAX_ITEMS` |
+
 ## Project Files Reference
 
 ### Documentation
@@ -202,6 +249,8 @@ class EntityResponse(EntityBase):
 - [`plans/backend-plan.md`](plans/backend-plan.md) - Backend implementation plan
 - [`plans/data-model-analysis.md`](plans/data-model-analysis.md) - Data model design
 - [`plans/arquitetura-sistema.md`](plans/arquitetura-sistema.md) - System architecture
+- [`apps/web/eslint.config.mjs`](apps/web/eslint.config.mjs) - ESLint Flat Config
+- [`apps/web/ESLINT.md`](apps/web/ESLINT.md) - ESLint rules documentation
 
 ### Key Source Files
 - [`apps/api/src/main.py`](apps/api/src/main.py) - FastAPI app entry point
@@ -238,6 +287,7 @@ The project is at **MVP stage** with core functionality implemented:
 - Invoice processing (XML/QRCode)
 - AI-powered analysis generation
 - Basic dashboard and insights display
+- Comprehensive ESLint configuration for frontend code quality
 
 The codebase follows a clean architecture with clear separation between:
 - Models (SQLAlchemy ORM)
@@ -245,3 +295,14 @@ The codebase follows a clean architecture with clear separation between:
 - Routers (API endpoints)
 - Services (Business logic)
 - Parsers (Invoice processing)
+
+### ESLint Feature (feature/eslint branch)
+The ESLint feature branch implements comprehensive linting for the frontend:
+- Flat Config format (ESLint 9+)
+- 7 plugins covering TypeScript, React, a11y, imports, Tailwind, and security
+- Strict type checking with relaxed rules for existing codebase
+- Accessibility compliance (WCAG)
+- Security vulnerability detection
+- Import organization and validation
+- Tailwind CSS class validation
+- Detailed documentation in [`apps/web/ESLINT.md`](apps/web/ESLINT.md)
