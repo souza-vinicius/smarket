@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 import { useParams, useRouter } from 'next/navigation';
 
-import { ArrowLeft, Download, Trash2, CheckCircle, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Download, Trash2, CheckCircle, Eye, EyeOff, Pencil } from 'lucide-react';
 
 import { Header } from '@/components/layout/header';
 import { Sidebar } from '@/components/layout/sidebar';
@@ -132,6 +132,14 @@ export default function InvoiceDetailsPage() {
               </button>
 
               <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  leftIcon={<Pencil className="size-4" />}
+                  onClick={() => { router.push(`/invoices/${invoiceId}/edit`); }}
+                >
+                  Editar
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"

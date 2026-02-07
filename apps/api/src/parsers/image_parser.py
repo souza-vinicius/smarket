@@ -1,6 +1,18 @@
 """
-Parser de imagens de notas fiscais usando OpenAI Vision API.
-Suporta múltiplas imagens para notas fiscais longas.
+DEPRECATED: Parser de imagens de notas fiscais usando OpenAI Vision API.
+
+Este módulo foi substituído por `src.services.multi_provider_extractor`
+que oferece:
+  - Suporte a múltiplos provedores (OpenRouter, Gemini, OpenAI, Anthropic)
+  - Prompt otimizado com few-shot e regras de formatação
+  - Validação pós-extração (CNPJ, access_key, totais)
+  - Processamento assíncrono via background tasks
+  - Categorização separada via `src.services.categorizer`
+
+O endpoint /upload/images que usava este módulo agora retorna 410 Gone.
+Use /upload/photos em vez disso.
+
+Mantenha este arquivo apenas como referência — será removido em versão futura.
 """
 
 import base64

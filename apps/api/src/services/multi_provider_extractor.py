@@ -3,6 +3,8 @@ import json
 import logging
 import re
 from abc import ABC, abstractmethod
+from decimal import Decimal
+from typing import List, Optional
 
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
@@ -16,15 +18,109 @@ from src.services.cached_prompts import cache_extraction, get_cached_extraction
 logger = logging.getLogger(__name__)
 
 
+# ---------------------------------------------------------------------------
+# Prompt de extração — focado em OCR preciso, sem categorização
+# ---------------------------------------------------------------------------
+# TODO(ocr-quality): Melhorar processo de OCR — considerar:
+#   1. Pré-processamento de imagem (contraste, binarização, deskew) antes de enviar ao LLM
+#   2. Prompt com exemplos reais de NFC-e de diferentes supermercados
+#   3. Fallback OCR dedicado (Tesseract/Google Vision) para campos críticos (CNPJ, chave de acesso)
+#   4. Structured output / function calling para garantir JSON schema correto
+#   5. Retry com prompt ajustado quando validação pós-extração detecta muitos problemas
+#   6. Avaliar modelos especializados em OCR (e.g. Gemini 2.5 Pro, Claude 3.5 Sonnet)
+# ---------------------------------------------------------------------------
+
+SYSTEM_PROMPT = """Você é um especialista em OCR de notas fiscais brasileiras (NFC-e/NF-e).
+Analise a(s) imagem(ns) e extraia TODOS os dados estruturados.
+
+Se houver múltiplas imagens, elas são partes da MESMA nota fiscal.
+Combine os dados de todas as imagens em um único resultado.
+Se um item aparece em mais de uma imagem, inclua-o apenas uma vez.
+
+ONDE ENCONTRAR CADA CAMPO NA NOTA:
+- CNPJ do emissor: aparece no topo, formato XX.XXX.XXX/XXXX-XX
+- Nome do emissor: razão social ou nome fantasia, logo abaixo do CNPJ
+- Número da NFC-e: após "NFC-e Nº" ou "NF-e Nº" no cabeçalho
+- Série: após "Série:" no cabeçalho (geralmente "001")
+- Data de emissão: formato DD/MM/AAAA HH:MM:SS
+- Chave de acesso: sequência de 44 dígitos, geralmente no rodapé
+- Itens: tabela com colunas Descrição, Qtd, UN, Vl.Unit, Vl.Total
+- Valor total: no rodapé, após "VALOR TOTAL R$" ou "TOTAL R$"
+
+REGRAS DE FORMATAÇÃO (CRÍTICO — siga exatamente):
+1. issuer_cnpj: retorne SOMENTE os 14 dígitos, SEM pontos/barras/hífens
+   Ex: nota mostra "61.585.865/0001-51" → retorne "61585865000151"
+2. access_key: retorne SOMENTE os 44 dígitos, SEM espaços
+   Ex: "3525 0261 5858 6500 0151 6500 1000 0001 2510 0000 4297" → "3525026158586500015165001000001251000004297"
+3. number: o número impresso da nota, como string
+   Ex: nota mostra "Nº 001.234" → retorne "001234"
+4. issue_date: converta para ISO 8601
+   Ex: "15/01/2024 14:30:22" → "2024-01-15T14:30:22"
+5. Valores monetários: use PONTO como decimal
+   Ex: "R$ 15,90" → 15.90 (número, não string)
+6. total_price de cada item DEVE ser igual a quantity × unit_price
+   Se não bater, use quantity × unit_price
+7. description de cada item: SOMENTE o nome do produto, SEM código numérico
+   Notas fiscais mostram um código antes da descrição (ex: "001 LEITE INTEGRAL 1L")
+   → code: "001", description: "LEITE INTEGRAL 1L"
+   NUNCA inclua o código na description. Se houver código, coloque no campo "code".
+
+VERIFICAÇÃO OBRIGATÓRIA ANTES DE RESPONDER:
+- Some todos os total_price dos itens
+- Compare com total_value
+- Se a diferença for > R$ 1,00, adicione warning explicando
+
+CONFIANÇA (seja honesto):
+- 0.95: todos os campos legíveis e valores conferem
+- 0.80: maioria legível, 1-2 campos ilegíveis ou valores com pequena divergência
+- 0.60: imagem parcial, vários campos ilegíveis
+- 0.40: imagem muito ruim, dados muito incertos
+
+Retorne APENAS JSON válido (sem markdown, sem ```):
+{
+  "access_key": "35250261585865000151650010000012510000042971",
+  "number": "001234",
+  "series": "001",
+  "issue_date": "2024-01-15T14:30:22",
+  "issuer_name": "SUPERMERCADO EXEMPLO LTDA",
+  "issuer_cnpj": "61585865000151",
+  "total_value": 87.40,
+  "items": [
+    {
+      "code": "001",
+      "description": "LEITE INTEGRAL PARMALAT 1L",
+      "quantity": 2.0,
+      "unit": "UN",
+      "unit_price": 5.99,
+      "total_price": 11.98
+    },
+    {
+      "code": "002",
+      "description": "ARROZ TIPO 1 CAMIL 5KG",
+      "quantity": 1.0,
+      "unit": "UN",
+      "unit_price": 28.90,
+      "total_price": 28.90
+    }
+  ],
+  "confidence": 0.92,
+  "warnings": ["chave de acesso parcialmente ilegível"]
+}"""
+
+
+# ---------------------------------------------------------------------------
+# Parsing e validação pós-extração
+# ---------------------------------------------------------------------------
+
 def parse_invoice_response(content: str) -> ExtractedInvoiceData:
     """Parse LLM response into ExtractedInvoiceData.
 
-    Handles JSON extraction and type coercion before Pydantic validation.
+    Handles JSON extraction, type coercion, and data cleaning
+    before Pydantic validation.
     """
     # Remover markdown code blocks se presentes
     content = content.strip()
     if content.startswith("```"):
-        # Remove ```json or ``` at start and ``` at end
         content = re.sub(r'^```(?:json)?\s*', '', content)
         content = re.sub(r'\s*```$', '', content)
 
@@ -47,32 +143,154 @@ def parse_invoice_response(content: str) -> ExtractedInvoiceData:
         if 'cnpj' in issuer and not data.get('issuer_cnpj'):
             data['issuer_cnpj'] = issuer['cnpj']
 
-    return ExtractedInvoiceData(**data)
+    result = ExtractedInvoiceData(**data)
+
+    # Validação e correção pós-extração
+    result = validate_and_fix_extraction(result)
+
+    return result
 
 
-# Prompt do sistema
-SYSTEM_PROMPT = """Você é um especialista em extrair dados de notas fiscais
-brasileiras (NFC-e/NF-e). Analise a imagem e extraia os campos em JSON.
-Retorne APENAS o JSON, sem markdown ou texto adicional.
+def validate_and_fix_extraction(data: ExtractedInvoiceData) -> ExtractedInvoiceData:
+    """Valida e corrige dados extraídos pela LLM.
 
-Campos obrigatórios (todos os valores devem ser strings, exceto números e arrays):
-- access_key: string com chave de 44 dígitos
-- number: string com número da nota (ex: "123456")
-- series: string com série da nota (ex: "001")
-- issue_date: string ISO 8601 (ex: "2024-01-15T14:30:00Z")
-- issuer_name: string com nome do estabelecimento
-- issuer_cnpj: string com CNPJ do estabelecimento
-- total_value: número decimal (ex: 150.75)
-- items: array de objetos com:
-  - description: string
-  - quantity: número decimal
-  - unit: string (ex: "UN", "KG")
-  - unit_price: número decimal
-  - total_price: número decimal
-  - category_name: string (ex: "Laticínios", "Carnes", "Limpeza", "Bebidas")
-  - subcategory: string (ex: "Leite", "Iogurte", "Frango", "Detergente")
-- confidence: número entre 0.0 e 1.0 indicando confiança na extração
-- warnings: array de strings com avisos sobre dados incertos ou ilegíveis"""
+    Limpa CNPJ/access_key, recalcula totais inconsistentes e
+    adiciona warnings quando detecta problemas.
+    """
+    warnings = list(data.warnings) if data.warnings else []
+
+    # --- Limpar CNPJ: manter somente dígitos ---
+    if data.issuer_cnpj:
+        clean_cnpj = re.sub(r'\D', '', data.issuer_cnpj)
+        if clean_cnpj != data.issuer_cnpj:
+            logger.debug(f"CNPJ limpo: '{data.issuer_cnpj}' → '{clean_cnpj}'")
+        if len(clean_cnpj) != 14 and len(clean_cnpj) > 0:
+            warnings.append(
+                f"CNPJ com {len(clean_cnpj)} dígitos (esperado 14)"
+            )
+        data.issuer_cnpj = clean_cnpj
+
+    # --- Limpar access_key: manter somente dígitos ---
+    if data.access_key:
+        clean_key = re.sub(r'\D', '', data.access_key)
+        if clean_key != data.access_key:
+            logger.debug(
+                f"Chave de acesso limpa: '{data.access_key}' → '{clean_key}'"
+            )
+        if len(clean_key) != 44 and len(clean_key) > 0:
+            warnings.append(
+                f"Chave de acesso com {len(clean_key)} dígitos (esperado 44)"
+            )
+        data.access_key = clean_key
+    else:
+        warnings.append("Chave de acesso não encontrada na imagem")
+
+    # --- Limpar número da nota ---
+    if data.number:
+        data.number = re.sub(r'[^\d]', '', data.number)
+
+    # --- Limpar código do produto da descrição ---
+    for item in data.items:
+        if item.description:
+            # Padrão: código numérico no início da descrição
+            # Ex: "001 LEITE INTEGRAL 1L" → code="001",
+            #     desc="LEITE INTEGRAL 1L"
+            # Ex: "0000123 ARROZ TIPO 1" → code="0000123",
+            #     desc="ARROZ TIPO 1"
+            # Ex: "7891234567890 SABAO EM PO" (EAN-13)
+            match = re.match(
+                r'^(\d{3,13})\s+(.+)$',
+                item.description.strip()
+            )
+            if match:
+                extracted_code = match.group(1)
+                cleaned_desc = match.group(2).strip()
+                # Só aceitar se a parte restante parece um nome
+                # (tem pelo menos uma letra)
+                if re.search(r'[A-Za-zÀ-ú]', cleaned_desc):
+                    if not item.code or item.code == '':
+                        item.code = extracted_code
+                    item.description = cleaned_desc
+                    logger.debug(
+                        f"Código extraído da descrição: "
+                        f"'{extracted_code}' → desc='{cleaned_desc}'"
+                    )
+
+    # --- Validar e corrigir totais dos itens ---
+    items_fixed = 0
+    for item in data.items:
+        if item.quantity is not None and item.unit_price is not None:
+            expected_total = item.quantity * item.unit_price
+            # Arredondar para 2 casas decimais
+            expected_total = Decimal(str(round(float(expected_total), 2)))
+
+            if item.total_price is None:
+                item.total_price = expected_total
+                items_fixed += 1
+            else:
+                diff = abs(float(item.total_price) - float(expected_total))
+                if diff > 0.02:
+                    logger.debug(
+                        f"Item '{item.description}': total_price "
+                        f"{item.total_price} ≠ qty×price "
+                        f"{item.quantity}×{item.unit_price}="
+                        f"{expected_total} (diff={diff:.2f}). Recalculando."
+                    )
+                    item.total_price = expected_total
+                    items_fixed += 1
+
+    if items_fixed > 0:
+        warnings.append(
+            f"{items_fixed} item(ns) com total recalculado "
+            f"(quantity × unit_price)"
+        )
+
+    # --- Validar total geral vs soma dos itens ---
+    if data.items:
+        items_sum = sum(
+            float(item.total_price) for item in data.items
+            if item.total_price is not None
+        )
+        items_sum = round(items_sum, 2)
+
+        if data.total_value is not None:
+            total_val = float(data.total_value)
+            diff = abs(total_val - items_sum)
+
+            if diff > 1.0:
+                warnings.append(
+                    f"Divergência entre total da nota (R$ {total_val:.2f}) "
+                    f"e soma dos itens (R$ {items_sum:.2f}). "
+                    f"Diferença: R$ {diff:.2f}"
+                )
+                # Se a soma dos itens parece mais confiável (mais itens, mais dados),
+                # usar como referência
+                if len(data.items) >= 2:
+                    logger.info(
+                        f"Ajustando total_value: {total_val} → {items_sum} "
+                        f"(soma dos itens)"
+                    )
+                    data.total_value = Decimal(str(items_sum))
+        else:
+            # total_value não veio: calcular a partir dos itens
+            data.total_value = Decimal(str(items_sum))
+            warnings.append("Total da nota calculado a partir da soma dos itens")
+
+    # --- Ajustar confiança se há muitos warnings ---
+    original_confidence = data.confidence
+    if not data.access_key or len(re.sub(r'\D', '', data.access_key or '')) != 44:
+        data.confidence = min(data.confidence, 0.80)
+    if not data.issuer_cnpj or len(data.issuer_cnpj) != 14:
+        data.confidence = min(data.confidence, 0.80)
+    if not data.items:
+        data.confidence = min(data.confidence, 0.50)
+    if data.confidence != original_confidence:
+        logger.debug(
+            f"Confiança ajustada: {original_confidence} → {data.confidence}"
+        )
+
+    data.warnings = warnings
+    return data
 
 
 class BaseInvoiceExtractor(ABC):
@@ -87,6 +305,83 @@ class BaseInvoiceExtractor(ABC):
         """Extrai dados de uma imagem de nota fiscal."""
         pass
 
+    async def extract_multiple(
+        self,
+        images: List[tuple[bytes, str]],
+    ) -> ExtractedInvoiceData:
+        """Extrai dados de múltiplas imagens da mesma nota fiscal.
+
+        Envia todas as imagens numa única request para o LLM.
+        Implementação default — subclasses podem sobrescrever.
+
+        Args:
+            images: Lista de (image_bytes, mime_type)
+
+        Returns:
+            ExtractedInvoiceData com dados combinados
+        """
+        if len(images) == 1:
+            return await self.extract(images[0][0], images[0][1])
+        # Default: usa a primeira imagem apenas (subclasses melhoram isso)
+        return await self.extract(images[0][0], images[0][1])
+
+
+def _build_image_content_openai(
+    images: List[tuple[bytes, str]],
+) -> list:
+    """Constrói content list com múltiplas imagens (formato OpenAI)."""
+    n = len(images)
+    if n > 1:
+        intro = (
+            f"Estas {n} imagens são partes da MESMA nota fiscal. "
+            "Combine os dados de todas as imagens em um único resultado."
+        )
+    else:
+        intro = "Extraia os dados desta nota fiscal."
+
+    content: list = [
+        {"type": "text", "text": f"{intro}\n\n{SYSTEM_PROMPT}"}
+    ]
+    for img_bytes, mime in images:
+        b64 = base64.standard_b64encode(img_bytes).decode("utf-8")
+        content.append({
+            "type": "image_url",
+            "image_url": {"url": f"data:{mime};base64,{b64}"}
+        })
+    return content
+
+
+def _build_image_content_anthropic(
+    images: List[tuple[bytes, str]],
+) -> list:
+    """Constrói content list com múltiplas imagens (formato Anthropic)."""
+    SUPPORTED = {"image/jpeg", "image/png", "image/gif", "image/webp"}
+    n = len(images)
+    if n > 1:
+        intro = (
+            f"Estas {n} imagens são partes da MESMA nota fiscal. "
+            "Combine os dados de todas as imagens em um único resultado."
+        )
+    else:
+        intro = "Extraia os dados desta nota fiscal."
+
+    content: list = [
+        {"type": "text", "text": f"{intro}\n\n{SYSTEM_PROMPT}"}
+    ]
+    for img_bytes, mime in images:
+        if mime not in SUPPORTED:
+            mime = "image/jpeg"
+        b64 = base64.standard_b64encode(img_bytes).decode("utf-8")
+        content.append({
+            "type": "image",
+            "source": {
+                "type": "base64",
+                "media_type": mime,
+                "data": b64,
+            }
+        })
+    return content
+
 
 class GeminiExtractor(BaseInvoiceExtractor):
     """Extrator usando Google Gemini via LangChain."""
@@ -95,8 +390,8 @@ class GeminiExtractor(BaseInvoiceExtractor):
         self.llm = ChatGoogleGenerativeAI(
             model=settings.GEMINI_MODEL,
             api_key=settings.GEMINI_API_KEY,
-            temperature=0.1,
-            max_output_tokens=2048
+            temperature=0.0,
+            max_output_tokens=4096,
         )
 
     async def extract(
@@ -104,18 +399,16 @@ class GeminiExtractor(BaseInvoiceExtractor):
         image_bytes: bytes,
         mime_type: str = "image/jpeg"
     ) -> ExtractedInvoiceData:
-        logger.debug(f"GeminiExtractor: Preparando imagem ({len(image_bytes)} bytes)")
-        image_base64 = base64.standard_b64encode(image_bytes).decode("utf-8")
-        image_url = f"data:{mime_type};base64,{image_base64}"
+        return await self.extract_multiple([(image_bytes, mime_type)])
 
-        message = HumanMessage(
-            content=[
-                {"type": "text", "text": SYSTEM_PROMPT},
-                {"type": "image_url", "image_url": {"url": image_url}}
-            ]
-        )
-
-        logger.debug("GeminiExtractor: Enviando requisição para Gemini API...")
+    async def extract_multiple(
+        self,
+        images: List[tuple[bytes, str]],
+    ) -> ExtractedInvoiceData:
+        total = sum(len(b) for b, _ in images)
+        logger.debug(f"GeminiExtractor: {len(images)} imagem(ns), {total} bytes")
+        content = _build_image_content_openai(images)
+        message = HumanMessage(content=content)
         response = await self.llm.ainvoke([message])
         logger.debug(f"GeminiExtractor: Resposta recebida ({len(response.content)} chars)")
         return parse_invoice_response(response.content)
@@ -128,8 +421,8 @@ class OpenAIExtractor(BaseInvoiceExtractor):
         self.llm = ChatOpenAI(
             model="gpt-4o-mini",
             api_key=settings.OPENAI_API_KEY,
-            temperature=0.1,
-            max_tokens=2048
+            temperature=0.0,
+            max_tokens=4096,
         )
 
     async def extract(
@@ -137,18 +430,16 @@ class OpenAIExtractor(BaseInvoiceExtractor):
         image_bytes: bytes,
         mime_type: str = "image/jpeg"
     ) -> ExtractedInvoiceData:
-        logger.debug(f"OpenAIExtractor: Preparando imagem ({len(image_bytes)} bytes)")
-        image_base64 = base64.standard_b64encode(image_bytes).decode("utf-8")
-        image_url = f"data:{mime_type};base64,{image_base64}"
+        return await self.extract_multiple([(image_bytes, mime_type)])
 
-        message = HumanMessage(
-            content=[
-                {"type": "text", "text": SYSTEM_PROMPT},
-                {"type": "image_url", "image_url": {"url": image_url}}
-            ]
-        )
-
-        logger.debug("OpenAIExtractor: Enviando requisição para OpenAI API...")
+    async def extract_multiple(
+        self,
+        images: List[tuple[bytes, str]],
+    ) -> ExtractedInvoiceData:
+        total = sum(len(b) for b, _ in images)
+        logger.debug(f"OpenAIExtractor: {len(images)} imagem(ns), {total} bytes")
+        content = _build_image_content_openai(images)
+        message = HumanMessage(content=content)
         response = await self.llm.ainvoke([message])
         logger.debug(f"OpenAIExtractor: Resposta recebida ({len(response.content)} chars)")
         return parse_invoice_response(response.content)
@@ -161,8 +452,8 @@ class AnthropicExtractor(BaseInvoiceExtractor):
         self.llm = ChatAnthropic(
             model=settings.ANTHROPIC_MODEL,
             api_key=settings.ANTHROPIC_API_KEY,
-            temperature=0.1,
-            max_tokens=2048
+            temperature=0.0,
+            max_tokens=4096,
         )
 
     async def extract(
@@ -170,34 +461,19 @@ class AnthropicExtractor(BaseInvoiceExtractor):
         image_bytes: bytes,
         mime_type: str = "image/jpeg"
     ) -> ExtractedInvoiceData:
-        logger.debug(f"AnthropicExtractor: Preparando imagem ({len(image_bytes)} bytes)")
-        image_base64 = base64.standard_b64encode(image_bytes).decode("utf-8")
+        return await self.extract_multiple([(image_bytes, mime_type)])
 
-        # Anthropic suporta: image/jpeg, image/png, image/gif, image/webp
-        # Converter mime_type se necessário
-        if mime_type not in ["image/jpeg", "image/png", "image/gif", "image/webp"]:
-            logger.warning(
-                f"AnthropicExtractor: Mime type {mime_type} may not be supported, "
-                "treating as image/jpeg"
-            )
-            mime_type = "image/jpeg"
-
-        # Anthropic usa formato diferente para imagens
-        message = HumanMessage(
-            content=[
-                {"type": "text", "text": SYSTEM_PROMPT},
-                {
-                    "type": "image",
-                    "source": {
-                        "type": "base64",
-                        "media_type": mime_type,
-                        "data": image_base64
-                    }
-                }
-            ]
+    async def extract_multiple(
+        self,
+        images: List[tuple[bytes, str]],
+    ) -> ExtractedInvoiceData:
+        total = sum(len(b) for b, _ in images)
+        logger.debug(
+            f"AnthropicExtractor: {len(images)} imagem(ns), {total} bytes, "
+            f"modelo: {settings.ANTHROPIC_MODEL}"
         )
-
-        logger.debug(f"AnthropicExtractor: Enviando requisição para Anthropic API (modelo: {settings.ANTHROPIC_MODEL})...")
+        content = _build_image_content_anthropic(images)
+        message = HumanMessage(content=content)
         response = await self.llm.ainvoke([message])
         logger.debug(f"AnthropicExtractor: Resposta recebida ({len(response.content)} chars)")
         return parse_invoice_response(response.content)
@@ -212,7 +488,7 @@ class OpenRouterExtractor(BaseInvoiceExtractor):
             model=self.model_name,
             api_key=settings.OPENROUTER_API_KEY,
             base_url=settings.OPENROUTER_BASE_URL,
-            temperature=0.1,
+            temperature=0.0,
             max_tokens=4096,
             default_headers={
                 "HTTP-Referer": "https://smarket.app",
@@ -225,24 +501,19 @@ class OpenRouterExtractor(BaseInvoiceExtractor):
         image_bytes: bytes,
         mime_type: str = "image/jpeg"
     ) -> ExtractedInvoiceData:
-        logger.debug(
-            f"OpenRouterExtractor: Preparando imagem ({len(image_bytes)} bytes) "
-            f"com modelo {self.model_name}"
-        )
-        image_base64 = base64.standard_b64encode(image_bytes).decode("utf-8")
-        image_url = f"data:{mime_type};base64,{image_base64}"
+        return await self.extract_multiple([(image_bytes, mime_type)])
 
-        message = HumanMessage(
-            content=[
-                {"type": "text", "text": SYSTEM_PROMPT},
-                {"type": "image_url", "image_url": {"url": image_url}}
-            ]
-        )
-
+    async def extract_multiple(
+        self,
+        images: List[tuple[bytes, str]],
+    ) -> ExtractedInvoiceData:
+        total = sum(len(b) for b, _ in images)
         logger.debug(
-            f"OpenRouterExtractor: Enviando requisição para OpenRouter "
-            f"(modelo: {self.model_name})..."
+            f"OpenRouterExtractor: {len(images)} imagem(ns), {total} bytes, "
+            f"modelo: {self.model_name}"
         )
+        content = _build_image_content_openai(images)
+        message = HumanMessage(content=content)
         response = await self.llm.ainvoke([message])
         logger.debug(
             f"OpenRouterExtractor: Resposta recebida ({len(response.content)} chars)"
@@ -286,11 +557,20 @@ class MultiProviderExtractor:
         image_bytes: bytes,
         mime_type: str = "image/jpeg"
     ) -> ExtractedInvoiceData:
-        """Tenta extrair com fallback entre provedores.
+        """Tenta extrair com fallback entre provedores (imagem única)."""
+        return await self.extract_multiple([(image_bytes, mime_type)])
+
+    async def extract_multiple(
+        self,
+        images: List[tuple[bytes, str]],
+    ) -> ExtractedInvoiceData:
+        """Tenta extrair de múltiplas imagens com fallback entre provedores.
+
+        Todas as imagens são enviadas numa única request à LLM,
+        que combina os dados internamente.
 
         Args:
-            image_bytes: Bytes da imagem
-            mime_type: Tipo MIME da imagem
+            images: Lista de (image_bytes, mime_type)
 
         Returns:
             ExtractedInvoiceData com dados extraídos
@@ -299,18 +579,20 @@ class MultiProviderExtractor:
             ValueError: Se todos os provedores falharem
         """
 
-        # Validar imagem
-        if not image_bytes:
-            raise ValueError("Image bytes cannot be empty")
+        # Validar imagens
+        if not images:
+            raise ValueError("At least one image is required")
 
-        image_size_mb = len(image_bytes) / (1024 * 1024)
+        total_size = sum(len(b) for b, _ in images)
+        image_size_mb = total_size / (1024 * 1024)
         providers_list = ", ".join([name for name, _ in self.providers])
         logger.info(
-            f"📸 INICIANDO EXTRAÇÃO DE NOTA FISCAL",
+            f"📸 INICIANDO EXTRAÇÃO DE NOTA FISCAL | "
+            f"{len(images)} imagem(ns), {image_size_mb:.2f}MB",
             extra={
+                "image_count": len(images),
                 "size_mb": round(image_size_mb, 2),
-                "size_bytes": len(image_bytes),
-                "mime_type": mime_type,
+                "size_bytes": total_size,
                 "available_providers": providers_list
             }
         )
@@ -321,11 +603,14 @@ class MultiProviderExtractor:
                 f"Image size {image_size_mb:.2f}MB may exceed provider limits"
             )
 
+        # Gerar cache key baseada na primeira imagem
+        cache_image = images[0][0]
+
         errors = []
 
         for provider_name, extractor in self.providers:
             # Verificar cache primeiro
-            cached = await get_cached_extraction(provider_name, image_bytes)
+            cached = await get_cached_extraction(provider_name, cache_image)
             if cached:
                 logger.info(
                     f"✓ SUCESSO - Cache hit para {provider_name}",
@@ -339,12 +624,12 @@ class MultiProviderExtractor:
 
             try:
                 logger.info(f"→ Tentando extração com {provider_name}...")
-                result = await extractor.extract(image_bytes, mime_type)
+                result = await extractor.extract_multiple(images)
 
                 # Salvar em cache
                 await cache_extraction(
                     provider_name,
-                    image_bytes,
+                    cache_image,
                     result.model_dump()
                 )
 

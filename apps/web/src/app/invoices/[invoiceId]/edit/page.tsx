@@ -1,62 +1,76 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import { useParams, useRouter } from 'next/navigation';
 
 import { type AxiosError } from 'axios';
 
-import { useProcessingStatus, useConfirmInvoice, type ExtractedInvoiceData } from '@/hooks/use-invoices';
-import { type InvoiceItem } from '@/types';
+import { useInvoice, useUpdateInvoice } from '@/hooks/use-invoices';
+import { type InvoiceItem, type InvoiceUpdateRequest } from '@/types';
 import { formatCNPJInput, getCNPJErrorMessage, isValidCNPJ } from '@/lib/cnpj';
 import { useCNPJEnrichment, type CNPJEnrichmentError } from '@/hooks/use-cnpj-enrichment';
 
-interface DuplicateErrorData {
-  message: string;
-  existingId?: string;
-  existingNumber?: string;
-  existingDate?: string;
-  existingTotal?: number;
+interface EditableInvoice {
+  issuer_name: string;
+  issuer_cnpj: string;
+  number: string;
+  series: string;
+  issue_date: string;
+  access_key: string;
+  total_value: number;
+  items: InvoiceItem[];
 }
 
-export default function InvoiceReviewPage() {
+export default function InvoiceEditPage() {
   const params = useParams();
   const router = useRouter();
-  const processingId = params.processingId as string;
+  const invoiceId = params.invoiceId as string;
 
-  const { data: processingData, isLoading, error: fetchError } = useProcessingStatus(processingId);
-  const confirmMutation = useConfirmInvoice();
+  const { data: invoice, isLoading, error: fetchError } = useInvoice(invoiceId);
+  const updateMutation = useUpdateInvoice();
   const enrichmentMutation = useCNPJEnrichment();
 
-  const [editedData, setEditedData] = useState<ExtractedInvoiceData | null>(null);
-  const [duplicateError, setDuplicateError] = useState<DuplicateErrorData | null>(null);
+  const [editedData, setEditedData] = useState<EditableInvoice | null>(null);
   const [cnpjError, setCnpjError] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [enrichmentSuccess, setEnrichmentSuccess] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // Update editedData when processingData changes
-  if (processingData?.extracted_data && !editedData) {
-    // Ensure all numeric values are properly converted
-    const cleanedData = {
-      ...processingData.extracted_data,
-      total_value: Number(processingData.extracted_data.total_value) || 0,
-      confidence: Number(processingData.extracted_data.confidence) || 0,
-      items: (processingData.extracted_data.items as InvoiceItem[] | undefined)?.map((item) => ({
-        ...item,
+  // Initialize editedData from fetched invoice
+  useEffect(() => {
+    if (invoice && !editedData) {
+      const items: InvoiceItem[] = (invoice.items ?? invoice.products ?? []).map((item) => ({
+        code: item.code || '',
+        description: item.description || '',
         quantity: Number(item.quantity) || 0,
+        unit: item.unit || 'UN',
         unit_price: Number(item.unit_price) || 0,
         total_price: Number(item.total_price) || 0,
-      })) || [],
-    };
-    setEditedData(cleanedData);
-  }
+        category_name: item.category_name || '',
+        subcategory: item.subcategory || '',
+      }));
+
+      setEditedData({
+        issuer_name: invoice.issuer_name || '',
+        issuer_cnpj: invoice.issuer_cnpj ? formatCNPJInput(invoice.issuer_cnpj) : '',
+        number: invoice.number || '',
+        series: invoice.series || '',
+        issue_date: invoice.issue_date
+          ? new Date(invoice.issue_date).toISOString().slice(0, 16)
+          : '',
+        access_key: invoice.access_key || '',
+        total_value: Number(invoice.total_value) || 0,
+        items,
+      });
+    }
+  }, [invoice, editedData]);
 
   const handleItemChange = (index: number, field: keyof InvoiceItem, value: string | number) => {
     if (!editedData) { return; }
 
     const newItems = [...editedData.items];
 
-    // Convert to number if it's a numeric field
     if (field === 'quantity' || field === 'unit_price' || field === 'total_price') {
       const numValue = typeof value === 'string' ? parseFloat(value) || 0 : Number(value) || 0;
       // eslint-disable-next-line security/detect-object-injection
@@ -66,7 +80,6 @@ export default function InvoiceReviewPage() {
       newItems[index] = { ...newItems[index], [field]: value };
     }
 
-    // Recalculate total_price if quantity or unit_price changed
     if (field === 'quantity' || field === 'unit_price') {
       // eslint-disable-next-line security/detect-object-injection
       const quantity = Number(newItems[index].quantity) || 0;
@@ -76,10 +89,7 @@ export default function InvoiceReviewPage() {
       newItems[index].total_price = quantity * unitPrice;
     }
 
-    // Recalculate total_value
-    const newTotal = newItems.reduce((sum, item) => {
-      return sum + (Number(item.total_price) || 0);
-    }, 0);
+    const newTotal = newItems.reduce((sum, item) => sum + (Number(item.total_price) || 0), 0);
 
     setEditedData({
       ...editedData,
@@ -88,92 +98,46 @@ export default function InvoiceReviewPage() {
     });
   };
 
-  const handleHeaderChange = (field: keyof ExtractedInvoiceData, value: string) => {
+  const handleHeaderChange = (field: keyof EditableInvoice, value: string) => {
     if (!editedData) { return; }
 
-    // Special handling for CNPJ field
     if (field === 'issuer_cnpj') {
-      // Format as user types
       const formatted = formatCNPJInput(value);
       setEditedData({ ...editedData, [field]: formatted });
-
-      // Validate and show error
       const error = getCNPJErrorMessage(formatted);
       setCnpjError(error);
-
-      // Clear general validation error when user edits
       setValidationError(null);
     } else {
       setEditedData({ ...editedData, [field]: value });
     }
   };
 
-  const handleConfirm = async () => {
+  const handleAddItem = () => {
     if (!editedData) { return; }
+    const newItems = [...editedData.items, {
+      code: '',
+      description: '',
+      quantity: 1,
+      unit: 'UN',
+      unit_price: 0,
+      total_price: 0,
+      category_name: '',
+      subcategory: '',
+    }];
+    const newTotal = newItems.reduce((sum, item) => sum + (Number(item.total_price) || 0), 0);
+    setEditedData({ ...editedData, items: newItems, total_value: newTotal });
+  };
 
-    // Validate CNPJ before submitting
-    if (editedData.issuer_cnpj) {
-      const cnpjValidationError = getCNPJErrorMessage(editedData.issuer_cnpj);
-      if (cnpjValidationError) {
-        setCnpjError(cnpjValidationError);
-        setValidationError('Por favor, corrija os erros antes de continuar.');
-        return;
-      }
-    }
+  const handleRemoveItem = (index: number) => {
+    if (!editedData || editedData.items.length <= 1) { return; }
+    const newItems = editedData.items.filter((_, i) => i !== index);
+    const newTotal = newItems.reduce((sum, item) => sum + (Number(item.total_price) || 0), 0);
+    setEditedData({ ...editedData, items: newItems, total_value: newTotal });
+  };
 
-    try {
-      await confirmMutation.mutateAsync({
-        processingId,
-        data: editedData as ExtractedInvoiceData & Record<string, unknown>,
-      });
-      router.push('/invoices');
-    } catch (err) {
-      const axiosError = err as AxiosError<{
-        detail?: {
-          error?: string;
-          message?: string;
-          field?: string;
-          hint?: string;
-          existing_invoice_id?: string;
-          existing_invoice_number?: string;
-          existing_invoice_date?: string;
-          existing_invoice_total?: number;
-        } | string;
-      }>;
-
-      // Check if it's an invalid CNPJ error (400 Bad Request)
-      if (axiosError.response?.status === 400) {
-        const detail = axiosError?.response?.data?.detail;
-        if (typeof detail === 'object' && detail !== null && detail.error === 'invalid_cnpj') {
-          setCnpjError(detail.message || 'CNPJ inválido');
-          setValidationError(detail.hint || 'Verifique o CNPJ informado.');
-          return;
-        }
-      }
-
-      // Check if it's a duplicate invoice error (409 Conflict)
-      if (axiosError.response?.status === 409) {
-        const detail = axiosError?.response?.data?.detail;
-        if (typeof detail === 'object' && detail !== null) {
-          setDuplicateError({
-            message: detail.message || 'Esta nota fiscal já foi cadastrada',
-            existingId: detail.existing_invoice_id,
-            existingNumber: detail.existing_invoice_number,
-            existingDate: detail.existing_invoice_date,
-            existingTotal: detail.existing_invoice_total,
-          });
-        } else {
-          setDuplicateError({
-            message: (typeof detail === 'string' ? detail : 'Esta nota fiscal já foi cadastrada'),
-          });
-        }
-      } else {
-        const errorMessage = typeof axiosError?.response?.data?.detail === 'object'
-          ? axiosError.response.data.detail.message
-          : axiosError?.response?.data?.detail || axiosError.message || 'Falha ao salvar nota fiscal';
-        alert(errorMessage);
-      }
-    }
+  const handleUseItemsSum = () => {
+    if (!editedData) { return; }
+    setEditedData({ ...editedData, total_value: itemsSum });
   };
 
   const handleEnrichCNPJ = async () => {
@@ -182,7 +146,6 @@ export default function InvoiceReviewPage() {
       return;
     }
 
-    // Validate CNPJ before enriching
     const cnpjValidationError = getCNPJErrorMessage(editedData.issuer_cnpj);
     if (cnpjValidationError) {
       setCnpjError(cnpjValidationError);
@@ -190,14 +153,12 @@ export default function InvoiceReviewPage() {
       return;
     }
 
-    // Clear previous messages
     setEnrichmentSuccess(null);
     setValidationError(null);
 
     try {
       const result = await enrichmentMutation.mutateAsync(editedData.issuer_cnpj);
 
-      // Update issuer name with suggested name
       if (result.suggested_name && editedData) {
         setEditedData({
           ...editedData,
@@ -208,31 +169,95 @@ export default function InvoiceReviewPage() {
         );
       }
     } catch (err) {
-      console.error('CNPJ enrichment error:', err);
       const axiosError = err as AxiosError<{ detail?: CNPJEnrichmentError }>;
-      console.log('Response status:', axiosError?.response?.status);
-      console.log('Response data:', axiosError?.response?.data);
-
       const detail = axiosError?.response?.data?.detail;
 
       if (detail) {
-        setValidationError(detail.message || 'Erro ao consultar CNPJ');
-        if (detail.hint) {
-          setValidationError(`${detail.message}\n${detail.hint}`);
-        }
+        setValidationError(detail.hint ? `${detail.message}\n${detail.hint}` : detail.message || 'Erro ao consultar CNPJ');
       } else {
-        // Generic error
-        const errorMessage = axiosError?.message || 'Erro ao consultar CNPJ. Tente novamente.';
-        setValidationError(errorMessage);
+        setValidationError(axiosError?.message || 'Erro ao consultar CNPJ. Tente novamente.');
+      }
+    }
+  };
+
+  const handleSave = async () => {
+    if (!editedData) { return; }
+
+    if (editedData.issuer_cnpj) {
+      const cnpjValidationError = getCNPJErrorMessage(editedData.issuer_cnpj);
+      if (cnpjValidationError) {
+        setCnpjError(cnpjValidationError);
+        setValidationError('Por favor, corrija os erros antes de salvar.');
+        return;
+      }
+    }
+
+    try {
+      const updateData: InvoiceUpdateRequest = {
+        number: editedData.number,
+        series: editedData.series,
+        issue_date: editedData.issue_date
+          ? new Date(editedData.issue_date).toISOString()
+          : undefined,
+        issuer_name: editedData.issuer_name,
+        issuer_cnpj: editedData.issuer_cnpj,
+        total_value: editedData.total_value,
+        access_key: editedData.access_key,
+        items: editedData.items.map((item) => ({
+          code: item.code || '',
+          description: item.description,
+          quantity: Number(item.quantity) || 0,
+          unit: item.unit || 'UN',
+          unit_price: Number(item.unit_price) || 0,
+          total_price: Number(item.total_price) || 0,
+          category_name: item.category_name || undefined,
+          subcategory: item.subcategory || undefined,
+        })),
+      };
+
+      await updateMutation.mutateAsync({ id: invoiceId, data: updateData });
+      setSaveSuccess(true);
+      setTimeout(() => {
+        router.push(`/invoices/${invoiceId}`);
+      }, 800);
+    } catch (err) {
+      const axiosError = err as AxiosError<{
+        detail?: {
+          error?: string;
+          message?: string;
+          field?: string;
+        } | string;
+      }>;
+
+      if (axiosError.response?.status === 400) {
+        const detail = axiosError?.response?.data?.detail;
+        if (typeof detail === 'object' && detail !== null && detail.error === 'invalid_cnpj') {
+          setCnpjError(detail.message || 'CNPJ inválido');
+          setValidationError('Verifique o CNPJ informado.');
+          return;
+        }
+      }
+
+      if (axiosError.response?.status === 409) {
+        const detail = axiosError?.response?.data?.detail;
+        const message = typeof detail === 'object' && detail !== null
+          ? detail.message || 'Conflito ao salvar'
+          : (typeof detail === 'string' ? detail : 'Conflito ao salvar');
+        setValidationError(message);
+      } else {
+        const errorMessage = typeof axiosError?.response?.data?.detail === 'object'
+          ? axiosError.response.data.detail.message
+          : axiosError?.response?.data?.detail || axiosError.message || 'Falha ao salvar alterações';
+        alert(errorMessage);
       }
     }
   };
 
   const handleCancel = () => {
-    router.push('/invoices');
+    router.push(`/invoices/${invoiceId}`);
   };
 
-  // Loading state - initial fetch
+  // Loading state
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#faf9f7]">
@@ -244,14 +269,12 @@ export default function InvoiceReviewPage() {
     );
   }
 
-  // Error state - only show if there's a real error AND we're not still processing
-  if (fetchError) {
+  // Error state
+  if (fetchError || !invoice) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#faf9f7]">
         <div className="text-center">
-          <p className="mb-4 text-red-600">
-            {String(fetchError)}
-          </p>
+          <p className="mb-4 text-red-600">Nota fiscal não encontrada</p>
           <button
             onClick={() => { router.push('/invoices'); }}
             className="bg-[#2d2d2d] px-6 py-2 font-mono text-sm text-white transition-colors hover:bg-[#1a1a1a]"
@@ -263,91 +286,17 @@ export default function InvoiceReviewPage() {
     );
   }
 
-  // Processing states - show spinner with status
-  if (!processingData || processingData.status === 'pending' || processingData.status === 'processing') {
-    const statusMessage =
-      processingData?.status === 'processing'
-        ? 'Processando nota fiscal com IA...'
-        : processingData?.status === 'pending'
-          ? 'Aguardando processamento...'
-          : 'Carregando dados...';
-
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#faf9f7]">
-        <div className="text-center">
-          <div className="mb-4 inline-block size-8 animate-spin rounded-full border-2 border-[#2d2d2d] border-t-transparent" />
-          <p className="mb-2 font-mono text-sm text-[#666]">{statusMessage}</p>
-          <p className="font-mono text-xs text-[#999]">
-            Isso pode levar alguns segundos...
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // Error status from backend
-  if (processingData.status === 'error') {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#faf9f7]">
-        <div className="max-w-md text-center">
-          <div className="mb-4 inline-block rounded-full bg-red-100 p-4">
-            <svg className="size-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </div>
-          <h3 className="mb-2 text-lg font-bold" style={{ fontFamily: 'Crimson Text, serif' }}>
-            Erro no Processamento
-          </h3>
-          <p className="mb-4 font-mono text-sm text-red-600">
-            {processingData.errors.length > 0
-              ? processingData.errors.join(', ')
-              : 'Não foi possível processar a nota fiscal'}
-          </p>
-          <button
-            onClick={() => { router.push('/invoices'); }}
-            className="bg-[#2d2d2d] px-6 py-2 font-mono text-sm text-white transition-colors hover:bg-[#1a1a1a]"
-          >
-            Voltar
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Data not available after extraction
   if (!editedData) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#faf9f7]">
         <div className="text-center">
-          <p className="mb-4 text-red-600">Dados extraídos não disponíveis</p>
-          <button
-            onClick={() => { router.push('/invoices'); }}
-            className="bg-[#2d2d2d] px-6 py-2 font-mono text-sm text-white transition-colors hover:bg-[#1a1a1a]"
-          >
-            Voltar
-          </button>
+          <div className="mb-4 inline-block size-8 animate-spin rounded-full border-2 border-[#2d2d2d] border-t-transparent" />
+          <p className="font-mono text-sm text-[#666]">Preparando edição...</p>
         </div>
       </div>
     );
   }
 
-  const confidence = Number(editedData.confidence) || 0;
-
-  const confidenceColor =
-    confidence >= 0.9
-      ? '#16a34a'
-      : confidence >= 0.7
-        ? '#f59e0b'
-        : '#dc2626';
-
-  const confidenceLabel =
-    confidence >= 0.9
-      ? 'ALTA CONFIANÇA'
-      : confidence >= 0.7
-        ? 'CONFIANÇA MÉDIA'
-        : 'REVISAR COM ATENÇÃO';
-
-  // --- Computed values for UX indicators ---
   const itemsSum = editedData.items.reduce(
     (sum, item) => sum + (Number(item.total_price) || 0), 0
   );
@@ -364,66 +313,46 @@ export default function InvoiceReviewPage() {
       ? 'border-amber-400 bg-amber-50/50'
       : 'border-transparent';
 
-  const handleAddItem = () => {
-    const newItems = [...editedData.items, {
-      code: '',
-      description: '',
-      quantity: 1,
-      unit: 'UN',
-      unit_price: 0,
-      total_price: 0,
-    }];
-    const newTotal = newItems.reduce((sum, item) => sum + (Number(item.total_price) || 0), 0);
-    setEditedData({ ...editedData, items: newItems, total_value: newTotal });
-  };
-
-  const handleRemoveItem = (index: number) => {
-    if (editedData.items.length <= 1) { return; }
-    const newItems = editedData.items.filter((_, i) => i !== index);
-    const newTotal = newItems.reduce((sum, item) => sum + (Number(item.total_price) || 0), 0);
-    setEditedData({ ...editedData, items: newItems, total_value: newTotal });
-  };
-
-  const handleUseItemsSum = () => {
-    setEditedData({ ...editedData, total_value: itemsSum });
-  };
-
   return (
     <div className="min-h-screen bg-[#faf9f7] px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-4xl">
-        {/* Import fonts via link or CSS file instead of jsx global */}
-
         {/* Receipt Container */}
         <div className="receipt-texture relative overflow-hidden rounded-none border border-[#e5e5e5] bg-[#faf9f7] shadow-xl">
-          {/* Confidence Stamp */}
+          {/* Edit Mode Badge */}
           <div
-            className="stamp-rotate absolute right-6 top-6"
+            className="absolute right-6 top-6"
             style={{
-              border: `3px solid ${confidenceColor}`,
+              border: '3px solid #2d2d2d',
               padding: '12px 20px',
               transform: 'rotate(-5deg)',
               backgroundColor: 'rgba(255, 255, 255, 0.95)',
             }}
           >
-            <div
-              className="font-mono text-xs font-bold tracking-wider"
-              style={{ color: confidenceColor }}
-            >
-              {confidenceLabel}
-            </div>
-            <div
-              className="mt-1 text-center font-mono text-2xl font-bold"
-              style={{ color: confidenceColor }}
-            >
-              {Math.round(confidence * 100)}%
+            <div className="font-mono text-xs font-bold tracking-wider text-[#2d2d2d]">
+              MODO EDIÇÃO
             </div>
           </div>
 
           <div className="p-8 sm:p-12">
-            {/* Image Count Badge */}
-            {editedData.image_count && editedData.image_count > 1 && (
-              <div className="mb-6 inline-block bg-[#2d2d2d] px-4 py-2 font-mono text-xs text-white">
-                {editedData.image_count} IMAGENS PROCESSADAS
+            {/* Page Title */}
+            <div className="mb-8 border-b-2 border-[#2d2d2d] pb-4">
+              <h1
+                className="text-3xl font-bold text-[#2d2d2d]"
+                style={{ fontFamily: 'Crimson Text, serif' }}
+              >
+                Editar Nota Fiscal
+              </h1>
+              <p className="mt-1 font-mono text-xs text-[#999]">
+                NF-e nº {invoice.number} · {invoice.issuer_name}
+              </p>
+            </div>
+
+            {/* Save Success Message */}
+            {saveSuccess && (
+              <div className="mb-6 border-l-4 border-green-500 bg-green-50 p-4">
+                <p className="font-mono text-sm text-green-700">
+                  ✓ Alterações salvas com sucesso! Redirecionando...
+                </p>
               </div>
             )}
 
@@ -515,18 +444,8 @@ export default function InvoiceReviewPage() {
                   <div className="flex items-center justify-between">
                     <span className="font-mono text-xs tracking-wider text-[#666]">DATA</span>
                     <input
-                      type="text"
-                      value={
-                        editedData.issue_date
-                          ? new Date(editedData.issue_date).toLocaleString('pt-BR', {
-                            year: 'numeric',
-                            month: '2-digit',
-                            day: '2-digit',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })
-                          : ''
-                      }
+                      type="datetime-local"
+                      value={editedData.issue_date}
                       onChange={(e) => { handleHeaderChange('issue_date', e.target.value); }}
                       className="editable-cell border-b-2 border-transparent bg-transparent px-2 py-1 text-right font-mono text-sm font-semibold transition-colors hover:border-[#e5e5e5] focus:border-[#2d2d2d]"
                       style={{ fontFamily: 'IBM Plex Mono, monospace' }}
@@ -558,13 +477,8 @@ export default function InvoiceReviewPage() {
                         : 'border-transparent text-[#666]'
                   }`}
                   style={{ fontFamily: 'IBM Plex Mono, monospace' }}
-                  placeholder="44 dígitos — geralmente no rodapé da nota"
+                  placeholder="44 dígitos — chave de acesso da nota fiscal"
                 />
-                {isFieldEmpty(editedData.access_key) && (
-                  <p className="mt-1 font-mono text-xs italic text-amber-600">
-                    Chave de acesso não encontrada pela IA — preencha manualmente se possível
-                  </p>
-                )}
               </div>
             </div>
 
@@ -628,8 +542,7 @@ export default function InvoiceReviewPage() {
                           <input
                             type="text"
                             value={item.description}
-                            onChange={(e) => { handleItemChange(index, 'description', e.target.value); }
-                            }
+                            onChange={(e) => { handleItemChange(index, 'description', e.target.value); }}
                             className="editable-cell w-full border-b-2 border-transparent bg-transparent p-1 font-mono text-sm transition-colors hover:border-[#e5e5e5] focus:border-[#2d2d2d]"
                             style={{ fontFamily: 'IBM Plex Mono, monospace' }}
                           />
@@ -639,8 +552,7 @@ export default function InvoiceReviewPage() {
                             type="number"
                             step="0.001"
                             value={Number(item.quantity) || 0}
-                            onChange={(e) => { handleItemChange(index, 'quantity', e.target.value); }
-                            }
+                            onChange={(e) => { handleItemChange(index, 'quantity', e.target.value); }}
                             className="editable-cell w-full border-b-2 border-transparent bg-transparent p-1 text-right font-mono text-sm transition-colors hover:border-[#e5e5e5] focus:border-[#2d2d2d]"
                             style={{ fontFamily: 'IBM Plex Mono, monospace' }}
                           />
@@ -679,8 +591,7 @@ export default function InvoiceReviewPage() {
                             type="number"
                             step="0.01"
                             value={Number(item.unit_price) || 0}
-                            onChange={(e) => { handleItemChange(index, 'unit_price', e.target.value); }
-                            }
+                            onChange={(e) => { handleItemChange(index, 'unit_price', e.target.value); }}
                             className="editable-cell w-full border-b-2 border-transparent bg-transparent p-1 text-right font-mono text-sm transition-colors hover:border-[#e5e5e5] focus:border-[#2d2d2d]"
                             style={{ fontFamily: 'IBM Plex Mono, monospace' }}
                           />
@@ -765,22 +676,6 @@ export default function InvoiceReviewPage() {
               </div>
             </div>
 
-            {/* Warnings */}
-            {editedData.warnings && editedData.warnings.length > 0 && (
-              <div className="mb-8 border-l-4 border-amber-500 bg-amber-50 p-6">
-                <h3 className="mb-3 font-mono text-xs font-bold tracking-wider text-amber-800">
-                  ⚠ AVISOS
-                </h3>
-                <ul className="space-y-2">
-                  {editedData.warnings.map((warning, index) => (
-                    <li key={`warning-${String(index)}-${warning.substring(0, 10)}`} className="font-mono text-sm text-amber-700">
-                      • {warning}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
             {/* Validation Error Message */}
             {validationError && (
               <div className="mb-6 border-l-4 border-red-500 bg-red-50 p-4">
@@ -793,16 +688,16 @@ export default function InvoiceReviewPage() {
             {/* Action Buttons */}
             <div className="flex flex-col gap-4 sm:flex-row">
               <button
-                onClick={() => { void handleConfirm(); }}
-                disabled={confirmMutation.isPending || !!cnpjError}
+                onClick={() => { void handleSave(); }}
+                disabled={updateMutation.isPending || !!cnpjError || saveSuccess}
                 className="flex-1 transform bg-[#2d2d2d] py-4 font-mono text-sm font-semibold tracking-wider text-white transition-all hover:scale-[1.02] hover:bg-[#1a1a1a] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
-                title={cnpjError ? 'Corrija os erros antes de confirmar' : ''}
+                title={cnpjError ? 'Corrija os erros antes de salvar' : ''}
               >
-                {confirmMutation.isPending ? 'SALVANDO...' : 'CONFIRMAR E SALVAR'}
+                {updateMutation.isPending ? 'SALVANDO...' : saveSuccess ? '✓ SALVO!' : 'SALVAR ALTERAÇÕES'}
               </button>
               <button
                 onClick={handleCancel}
-                disabled={confirmMutation.isPending}
+                disabled={updateMutation.isPending}
                 className="flex-1 border-2 border-[#2d2d2d] px-8 py-4 font-mono text-sm font-semibold tracking-wider text-[#2d2d2d] transition-all hover:bg-[#2d2d2d] hover:text-white disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
               >
                 CANCELAR
@@ -813,88 +708,9 @@ export default function InvoiceReviewPage() {
 
         {/* Footer Note */}
         <p className="mt-8 text-center font-mono text-xs text-[#999]">
-          Clique nos campos para editar • Alterações são salvas ao confirmar
+          Clique nos campos para editar • Alterações são salvas ao clicar em &quot;Salvar Alterações&quot;
         </p>
       </div>
-
-      {/* Duplicate Error Modal */}
-      {duplicateError && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-          <div className="receipt-texture w-full max-w-md border-2 border-red-500 bg-white shadow-2xl">
-            <div className="p-8">
-              {/* Error Icon */}
-              <div className="mb-6 flex justify-center">
-                <div className="flex size-16 items-center justify-center rounded-full bg-red-100">
-                  <svg className="size-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                </div>
-              </div>
-
-              {/* Title */}
-              <h2
-                className="mb-4 text-center text-2xl font-bold text-red-600"
-                style={{ fontFamily: 'Crimson Text, serif' }}
-              >
-                Nota Fiscal Duplicada
-              </h2>
-
-              {/* Message */}
-              <p className="mb-6 text-center font-mono text-sm text-gray-700">
-                {duplicateError.message}
-              </p>
-
-              {/* Existing Invoice Info */}
-              {duplicateError.existingNumber && (
-                <div className="mb-6 border-l-4 border-red-500 bg-gray-50 p-4">
-                  <p className="mb-2 font-mono text-xs text-gray-600">NOTA EXISTENTE:</p>
-                  <div className="space-y-1 font-mono text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Número:</span>
-                      <span className="font-semibold">{duplicateError.existingNumber}</span>
-                    </div>
-                    {duplicateError.existingDate && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Data:</span>
-                        <span className="font-semibold">
-                          {new Date(duplicateError.existingDate).toLocaleDateString('pt-BR')}
-                        </span>
-                      </div>
-                    )}
-                    {duplicateError.existingTotal !== undefined && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Total:</span>
-                        <span className="font-semibold">
-                          R$ {duplicateError.existingTotal.toFixed(2)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex flex-col gap-3">
-                <button
-                  onClick={() => {
-                    setDuplicateError(null);
-                    router.push('/invoices');
-                  }}
-                  className="w-full bg-[#2d2d2d] py-3 font-mono text-sm font-semibold tracking-wider text-white transition-colors hover:bg-[#1a1a1a]"
-                >
-                  VER TODAS AS NOTAS
-                </button>
-                <button
-                  onClick={() => { setDuplicateError(null); }}
-                  className="w-full border-2 border-[#2d2d2d] py-3 font-mono text-sm font-semibold tracking-wider text-[#2d2d2d] transition-colors hover:bg-[#f5f5f5]"
-                >
-                  FECHAR
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

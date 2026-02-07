@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient, type UseQueryResult, type UseMutationResult } from '@tanstack/react-query';
 
 import { apiClient } from '@/lib/api';
-import { type Invoice, type InvoiceList, type QRCodeRequest, type ProcessingResponse, type InvoiceProcessingList } from '@/types';
+import { type Invoice, type InvoiceList, type QRCodeRequest, type ProcessingResponse, type InvoiceProcessingList, type InvoiceUpdateRequest } from '@/types';
 
 const INVOICE_KEYS = {
   all: ['invoices'] as const,
@@ -18,6 +18,7 @@ const INVOICE_KEYS = {
 interface InvoiceWithItems extends Invoice {
   items?: {
     id?: string;
+    code?: string;
     description: string;
     quantity: number;
     unit: string;
@@ -29,6 +30,7 @@ interface InvoiceWithItems extends Invoice {
 }
 
 export interface InvoiceItemData {
+  code?: string;
   description: string;
   quantity: number;
   unit: string;
@@ -210,6 +212,20 @@ export function useDeleteProcessing(): UseMutationResult<unknown, Error, string>
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['pending-processing'] });
+    },
+  });
+}
+
+export function useUpdateInvoice(): UseMutationResult<Invoice, Error, { id: string; data: InvoiceUpdateRequest }> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: InvoiceUpdateRequest }) => {
+      return apiClient.put<Invoice>(`/invoices/${id}`, data);
+    },
+    onSuccess: (_, variables) => {
+      void queryClient.invalidateQueries({ queryKey: INVOICE_KEYS.detail(variables.id) });
+      void queryClient.invalidateQueries({ queryKey: INVOICE_KEYS.lists() });
     },
   });
 }

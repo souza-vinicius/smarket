@@ -15,7 +15,7 @@ from src.models.invoice import Invoice
 from src.models.invoice_item import InvoiceItem
 from src.models.invoice_processing import InvoiceProcessing
 from src.models.user import User
-from src.schemas.invoice import InvoiceResponse, InvoiceList, QRCodeRequest
+from src.schemas.invoice import InvoiceResponse, InvoiceList, QRCodeRequest, InvoiceUpdate
 from src.schemas.invoice_processing import (
     ProcessingResponse,
     ProcessingStatus,
@@ -27,7 +27,6 @@ from src.parsers.qrcode_parser import (
     fetch_invoice_from_sefaz
 )
 from src.parsers.xml_parser import parse_xml_invoice
-from src.parsers.image_parser import parse_invoice_images
 from src.services.ai_analyzer import analyzer
 from src.services.cnpj_enrichment import enrich_cnpj_data
 from src.tasks.process_invoice_photos import process_invoice_photos
@@ -181,6 +180,140 @@ async def get_invoice(
         )
 
     return invoice
+
+
+@router.put(
+    "/{invoice_id}",
+    response_model=InvoiceResponse
+)
+async def update_invoice(
+    invoice_id: uuid.UUID,
+    request: InvoiceUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Update an existing invoice and its items."""
+    try:
+        logger.info(f"Updating invoice {invoice_id}")
+
+        # Fetch invoice
+        result = await db.execute(
+            select(Invoice)
+            .where(Invoice.id == invoice_id)
+            .where(Invoice.user_id == current_user.id)
+        )
+        invoice = result.scalar_one_or_none()
+
+        if not invoice:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Invoice not found"
+            )
+
+        # Update header fields (only non-None values)
+        if request.number is not None:
+            invoice.number = request.number
+        if request.series is not None:
+            invoice.series = request.series
+        if request.issue_date is not None:
+            invoice.issue_date = request.issue_date
+        if request.issuer_name is not None:
+            invoice.issuer_name = request.issuer_name
+        if request.total_value is not None:
+            invoice.total_value = float(request.total_value)
+
+        # Clean and update access_key
+        if request.access_key is not None:
+            access_key = "".join(
+                c for c in request.access_key if c.isalnum()
+            )[:44]
+            # Check for duplicate access_key (excluding self)
+            if access_key:
+                dup_result = await db.execute(
+                    select(Invoice).where(
+                        Invoice.access_key == access_key,
+                        Invoice.user_id == current_user.id,
+                        Invoice.id != invoice_id
+                    )
+                )
+                if dup_result.scalar_one_or_none():
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail={
+                            "message": "Já existe outra nota com esta chave de acesso",
+                        }
+                    )
+            invoice.access_key = access_key
+
+        # Clean and validate CNPJ
+        if request.issuer_cnpj is not None:
+            issuer_cnpj = clean_cnpj(request.issuer_cnpj)
+
+            if settings.cnpj_validation_enabled and issuer_cnpj:
+                if len(issuer_cnpj) != 14:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail={
+                            "error": "invalid_cnpj",
+                            "message": "CNPJ deve ter 14 dígitos",
+                            "field": "issuer_cnpj",
+                        }
+                    )
+                if not validate_cnpj(issuer_cnpj):
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail={
+                            "error": "invalid_cnpj",
+                            "message": "CNPJ inválido. Verifique os dígitos verificadores.",
+                            "field": "issuer_cnpj",
+                            "value": format_cnpj(issuer_cnpj),
+                        }
+                    )
+
+            invoice.issuer_cnpj = issuer_cnpj
+
+        # Replace items if provided (delete-all + recreate strategy)
+        if request.items is not None:
+            # Delete existing items
+            existing_items_result = await db.execute(
+                select(InvoiceItem).where(
+                    InvoiceItem.invoice_id == invoice_id
+                )
+            )
+            for old_item in existing_items_result.scalars().all():
+                await db.delete(old_item)
+            await db.flush()
+
+            # Create new items
+            for item_data in request.items:
+                item = InvoiceItem(
+                    invoice_id=invoice_id,
+                    code=item_data.code or "",
+                    description=item_data.description or "",
+                    quantity=item_data.quantity,
+                    unit=item_data.unit or "UN",
+                    unit_price=item_data.unit_price,
+                    total_price=item_data.total_price,
+                    category_name=item_data.category_name,
+                    subcategory=item_data.subcategory,
+                )
+                db.add(item)
+
+        await db.commit()
+        await db.refresh(invoice)
+
+        logger.info(f"✓ Invoice updated successfully: {invoice.id}")
+        return invoice
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating invoice: {e}", exc_info=True)
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update invoice: {str(e)}"
+        )
 
 
 @router.post(
@@ -405,14 +538,13 @@ async def upload_invoice_photos(
 
     # Save files and get paths
     image_paths = []
-    upload_dir = "uploads"
-    os.makedirs(upload_dir, exist_ok=True)
+    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
 
     for file in files:
         # Generate unique filename
         ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
         filename = f"{uuid.uuid4()}.{ext}"
-        filepath = os.path.join(upload_dir, filename)
+        filepath = os.path.join(settings.UPLOAD_DIR, filename)
 
         async with aiofiles.open(filepath, 'wb') as out_file:
             content = await file.read()
@@ -654,7 +786,7 @@ async def confirm_extracted_invoice(
         for item_data in request.items:
             item = InvoiceItem(
                 invoice_id=invoice.id,
-                code="",  # Não capturamos código ainda
+                code=item_data.code or "",
                 description=item_data.description or "",
                 quantity=item_data.quantity,
                 unit=item_data.unit or "UN",
@@ -672,6 +804,24 @@ async def confirm_extracted_invoice(
 
         await db.commit()
         await db.refresh(invoice)
+
+        # Limpar arquivos de upload após confirmação
+        if processing.image_ids:
+            deleted = 0
+            for image_path in processing.image_ids:
+                try:
+                    if os.path.exists(image_path):
+                        os.remove(image_path)
+                        deleted += 1
+                except Exception as del_err:
+                    logger.warning(
+                        f"Failed to delete upload {image_path}: {del_err}"
+                    )
+            if deleted:
+                logger.info(
+                    f"Cleaned up {deleted} upload(s) for "
+                    f"processing {processing_id}"
+                )
 
         logger.info(f"✓ Invoice confirmed successfully: {invoice.id}")
         return invoice
@@ -716,131 +866,24 @@ MAX_IMAGE_SIZE = 20 * 1024 * 1024  # 20 MB per image
 
 @router.post(
     "/upload/images",
-    response_model=InvoiceResponse,
-    status_code=status.HTTP_201_CREATED
+    status_code=status.HTTP_410_GONE,
+    deprecated=True,
 )
-async def upload_images(
-    files: List[UploadFile] = File(...),
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
-):
-    """Upload and process invoice from one or more images (synchronous).
+async def upload_images():
+    """DEPRECATED: Use POST /upload/photos instead.
 
-    Uses OpenAI Vision API to extract invoice data directly from images.
-    Supports multiple images for long receipts.
+    This endpoint used the old synchronous image_parser.py pipeline.
+    It has been replaced by the async /upload/photos flow which uses
+    MultiProviderExtractor with better prompts, validation, and
+    multi-image support.
     """
-    if not files:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Nenhuma imagem enviada"
-        )
-
-    if len(files) > MAX_IMAGES:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Máximo de {MAX_IMAGES} imagens permitido"
-        )
-
-    # Validate and read all images
-    image_contents: List[bytes] = []
-    for file in files:
-        content_type = file.content_type or ""
-        if content_type not in ALLOWED_IMAGE_TYPES:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=(
-                    f"Tipo de arquivo não suportado: {content_type}. "
-                    "Envie imagens JPG, PNG ou WebP."
-                )
-            )
-
-        content = await file.read()
-        if len(content) > MAX_IMAGE_SIZE:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=(
-                    f"Imagem '{file.filename}' excede o tamanho máximo "
-                    f"de {MAX_IMAGE_SIZE // (1024 * 1024)} MB"
-                )
-            )
-
-        image_contents.append(content)
-
-    # Extract invoice data from images using OpenAI Vision
-    try:
-        invoice_data = await parse_invoice_images(image_contents)
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Falha ao processar imagens: {str(e)}"
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Erro no serviço de processamento de imagens: {str(e)}"
-        )
-
-    # Check if invoice already exists (by access key)
-    result = await db.execute(
-        select(Invoice).where(
-            Invoice.access_key == invoice_data["access_key"],
-            Invoice.user_id == current_user.id
-        )
+    raise HTTPException(
+        status_code=status.HTTP_410_GONE,
+        detail=(
+            "Este endpoint foi descontinuado. "
+            "Use POST /api/v1/invoices/upload/photos em vez disso."
+        ),
     )
-    if result.scalar_one_or_none():
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Nota fiscal já registrada"
-        )
-
-    # Create invoice
-    invoice = Invoice(
-        user_id=current_user.id,
-        access_key=invoice_data["access_key"],
-        number=invoice_data["number"],
-        series=invoice_data["series"],
-        issue_date=invoice_data["issue_date"],
-        issuer_cnpj=invoice_data.get("issuer_cnpj", ""),
-        issuer_name=invoice_data["issuer_name"],
-        total_value=invoice_data["total_value"],
-        type=invoice_data["type"],
-        source="image",
-        raw_data=invoice_data.get("raw_data")
-    )
-
-    db.add(invoice)
-    await db.flush()
-
-    # Create invoice items
-    for item_data in invoice_data["products"]:
-        item = InvoiceItem(
-            invoice_id=invoice.id,
-            code=item_data["code"],
-            description=item_data["description"],
-            quantity=item_data["quantity"],
-            unit=item_data["unit"],
-            unit_price=item_data["unit_price"],
-            total_price=item_data["total_price"]
-        )
-        db.add(item)
-
-    await db.commit()
-    await db.refresh(invoice)
-
-    # Generate AI analyses (background task)
-    try:
-        user_history = await _get_user_history(current_user.id, db)
-        analyses = await analyzer.analyze_invoice(
-            invoice, user_history, db
-        )
-        for analysis in analyses:
-            db.add(analysis)
-        await db.commit()
-    except Exception as e:
-        # Log error but don't fail the invoice creation
-        print(f"Error generating AI analyses: {e}")
-
-    return invoice
 
 
 @router.delete("/{invoice_id}", status_code=status.HTTP_204_NO_CONTENT)

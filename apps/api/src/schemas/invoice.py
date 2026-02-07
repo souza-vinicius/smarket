@@ -1,9 +1,9 @@
 import uuid
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional, List, Dict, Any
+from typing import Any, Optional, List, Dict
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class ProductBase(BaseModel):
@@ -68,6 +68,58 @@ class InvoiceList(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class InvoiceItemUpdate(BaseModel):
+    """Item para atualização de nota fiscal"""
+
+    id: Optional[uuid.UUID] = None
+    code: Optional[str] = None
+    description: str
+    quantity: Decimal
+    unit: str = "UN"
+    unit_price: Decimal
+    total_price: Decimal
+    category_name: Optional[str] = None
+    subcategory: Optional[str] = None
+
+
+class InvoiceUpdate(BaseModel):
+    """Request para atualizar uma nota fiscal existente"""
+
+    number: Optional[str] = None
+    series: Optional[str] = None
+    issue_date: Optional[datetime] = None
+    issuer_name: Optional[str] = None
+    issuer_cnpj: Optional[str] = None
+    total_value: Optional[Decimal] = None
+    access_key: Optional[str] = None
+    items: Optional[List[InvoiceItemUpdate]] = None
+
+    @field_validator('issue_date', mode='before')
+    @classmethod
+    def parse_issue_date(cls, v: Any) -> Optional[datetime]:
+        if v is None:
+            return None
+        if isinstance(v, datetime):
+            return v
+        if isinstance(v, str):
+            from dateutil import parser as dateutil_parser
+            try:
+                dt = dateutil_parser.isoparse(v)
+                if dt.tzinfo is not None:
+                    dt = dt.replace(tzinfo=None)
+                return dt
+            except (ValueError, AttributeError, TypeError):
+                return None
+        return None
+
+    @field_validator('number', 'series', 'access_key', mode='before')
+    @classmethod
+    def coerce_to_string(cls, v: Any) -> Optional[str]:
+        if v is None:
+            return None
+        return str(v)
 
 
 class QRCodeRequest(BaseModel):

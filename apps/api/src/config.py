@@ -42,15 +42,15 @@ class Settings(BaseSettings):
     # CORS
     ALLOWED_ORIGINS: str = "http://localhost:3000"
 
+    # Uploads
+    UPLOAD_DIR: str = "uploads"
+
     # CNPJ Features - Master flag to disable all CNPJ features at once
     ENABLE_CNPJ_FEATURES: bool = True
     ENABLE_CNPJ_VALIDATION: bool = True
     ENABLE_CNPJ_ENRICHMENT: bool = True
     CNPJ_API_TIMEOUT: int = 5  # seconds
     CNPJ_CACHE_TTL: int = 86400  # 24 hours in seconds
-
-    # Feature Flags
-    DELETE_PROCESSED_IMAGES: bool = False
 
     @property
     def allowed_origins_list(self) -> List[str]:

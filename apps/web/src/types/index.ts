@@ -42,6 +42,7 @@ export interface Token {
 
 // Invoice Types
 export interface InvoiceItem {
+  code?: string;
   description: string;
   quantity: number;
   unit: string;
@@ -94,6 +95,29 @@ export interface InvoiceList {
 
 export interface QRCodeRequest {
   qrcode_url: string;
+}
+
+export interface InvoiceItemUpdate {
+  id?: string;
+  code?: string;
+  description: string;
+  quantity: number;
+  unit: string;
+  unit_price: number;
+  total_price: number;
+  category_name?: string;
+  subcategory?: string;
+}
+
+export interface InvoiceUpdateRequest {
+  number?: string;
+  series?: string;
+  issue_date?: string;
+  issuer_name?: string;
+  issuer_cnpj?: string;
+  total_value?: number;
+  access_key?: string;
+  items?: InvoiceItemUpdate[];
 }
 
 export interface ProcessingResponse {

@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 class ExtractedItem(BaseModel):
     """Item extraído da nota fiscal"""
 
+    code: Optional[str] = None
     description: Optional[str] = None
     quantity: Optional[Decimal] = None
     unit: Optional[str] = None
