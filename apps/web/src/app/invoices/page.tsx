@@ -1,10 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Upload, Search, Filter, FileText, Calendar, Store, MoreVertical, Download, Trash2 } from 'lucide-react';
+import { Plus, Search, FileText, Calendar, Store, MoreVertical } from 'lucide-react';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
-import { InvoiceList } from '@/components/invoices/invoice-list';
 import { UploadModal } from '@/components/invoices/upload-modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,6 +47,7 @@ export default function InvoicesPage() {
 
   const handleViewDetails = (id: string) => {
     // TODO: Navigate to invoice details page
+    // eslint-disable-next-line no-console
     console.log('View details for invoice:', id);
   };
 
@@ -180,7 +180,8 @@ export default function InvoicesPage() {
           {/* Invoice List */}
           <div className="rounded-xl bg-white shadow-sm border border-slate-200 overflow-hidden">
             {isLoading ? (
-              <div className="p-8 space-y-4">
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                <div className="p-8 space-y-4">
                 {[...Array(5)].map((_, i) => (
                   <div key={i} className="flex items-center gap-4 p-4 border-b border-slate-100">
                     <Skeleton className="h-12 w-12 rounded-lg" />

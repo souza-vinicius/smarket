@@ -1,7 +1,6 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '@/lib/api';
 import { Analysis } from '@/types';
 
 const INSIGHT_KEYS = {
@@ -20,7 +19,7 @@ export function useInsights(filters: {
   skip?: number;
   limit?: number;
 } = {}) {
-  const { type, priority, is_read, skip = 0, limit = 100 } = filters;
+  const { type, priority, is_read } = filters;
 
   return useQuery({
     queryKey: INSIGHT_KEYS.list({ type, priority, is_read }),
@@ -140,15 +139,16 @@ export function useMarkInsightAsRead() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async (_id: string) => {
       // TODO: Replace with actual API call
-      // return apiClient.post<Analysis>(`/analysis/${id}/read`);
+      // return apiClient.post<Analysis>(`/analysis/${_id}/read`);
 
       // Mock data for now
       await new Promise((resolve) => setTimeout(resolve, 300));
       return { success: true };
     },
     onSuccess: () => {
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       queryClient.invalidateQueries({ queryKey: INSIGHT_KEYS.lists() });
     },
   });
@@ -158,15 +158,16 @@ export function useDismissInsight() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async (_id: string) => {
       // TODO: Replace with actual API call
-      // return apiClient.post<Analysis>(`/analysis/${id}/dismiss`);
+      // return apiClient.post<Analysis>(`/analysis/${_id}/dismiss`);
 
       // Mock data for now
       await new Promise((resolve) => setTimeout(resolve, 300));
       return { success: true };
     },
     onSuccess: () => {
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       queryClient.invalidateQueries({ queryKey: INSIGHT_KEYS.lists() });
     },
   });

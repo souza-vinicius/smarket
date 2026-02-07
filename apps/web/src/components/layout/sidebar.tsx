@@ -9,7 +9,6 @@ import {
   LogOut,
   Receipt,
   Settings,
-  User,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';

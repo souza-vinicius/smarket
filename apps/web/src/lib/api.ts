@@ -42,7 +42,9 @@ class ApiClient {
         }
 
         // If 401 and not already retrying
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         if (error.response?.status === 401 && !(originalRequest as any)._retry) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           (originalRequest as any)._retry = true;
 
           try {

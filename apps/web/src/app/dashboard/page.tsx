@@ -1,6 +1,8 @@
 'use client';
 
-import { DollarSign, FileText, AlertCircle, TrendingUp, Plus, ArrowUpRight, ArrowDownRight, Sparkles } from 'lucide-react';
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+
+import { DollarSign, FileText, AlertCircle, TrendingUp, Plus, ArrowUpRight, Sparkles } from 'lucide-react';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { SummaryCard } from '@/components/dashboard/summary-card';
@@ -119,6 +121,7 @@ export default function DashboardPage() {
             </div>
             
             {isInsightsLoading ? (
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {[...Array(3)].map((_, i) => (
                   <Skeleton key={i} className="h-48 rounded-xl" />

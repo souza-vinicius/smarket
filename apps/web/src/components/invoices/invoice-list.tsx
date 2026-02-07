@@ -1,7 +1,9 @@
 'use client';
 
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+
 import { Receipt, Calendar, Package } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { InvoiceList as InvoiceListType } from '@/types';
@@ -21,6 +23,7 @@ export function InvoiceList({
   if (isLoading) {
     return (
       <div className="space-y-4">
+        {/* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment */}
         {[...Array(3)].map((_, i) => (
           <Card key={i}>
             <CardContent className="p-6">

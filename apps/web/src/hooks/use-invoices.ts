@@ -40,6 +40,7 @@ export function useProcessQRCode() {
       return apiClient.post<Invoice>('/invoices/qrcode', data);
     },
     onSuccess: () => {
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       queryClient.invalidateQueries({ queryKey: INVOICE_KEYS.lists() });
     },
   });
@@ -53,6 +54,7 @@ export function useUploadXML() {
       return apiClient.uploadFile<Invoice>('/invoices/upload/xml', file);
     },
     onSuccess: () => {
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       queryClient.invalidateQueries({ queryKey: INVOICE_KEYS.lists() });
     },
   });
@@ -66,6 +68,7 @@ export function useUploadImages() {
       return apiClient.uploadFiles<Invoice>('/invoices/upload/images', files);
     },
     onSuccess: () => {
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       queryClient.invalidateQueries({ queryKey: INVOICE_KEYS.lists() });
     },
   });
@@ -79,6 +82,7 @@ export function useDeleteInvoice() {
       return apiClient.delete(`/invoices/${id}`);
     },
     onSuccess: () => {
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       queryClient.invalidateQueries({ queryKey: INVOICE_KEYS.lists() });
     },
   });

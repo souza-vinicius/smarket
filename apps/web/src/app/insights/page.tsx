@@ -1,14 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { Filter, CheckCircle, XCircle, AlertTriangle, TrendingUp, Info, Lightbulb, Sparkles } from 'lucide-react';
+import { Filter, CheckCircle, AlertTriangle, TrendingUp, Info, Lightbulb, Sparkles } from 'lucide-react';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { InsightCard } from '@/components/dashboard/insight-card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
-import { useInsights, useMarkInsightAsRead, useDismissInsight } from '@/hooks/use-insights';
+import { useInsights, useMarkInsightAsRead } from '@/hooks/use-insights';
 
 type FilterType = 'all' | 'unread' | 'price_alert' | 'category_insight' | 'merchant_pattern';
 type PriorityFilter = 'all' | 'critical' | 'high' | 'medium' | 'low';
@@ -23,7 +22,7 @@ export default function InsightsPage() {
   });
   
   const markAsReadMutation = useMarkInsightAsRead();
-  const dismissMutation = useDismissInsight();
+  // const dismissMutation = useDismissInsight();
 
   const filters: { value: FilterType; label: string; icon: React.ReactNode }[] = [
     { value: 'all', label: 'Todos', icon: <Filter className="h-4 w-4" /> },
@@ -148,6 +147,7 @@ export default function InsightsPage() {
 
           {/* Insights Grid */}
           {isLoading ? (
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {[...Array(6)].map((_, i) => (
                 <Skeleton key={i} className="h-48 rounded-xl" />

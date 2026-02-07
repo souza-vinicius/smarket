@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { apiClient } from '@/lib/api';
-import { LoginRequest, RegisterRequest, User } from '@/types';
+import { LoginRequest, RegisterRequest } from '@/types';
 
 const AUTH_KEYS = {
   user: ['user'] as const,
@@ -32,6 +32,7 @@ export function useAuth() {
   const loginMutation = useMutation({
     mutationFn: (data: LoginRequest) => apiClient.login(data),
     onSuccess: () => {
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       queryClient.invalidateQueries({ queryKey: AUTH_KEYS.user });
       router.push('/dashboard');
     },

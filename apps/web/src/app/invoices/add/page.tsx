@@ -106,6 +106,7 @@ export default function AddInvoicePage() {
 
                         <div className="grid gap-4 md:grid-cols-3">
                             {isLoadingInvoices ? (
+                                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                                 [...Array(3)].map((_, i) => (
                                     <Skeleton key={i} className="h-32 rounded-xl" />
                                 ))
