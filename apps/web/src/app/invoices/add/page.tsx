@@ -36,22 +36,15 @@ export default function AddInvoicePage() {
 
     const handleUploadXML = (file: File) => {
         uploadXMLMutation.mutate(file, {
-            onSuccess: (data) => {
+            onSuccess: () => {
                 setUploadMode(null);
-                // Redirect to review page if we have a processing_id (Invoice type might need casting or check)
-                // For XML upload, data is usually the Invoice object directly if processed immediately,
-                // but if async it might be different. Based on hooks, XML returns Invoice.
-                // If it returns Invoice, we might go to detail page or list.
-                // However, user request emphasizes "redirect to wait screen and editing".
-                // Let's assume consistent behavior for now, or just redirect to invoices list for XML if it's instant.
-                // But for Photos (which is the main task), it returns ProcessingResponse.
                 router.push('/invoices');
             },
         });
     };
 
-    const handleUploadPhoto = (file: File) => {
-        uploadPhotosMutation.mutate([file], {
+    const handleUploadImages = (files: File[]) => {
+        uploadPhotosMutation.mutate(files, {
             onSuccess: (data) => {
                 setUploadMode(null);
                 if (data.processing_id) {
@@ -181,10 +174,10 @@ export default function AddInvoicePage() {
                 isOpen={uploadMode !== null}
                 onClose={() => { setUploadMode(null); }}
                 onUploadXML={handleUploadXML}
-                onUploadPhoto={handleUploadPhoto}
+                onUploadImages={handleUploadImages}
                 onProcessQRCode={handleProcessQRCode}
                 isUploading={uploadXMLMutation.isPending || processQRCodeMutation.isPending || uploadPhotosMutation.isPending}
-                initialTab={uploadMode === 'qrcode' ? 'qrcode' : uploadMode === 'photo' ? 'photo' : 'xml'}
+                initialTab={uploadMode === 'qrcode' ? 'qrcode' : 'images'}
             />
         </div>
     );

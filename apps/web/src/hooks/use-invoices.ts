@@ -113,6 +113,19 @@ export function useUploadXML(): UseMutationResult<Invoice, Error, File> {
   });
 }
 
+export function useUploadImages(): UseMutationResult<Invoice, Error, File[]> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (files: File[]) => {
+      return apiClient.uploadFiles<Invoice>('/invoices/upload/images', files);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: INVOICE_KEYS.lists() });
+    },
+  });
+}
+
 export function useUploadPhotos(): UseMutationResult<ProcessingResponse, Error, File[]> {
   const queryClient = useQueryClient();
 

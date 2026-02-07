@@ -27,6 +27,7 @@ from src.parsers.qrcode_parser import (
     fetch_invoice_from_sefaz
 )
 from src.parsers.xml_parser import parse_xml_invoice
+from src.parsers.image_parser import parse_invoice_images
 from src.services.ai_analyzer import analyzer
 from src.services.cnpj_enrichment import enrich_cnpj_data
 from src.tasks.process_invoice_photos import process_invoice_photos
@@ -375,7 +376,11 @@ async def upload_invoice_photos(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Upload photos of invoices for LLM processing."""
+    """Upload photos of invoices for LLM processing.
+
+    Supports multiple images for long receipts that don't fit
+    in a single photo.
+    """
     print(f"DEBUG: upload_invoice_photos called with {len(files)} files")
     if not files:
         raise HTTPException(
@@ -390,7 +395,7 @@ async def upload_invoice_photos(
         )
 
     # Validar tipos de arquivo
-    allowed_types = {"image/jpeg", "image/png", "image/heic"}
+    allowed_types = {"image/jpeg", "image/png", "image/heic", "image/webp", "image/gif", "image/heif"}
     for file in files:
         if file.content_type not in allowed_types:
             raise HTTPException(
@@ -408,11 +413,11 @@ async def upload_invoice_photos(
         ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
         filename = f"{uuid.uuid4()}.{ext}"
         filepath = os.path.join(upload_dir, filename)
-        
+
         async with aiofiles.open(filepath, 'wb') as out_file:
             content = await file.read()
             await out_file.write(content)
-        
+
         image_paths.append(filepath)
 
     # Criar registro de processamento
@@ -696,6 +701,148 @@ async def confirm_extracted_invoice(
         )
 
 
+ALLOWED_IMAGE_TYPES = {
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/gif",
+    "image/heic",
+    "image/heif",
+}
+
+MAX_IMAGES = 10
+MAX_IMAGE_SIZE = 20 * 1024 * 1024  # 20 MB per image
+
+
+@router.post(
+    "/upload/images",
+    response_model=InvoiceResponse,
+    status_code=status.HTTP_201_CREATED
+)
+async def upload_images(
+    files: List[UploadFile] = File(...),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Upload and process invoice from one or more images (synchronous).
+
+    Uses OpenAI Vision API to extract invoice data directly from images.
+    Supports multiple images for long receipts.
+    """
+    if not files:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Nenhuma imagem enviada"
+        )
+
+    if len(files) > MAX_IMAGES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Máximo de {MAX_IMAGES} imagens permitido"
+        )
+
+    # Validate and read all images
+    image_contents: List[bytes] = []
+    for file in files:
+        content_type = file.content_type or ""
+        if content_type not in ALLOWED_IMAGE_TYPES:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f"Tipo de arquivo não suportado: {content_type}. "
+                    "Envie imagens JPG, PNG ou WebP."
+                )
+            )
+
+        content = await file.read()
+        if len(content) > MAX_IMAGE_SIZE:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f"Imagem '{file.filename}' excede o tamanho máximo "
+                    f"de {MAX_IMAGE_SIZE // (1024 * 1024)} MB"
+                )
+            )
+
+        image_contents.append(content)
+
+    # Extract invoice data from images using OpenAI Vision
+    try:
+        invoice_data = await parse_invoice_images(image_contents)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Falha ao processar imagens: {str(e)}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Erro no serviço de processamento de imagens: {str(e)}"
+        )
+
+    # Check if invoice already exists (by access key)
+    result = await db.execute(
+        select(Invoice).where(
+            Invoice.access_key == invoice_data["access_key"],
+            Invoice.user_id == current_user.id
+        )
+    )
+    if result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Nota fiscal já registrada"
+        )
+
+    # Create invoice
+    invoice = Invoice(
+        user_id=current_user.id,
+        access_key=invoice_data["access_key"],
+        number=invoice_data["number"],
+        series=invoice_data["series"],
+        issue_date=invoice_data["issue_date"],
+        issuer_cnpj=invoice_data.get("issuer_cnpj", ""),
+        issuer_name=invoice_data["issuer_name"],
+        total_value=invoice_data["total_value"],
+        type=invoice_data["type"],
+        source="image",
+        raw_data=invoice_data.get("raw_data")
+    )
+
+    db.add(invoice)
+    await db.flush()
+
+    # Create invoice items
+    for item_data in invoice_data["products"]:
+        item = InvoiceItem(
+            invoice_id=invoice.id,
+            code=item_data["code"],
+            description=item_data["description"],
+            quantity=item_data["quantity"],
+            unit=item_data["unit"],
+            unit_price=item_data["unit_price"],
+            total_price=item_data["total_price"]
+        )
+        db.add(item)
+
+    await db.commit()
+    await db.refresh(invoice)
+
+    # Generate AI analyses (background task)
+    try:
+        user_history = await _get_user_history(current_user.id, db)
+        analyses = await analyzer.analyze_invoice(
+            invoice, user_history, db
+        )
+        for analysis in analyses:
+            db.add(analysis)
+        await db.commit()
+    except Exception as e:
+        # Log error but don't fail the invoice creation
+        print(f"Error generating AI analyses: {e}")
+
+    return invoice
+
+
 @router.delete("/{invoice_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_invoice(
     invoice_id: uuid.UUID,
@@ -779,7 +926,7 @@ async def enrich_cnpj(
 ):
     """
     Enrich CNPJ data using public Brazilian APIs (BrasilAPI/ReceitaWS).
-    
+
     This endpoint queries public APIs to get detailed information about a company
     based on its CNPJ number, including legal name, trade name, address, and status.
     """
@@ -869,7 +1016,7 @@ async def get_invoices_summary(
 ):
     """
     Get summary statistics for user's invoices.
-    
+
     Returns:
     - total_invoices: Total number of invoices
     - total_spent: Sum of all invoice values

@@ -44,8 +44,8 @@ export default function InvoicesPage() {
     });
   };
 
-  const handleUploadPhoto = (file: File) => {
-    uploadPhotosMutation.mutate([file], {
+  const handleUploadImages = (files: File[]) => {
+    uploadPhotosMutation.mutate(files, {
       onSuccess: (data) => {
         setIsUploadModalOpen(false);
         // Redirect to review page with processing_id
@@ -86,13 +86,13 @@ export default function InvoicesPage() {
   return (
     <div className="flex min-h-screen bg-slate-50">
       <Sidebar />
-      
+
       <div className="flex-1 pl-64">
-        <Header 
-          title="Notas Fiscais" 
+        <Header
+          title="Notas Fiscais"
           subtitle="Gerencie suas notas fiscais NFC-e e NF-e"
         />
-        
+
         <main className="p-6">
           {/* Stats Cards */}
           <div className="mb-6 grid gap-4 md:grid-cols-3">
@@ -137,7 +137,7 @@ export default function InvoicesPage() {
                       invoices?.filter(inv => {
                         const invoiceDate = new Date(inv.issue_date);
                         const now = new Date();
-                        return invoiceDate.getMonth() === now.getMonth() && 
+                        return invoiceDate.getMonth() === now.getMonth() &&
                                invoiceDate.getFullYear() === now.getFullYear();
                       }).length || 0
                     }
@@ -402,7 +402,6 @@ export default function InvoicesPage() {
         </main>
       </div>
 
-      {/* Upload Modal */}
       {/* Delete Processing Modal */}
       <DeleteProcessingModal
         isOpen={deleteModalOpen}
@@ -425,7 +424,7 @@ export default function InvoicesPage() {
         isOpen={isUploadModalOpen}
         onClose={() => { setIsUploadModalOpen(false); }}
         onUploadXML={handleUploadXML}
-        onUploadPhoto={handleUploadPhoto}
+        onUploadImages={handleUploadImages}
         onProcessQRCode={handleProcessQRCode}
         isUploading={uploadXMLMutation.isPending || processQRCodeMutation.isPending || uploadPhotosMutation.isPending}
       />

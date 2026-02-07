@@ -88,6 +88,7 @@ export default function InvoiceDetailsPage() {
     pdf: 'PDF',
     manual: 'Manual',
     photo: 'Foto',
+    image: 'Imagem',
   }[invoice.source] || invoice.source;
 
   const sourceColor = {
@@ -96,6 +97,7 @@ export default function InvoiceDetailsPage() {
     pdf: 'bg-red-100 text-red-800',
     manual: 'bg-gray-100 text-gray-800',
     photo: 'bg-emerald-100 text-emerald-800',
+    image: 'bg-emerald-100 text-emerald-800',
   }[invoice.source] || 'bg-slate-100 text-slate-800';
 
   const subtotal = invoice.items?.reduce((sum, item) => {
@@ -184,7 +186,7 @@ export default function InvoiceDetailsPage() {
                       Tipo
                     </p>
                     <p className="text-lg font-semibold text-slate-900">
-                      {invoice.invoice_type}
+                      {invoice.type}
                     </p>
                   </div>
                   <div>
@@ -381,7 +383,7 @@ export default function InvoiceDetailsPage() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-slate-600">Tipo de NF</span>
-                    <Badge variant="outline">{invoice.invoice_type}</Badge>
+                    <Badge variant="outline">{invoice.type}</Badge>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-slate-600">ID</span>

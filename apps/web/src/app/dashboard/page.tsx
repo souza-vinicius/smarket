@@ -39,8 +39,8 @@ export default function DashboardPage() {
     });
   };
 
-  const handleUploadPhoto = (file: File) => {
-    uploadPhotosMutation.mutate([file], {
+  const handleUploadImages = (files: File[]) => {
+    uploadPhotosMutation.mutate(files, {
       onSuccess: (data) => {
         setUploadMode(null);
         if (data.processing_id) {
@@ -208,10 +208,10 @@ export default function DashboardPage() {
         isOpen={uploadMode !== null}
         onClose={() => { setUploadMode(null); }}
         onUploadXML={handleUploadXML}
-        onUploadPhoto={handleUploadPhoto}
+        onUploadImages={handleUploadImages}
         onProcessQRCode={handleProcessQRCode}
         isUploading={uploadXMLMutation.isPending || processQRCodeMutation.isPending || uploadPhotosMutation.isPending}
-        initialTab={uploadMode === 'qrcode' ? 'qrcode' : uploadMode === 'photo' ? 'photo' : 'xml'}
+        initialTab={uploadMode === 'qrcode' ? 'qrcode' : 'images'}
       />
     </div>
   );

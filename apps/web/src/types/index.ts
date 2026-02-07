@@ -75,7 +75,7 @@ export interface Invoice {
   issuer_name: string;
   total_value: number;
   type: 'NFC-e' | 'NF-e';
-  source: 'qrcode' | 'xml' | 'pdf' | 'manual';
+  source: 'qrcode' | 'xml' | 'pdf' | 'manual' | 'image';
   user_id: string;
   created_at: string;
   products: Product[];
