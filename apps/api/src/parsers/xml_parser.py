@@ -105,32 +105,58 @@ def get_text(element, path: str, ns: dict, default: str = "") -> str:
 
 
 def parse_datetime(date_str: str) -> datetime:
-    """Parse datetime from various formats."""
+    """Parse datetime from NF-e XML fields.
+
+    Handles multiple formats:
+    - ISO 8601 with timezone: "2024-01-15T14:30:22Z" or "2024-01-15T14:30:22-03:00"
+    - ISO 8601 without timezone: "2024-01-15T14:30:22"
+    - Brazilian format: "15/01/2024 14:30:22" or "15/01/2024"
+    - Date only: "2024-01-15"
+    """
     if not date_str:
         return datetime.now()
-    
+
     # Try ISO format with timezone
     try:
         return datetime.fromisoformat(date_str.replace("Z", "+00:00"))
     except ValueError:
         pass
-    
+
     # Try format without timezone
     try:
         return datetime.fromisoformat(date_str)
     except ValueError:
         pass
-    
+
     # Try format YYYY-MM-DDTHH:MM:SS
     try:
         return datetime.strptime(date_str[:19], "%Y-%m-%dT%H:%M:%S")
     except ValueError:
         pass
-    
+
     # Try format YYYY-MM-DD
     try:
         return datetime.strptime(date_str[:10], "%Y-%m-%d")
     except ValueError:
         pass
-    
+
+    # Try Brazilian format with datetime: DD/MM/YYYY HH:MM:SS
+    try:
+        return datetime.strptime(date_str[:19], "%d/%m/%Y %H:%M:%S")
+    except ValueError:
+        pass
+
+    # Try Brazilian format date only: DD/MM/YYYY
+    try:
+        return datetime.strptime(date_str[:10], "%d/%m/%Y")
+    except ValueError:
+        pass
+
+    # Fallback: use dateutil for flexible parsing
+    try:
+        from dateutil import parser as dateutil_parser
+        return dateutil_parser.parse(date_str, dayfirst=True)
+    except Exception:
+        pass
+
     return datetime.now()

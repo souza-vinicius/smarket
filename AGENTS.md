@@ -47,6 +47,9 @@ docker-compose up -d
 # Rebuild and restart API
 docker-compose up -d --build api
 
+# Restart API after backend changes (clean restart)
+docker compose down api && docker compose up --build api
+
 # View logs
 docker-compose logs -f api
 ```

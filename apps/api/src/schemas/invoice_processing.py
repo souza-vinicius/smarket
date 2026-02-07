@@ -126,16 +126,18 @@ class ProcessingConfirmRequest(BaseModel):
     @field_validator('issue_date', mode='before')
     @classmethod
     def parse_issue_date(cls, v: Any) -> Optional[datetime]:
-        """Converte string ISO para datetime"""
+        """Parse date in multiple formats (ISO 8601, Brazilian DD/MM/YYYY, US MM/DD/YYYY)"""
         if v is None:
             return None
         if isinstance(v, datetime):
             return v
         if isinstance(v, str):
-            # Parse ISO 8601 string
             try:
-                # Try to parse with dateutil first (handles more formats)
-                dt = dateutil_parser.isoparse(v)
+                # Use .parse() with dayfirst=True to handle:
+                # - Brazilian format: "15/01/2024 14:30:22" or "15/01/2024"
+                # - ISO 8601: "2024-01-15T14:30:22"
+                # - US format: "01/15/2024" (handles with dayfirst preference)
+                dt = dateutil_parser.parse(v, dayfirst=True)
                 # Make timezone-naive for PostgreSQL compatibility
                 if dt.tzinfo is not None:
                     dt = dt.replace(tzinfo=None)

@@ -106,7 +106,11 @@ class InvoiceUpdate(BaseModel):
         if isinstance(v, str):
             from dateutil import parser as dateutil_parser
             try:
-                dt = dateutil_parser.isoparse(v)
+                # Use .parse() instead of .isoparse() to handle multiple formats:
+                # - ISO 8601: "2024-01-15T14:30:22"
+                # - Brazilian: "15/01/2024 14:30:22" or "15/01/2024"
+                # - US: "01/15/2024 14:30:22"
+                dt = dateutil_parser.parse(v, dayfirst=True)
                 if dt.tzinfo is not None:
                     dt = dt.replace(tzinfo=None)
                 return dt
