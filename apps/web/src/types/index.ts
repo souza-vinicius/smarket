@@ -140,6 +140,20 @@ export interface InvoiceProcessingList {
   updated_at: string;
 }
 
+// Product Purchase Search
+export interface ProductPurchaseResult {
+  id: string;
+  description: string;
+  quantity: number;
+  unit: string;
+  unit_price: number;
+  total_price: number;
+  issue_date: string;
+  issuer_name: string;
+  merchant_name?: string;
+  invoice_id: string;
+}
+
 // Analysis Types
 export interface Analysis {
   id: string;

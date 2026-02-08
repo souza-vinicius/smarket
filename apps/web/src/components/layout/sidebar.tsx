@@ -9,6 +9,7 @@ import {
   Lightbulb,
   LogOut,
   Receipt,
+  Search,
   Settings,
 } from 'lucide-react';
 
@@ -37,6 +38,11 @@ const navItems: NavItem[] = [
     label: 'Notas Fiscais',
     href: '/invoices',
     icon: <Receipt className="size-5" />,
+  },
+  {
+    label: 'Produtos',
+    href: '/products',
+    icon: <Search className="size-5" />,
   },
   {
     label: 'Insights',

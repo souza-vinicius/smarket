@@ -16,7 +16,8 @@ from src.schemas.product import (
     ProductCreate,
     ProductUpdate,
     ProductResponse,
-    ProductList
+    ProductList,
+    ProductPurchaseResult,
 )
 
 router = APIRouter()
@@ -74,6 +75,60 @@ async def list_products(
             price_trend=p.price_trend
         )
         for p in products
+    ]
+
+
+@router.get("/search-purchases", response_model=List[ProductPurchaseResult])
+async def search_purchases(
+    q: str = Query(..., min_length=2, max_length=100),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=100),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Search purchase history by product description."""
+    from src.models.invoice import Invoice
+    from src.models.merchant import Merchant
+
+    query = select(
+        InvoiceItem.id,
+        InvoiceItem.description,
+        InvoiceItem.quantity,
+        InvoiceItem.unit,
+        InvoiceItem.unit_price,
+        InvoiceItem.total_price,
+        Invoice.issue_date,
+        Invoice.issuer_name,
+        Invoice.id.label("invoice_id"),
+        Merchant.name.label("merchant_name"),
+    ).join(
+        Invoice, InvoiceItem.invoice_id == Invoice.id
+    ).outerjoin(
+        Merchant, Invoice.merchant_id == Merchant.id
+    ).where(
+        and_(
+            Invoice.user_id == current_user.id,
+            InvoiceItem.description.ilike(f"%{q}%"),
+        )
+    ).order_by(Invoice.issue_date.desc()).offset(skip).limit(limit)
+
+    result = await db.execute(query)
+    rows = result.all()
+
+    return [
+        ProductPurchaseResult(
+            id=r.id,
+            description=r.description,
+            quantity=r.quantity,
+            unit=r.unit,
+            unit_price=r.unit_price,
+            total_price=r.total_price,
+            issue_date=r.issue_date,
+            issuer_name=r.issuer_name,
+            merchant_name=r.merchant_name,
+            invoice_id=r.invoice_id,
+        )
+        for r in rows
     ]
 
 
