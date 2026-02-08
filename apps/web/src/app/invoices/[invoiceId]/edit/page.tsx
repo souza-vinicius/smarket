@@ -33,6 +33,7 @@ export default function InvoiceEditPage() {
 
   const [editedData, setEditedData] = useState<EditableInvoice | null>(null);
   const [cnpjError, setCnpjError] = useState<string | null>(null);
+  const [dateError, setDateError] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [enrichmentSuccess, setEnrichmentSuccess] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -106,6 +107,23 @@ export default function InvoiceEditPage() {
       setEditedData({ ...editedData, [field]: formatted });
       const error = getCNPJErrorMessage(formatted);
       setCnpjError(error);
+      setValidationError(null);
+    } else if (field === 'issue_date') {
+      // Validate date is not in the future
+      if (value) {
+        const selectedDate = new Date(value);
+        const now = new Date();
+
+        if (selectedDate > now) {
+          setDateError('A data da nota fiscal não pode ser futura');
+        } else {
+          setDateError(null);
+        }
+      } else {
+        setDateError(null);
+      }
+
+      setEditedData({ ...editedData, [field]: value });
       setValidationError(null);
     } else {
       setEditedData({ ...editedData, [field]: value });
@@ -187,6 +205,18 @@ export default function InvoiceEditPage() {
       const cnpjValidationError = getCNPJErrorMessage(editedData.issuer_cnpj);
       if (cnpjValidationError) {
         setCnpjError(cnpjValidationError);
+        setValidationError('Por favor, corrija os erros antes de salvar.');
+        return;
+      }
+    }
+
+    // Validate date is not in the future
+    if (editedData.issue_date) {
+      const selectedDate = new Date(editedData.issue_date);
+      const now = new Date();
+
+      if (selectedDate > now) {
+        setDateError('A data da nota fiscal não pode ser futura');
         setValidationError('Por favor, corrija os erros antes de salvar.');
         return;
       }
@@ -447,10 +477,15 @@ export default function InvoiceEditPage() {
                       type="datetime-local"
                       value={editedData.issue_date}
                       onChange={(e) => { handleHeaderChange('issue_date', e.target.value); }}
-                      className="editable-cell border-b-2 border-transparent bg-transparent px-2 py-1 text-right font-mono text-sm font-semibold transition-colors hover:border-[#e5e5e5] focus:border-[#2d2d2d]"
+                      className={`editable-cell border-b-2 bg-transparent px-2 py-1 text-right font-mono text-sm font-semibold transition-colors hover:border-[#e5e5e5] focus:border-[#2d2d2d] ${dateError ? 'border-red-400 text-red-600' : 'border-transparent'}`}
                       style={{ fontFamily: 'IBM Plex Mono, monospace' }}
                     />
                   </div>
+                  {dateError && (
+                    <p className="mt-1 text-right font-mono text-xs text-red-600">
+                      ⚠ {dateError}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -689,9 +724,9 @@ export default function InvoiceEditPage() {
             <div className="flex flex-col gap-4 sm:flex-row">
               <button
                 onClick={() => { void handleSave(); }}
-                disabled={updateMutation.isPending || !!cnpjError || saveSuccess}
+                disabled={updateMutation.isPending || !!cnpjError || !!dateError || saveSuccess}
                 className="flex-1 transform bg-[#2d2d2d] py-4 font-mono text-sm font-semibold tracking-wider text-white transition-all hover:scale-[1.02] hover:bg-[#1a1a1a] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
-                title={cnpjError ? 'Corrija os erros antes de salvar' : ''}
+                title={cnpjError || dateError ? 'Corrija os erros antes de salvar' : ''}
               >
                 {updateMutation.isPending ? 'SALVANDO...' : saveSuccess ? '✓ SALVO!' : 'SALVAR ALTERAÇÕES'}
               </button>
