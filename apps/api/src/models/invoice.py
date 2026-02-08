@@ -3,7 +3,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING, List, Optional
 
-from sqlalchemy import String, Numeric, DateTime, ForeignKey, JSON, Text, Integer
+from sqlalchemy import String, Numeric, DateTime, ForeignKey, JSON, Text, Integer, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.database import Base
@@ -19,6 +19,9 @@ class Invoice(Base):
     """Nota Fiscal completa"""
     
     __tablename__ = "invoices"
+    __table_args__ = (
+        UniqueConstraint('access_key', 'user_id', name='uq_invoices_access_key_user_id'),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         primary_key=True,
@@ -36,10 +39,9 @@ class Invoice(Base):
     # Dados da nota fiscal
     access_key: Mapped[str] = mapped_column(
         String(44),
-        unique=True,
         index=True,
         nullable=False
-    )  # Chave de acesso (44 caracteres)
+    )  # Chave de acesso (44 caracteres) — unique per user via __table_args__
     number: Mapped[str] = mapped_column(
         String(20),
         nullable=False

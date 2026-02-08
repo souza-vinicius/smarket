@@ -664,6 +664,11 @@ async def confirm_extracted_invoice(
         access_key = request.access_key or ""
         access_key = "".join(c for c in access_key if c.isalnum())[:44]
 
+        # Generate unique placeholder if access_key is empty or invalid
+        if len(access_key) < 44:
+            access_key = uuid.uuid4().hex.ljust(44, "0")[:44]
+            logger.info(f"Generated placeholder access_key: {access_key}")
+
         # Clean CNPJ: remove dots, hyphens, slashes
         issuer_cnpj = request.issuer_cnpj or ""
         issuer_cnpj = clean_cnpj(issuer_cnpj)
@@ -765,12 +770,18 @@ async def confirm_extracted_invoice(
                 }
             )
 
+        # Fallback para issue_date se vier null
+        issue_date = request.issue_date
+        if issue_date is None:
+            logger.warning("issue_date is null, using current datetime as fallback")
+            issue_date = datetime.utcnow()
+
         invoice = Invoice(
             user_id=current_user.id,
             access_key=access_key,
             number=request.number or "",
             series=request.series or "",
-            issue_date=request.issue_date,
+            issue_date=issue_date,
             issuer_cnpj=issuer_cnpj,
             issuer_name=issuer_name,  # Use potentially enriched name
             total_value=float(request.total_value) if request.total_value else 0,

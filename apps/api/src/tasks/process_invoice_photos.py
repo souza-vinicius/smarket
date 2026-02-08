@@ -1,13 +1,16 @@
 import logging
 import os
+import re
 import mimetypes
 import aiofiles
 from datetime import datetime
+from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import select
+from sqlalchemy import select, and_
 
 from src.database import AsyncSessionLocal
+from src.models.invoice import Invoice
 from src.models.invoice_processing import InvoiceProcessing
 from src.services.multi_provider_extractor import extractor
 from src.services.categorizer import categorize_items
@@ -123,8 +126,19 @@ async def process_invoice_photos(processing_id: str) -> None:
                             f"Categorização falhou: {cat_err}"
                         )
 
+                # Check for potential duplicates before storing
+                potential_duplicates = await _check_duplicates(
+                    db, processing.user_id, extracted
+                )
+
                 # Converter para dict para armazenamento
                 merged_data = _extraction_to_dict(extracted, len(images))
+
+                if potential_duplicates:
+                    merged_data["potential_duplicates"] = potential_duplicates
+                    processing.warnings = list(processing.warnings or []) + [
+                        "Possível nota fiscal duplicada encontrada"
+                    ]
 
                 processing.extracted_data = merged_data
                 processing.status = "extracted"
@@ -174,6 +188,76 @@ async def process_invoice_photos(processing_id: str) -> None:
     logger.info(f"=" * 80)
     logger.info(f"🏁 BACKGROUND TASK FINISHED | Processing ID: {processing_id}")
     logger.info(f"=" * 80)
+
+
+async def _check_duplicates(
+    db, user_id, extracted: "ExtractedInvoiceData"
+) -> list[dict]:
+    """Verifica se existem notas fiscais similares já cadastradas.
+
+    Busca por match em: access_key (exata) OU (number + issuer_cnpj + total_value).
+    Retorna lista de possíveis duplicatas para aviso ao usuário.
+    """
+    duplicates = []
+
+    try:
+        # 1. Check by access_key (exact match)
+        clean_key = re.sub(r'\D', '', extracted.access_key or '')
+        if len(clean_key) == 44:
+            result = await db.execute(
+                select(Invoice).where(
+                    Invoice.access_key == clean_key,
+                    Invoice.user_id == user_id
+                )
+            )
+            for inv in result.scalars().all():
+                duplicates.append({
+                    "invoice_id": str(inv.id),
+                    "number": inv.number,
+                    "issue_date": inv.issue_date.isoformat() if inv.issue_date else None,
+                    "total_value": float(inv.total_value),
+                    "issuer_name": inv.issuer_name,
+                    "match_type": "access_key",
+                })
+
+        # 2. Check by number + CNPJ + total_value (fuzzy match)
+        if not duplicates and extracted.number and extracted.issuer_cnpj:
+            clean_cnpj = re.sub(r'\D', '', extracted.issuer_cnpj)
+            clean_number = re.sub(r'\D', '', extracted.number)
+
+            if clean_cnpj and clean_number:
+                conditions = [
+                    Invoice.number == clean_number,
+                    Invoice.issuer_cnpj == clean_cnpj,
+                    Invoice.user_id == user_id,
+                ]
+                if extracted.total_value is not None:
+                    conditions.append(
+                        Invoice.total_value == Decimal(str(extracted.total_value))
+                    )
+
+                result = await db.execute(
+                    select(Invoice).where(and_(*conditions))
+                )
+                for inv in result.scalars().all():
+                    duplicates.append({
+                        "invoice_id": str(inv.id),
+                        "number": inv.number,
+                        "issue_date": inv.issue_date.isoformat() if inv.issue_date else None,
+                        "total_value": float(inv.total_value),
+                        "issuer_name": inv.issuer_name,
+                        "match_type": "number_cnpj_value",
+                    })
+
+        if duplicates:
+            logger.warning(
+                f"Found {len(duplicates)} potential duplicate(s) for user {user_id}"
+            )
+
+    except Exception as e:
+        logger.warning(f"Duplicate check failed (non-critical): {e}")
+
+    return duplicates
 
 
 async def _load_image_from_storage(image_id: str) -> bytes:

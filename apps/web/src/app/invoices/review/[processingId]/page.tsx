@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 
 import { type AxiosError } from 'axios';
 
-import { useProcessingStatus, useConfirmInvoice, type ExtractedInvoiceData } from '@/hooks/use-invoices';
+import { useProcessingStatus, useConfirmInvoice, type ExtractedInvoiceData, type PotentialDuplicate } from '@/hooks/use-invoices';
 import { type InvoiceItem } from '@/types';
 import { formatCNPJInput, getCNPJErrorMessage, isValidCNPJ } from '@/lib/cnpj';
 import { useCNPJEnrichment, type CNPJEnrichmentError } from '@/hooks/use-cnpj-enrichment';
@@ -427,6 +427,39 @@ export default function InvoiceReviewPage() {
               </div>
             )}
 
+            {/* Duplicate Warning Banner */}
+            {editedData.potential_duplicates && (editedData.potential_duplicates as PotentialDuplicate[]).length > 0 && (
+              <div className="mb-6 border-l-4 border-amber-500 bg-amber-50 p-4">
+                <div className="flex items-start gap-3">
+                  <svg className="mt-0.5 size-5 shrink-0 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <div>
+                    <p className="font-mono text-sm font-semibold text-amber-800">
+                      Possível nota fiscal duplicada
+                    </p>
+                    <p className="mt-1 font-mono text-xs text-amber-700">
+                      Uma nota fiscal similar já foi cadastrada. Verifique antes de confirmar.
+                    </p>
+                    {(editedData.potential_duplicates as PotentialDuplicate[]).map((dup, idx) => (
+                      <div key={idx} className="mt-2 rounded bg-amber-100 p-2 font-mono text-xs text-amber-900">
+                        <div className="flex flex-wrap gap-x-4 gap-y-1">
+                          {dup.number && <span>N°: <strong>{dup.number}</strong></span>}
+                          {dup.issue_date && (
+                            <span>Data: <strong>{new Date(dup.issue_date).toLocaleDateString('pt-BR')}</strong></span>
+                          )}
+                          {dup.total_value !== undefined && (
+                            <span>Total: <strong>R$ {dup.total_value.toFixed(2)}</strong></span>
+                          )}
+                          {dup.issuer_name && <span>Emissor: <strong>{dup.issuer_name}</strong></span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Invoice Header Info */}
             <div className="mb-8 border-b-2 border-dotted border-[#ccc] pb-8">
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -515,16 +548,10 @@ export default function InvoiceReviewPage() {
                   <div className="flex items-center justify-between">
                     <span className="font-mono text-xs tracking-wider text-[#666]">DATA</span>
                     <input
-                      type="text"
+                      type="datetime-local"
                       value={
                         editedData.issue_date
-                          ? new Date(editedData.issue_date).toLocaleString('pt-BR', {
-                            year: 'numeric',
-                            month: '2-digit',
-                            day: '2-digit',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })
+                          ? new Date(editedData.issue_date).toISOString().slice(0, 16)
                           : ''
                       }
                       onChange={(e) => { handleHeaderChange('issue_date', e.target.value); }}

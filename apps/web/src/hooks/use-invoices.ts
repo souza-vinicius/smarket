@@ -40,6 +40,15 @@ export interface InvoiceItemData {
   subcategory?: string;
 }
 
+export interface PotentialDuplicate {
+  invoice_id: string;
+  number?: string;
+  issue_date?: string;
+  total_value?: number;
+  issuer_name?: string;
+  match_type?: string;
+}
+
 export interface ExtractedInvoiceData {
   access_key: string;
   number: string;
@@ -52,6 +61,7 @@ export interface ExtractedInvoiceData {
   image_count?: number;
   confidence: number;
   warnings: string[];
+  potential_duplicates?: PotentialDuplicate[];
   [key: string]: unknown;
 }
 

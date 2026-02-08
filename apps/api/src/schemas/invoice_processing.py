@@ -20,6 +20,16 @@ class ExtractedItem(BaseModel):
     subcategory: Optional[str] = None
 
 
+class PotentialDuplicate(BaseModel):
+    """Informações de uma possível nota fiscal duplicada"""
+
+    invoice_id: str
+    number: Optional[str] = None
+    issue_date: Optional[str] = None
+    total_value: Optional[float] = None
+    issuer_name: Optional[str] = None
+
+
 class ExtractedInvoiceData(BaseModel):
     """Dados extraídos de uma imagem de nota fiscal"""
 
@@ -33,6 +43,7 @@ class ExtractedInvoiceData(BaseModel):
     items: list[ExtractedItem] = Field(default_factory=list)
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
     warnings: list[str] = Field(default_factory=list)
+    potential_duplicates: list[PotentialDuplicate] = Field(default_factory=list)
 
     @field_validator('number', 'series', 'access_key', mode='before')
     @classmethod
