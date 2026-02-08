@@ -267,8 +267,10 @@ async def get_spending_trends(
     today = date.today()
     start_date = today - relativedelta(months=months)
 
-    # Create the date_trunc expression once to reuse
-    month_trunc = func.date_trunc('month', Invoice.issue_date)
+    # Convert issue_date to date first, then truncate to month
+    # This ensures correct grouping regardless of time component
+    issue_date_only = func.date(Invoice.issue_date)
+    month_trunc = func.date_trunc('month', issue_date_only)
 
     # Get monthly totals
     result = await db.execute(
@@ -279,7 +281,7 @@ async def get_spending_trends(
         ).where(
             and_(
                 Invoice.user_id == current_user.id,
-                Invoice.issue_date >= start_date
+                issue_date_only >= start_date
             )
         ).group_by(
             month_trunc
@@ -294,7 +296,7 @@ async def get_spending_trends(
         "period_months": months,
         "trends": [
             {
-                "month": t.month.strftime("%Y-%m"),
+                "month": t.month.strftime("%Y-%m-%d"),  # Full date for consistency
                 "total": t.total or Decimal("0.00"),
                 "invoice_count": t.invoice_count
             }

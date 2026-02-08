@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Optional, Any
 
@@ -141,24 +141,34 @@ class ProcessingConfirmRequest(BaseModel):
         if v is None:
             return None
         if isinstance(v, datetime):
-            return v
-        if isinstance(v, str):
+            dt = v
+        elif isinstance(v, str):
             try:
-                # Use .parse() with dayfirst=True to handle:
-                # - Brazilian format: "15/01/2024 14:30:22" or "15/01/2024"
-                # - ISO 8601: "2024-01-15T14:30:22"
-                # - US format: "01/15/2024" (handles with dayfirst preference)
-                dt = dateutil_parser.parse(v, dayfirst=True)
+                # Detect format: if contains 'T' or '-', it's likely ISO format
+                # Use .parse() with appropriate dayfirst setting:
+                # - ISO 8601: "2024-01-15T14:30:22" → dayfirst=False
+                # - Brazilian format: "15/01/2024 14:30:22" → dayfirst=True
+                use_dayfirst = '/' in v  # Brazilian format uses slashes
+                dt = dateutil_parser.parse(v, dayfirst=use_dayfirst)
                 # Make timezone-naive for PostgreSQL compatibility
                 if dt.tzinfo is not None:
                     dt = dt.replace(tzinfo=None)
-                return dt
             except (ValueError, AttributeError, TypeError) as e:
                 # Log the error but don't fail
                 import logging
                 logging.warning(f"Failed to parse date '{v}': {e}")
                 return None
-        return None
+        else:
+            return None
+
+        # Validate that date is not in the future (allow up to 1 hour tolerance for timezone differences)
+        now = datetime.utcnow()
+        tolerance = timedelta(hours=1)
+
+        if dt > (now + tolerance):
+            raise ValueError('A data da nota fiscal não pode ser futura')
+
+        return dt
 
     @field_validator('number', 'series', 'access_key', mode='before')
     @classmethod

@@ -51,7 +51,7 @@ class Invoice(Base):
         nullable=False
     )
     issue_date: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
+        DateTime(timezone=False),
         nullable=False
     )
 

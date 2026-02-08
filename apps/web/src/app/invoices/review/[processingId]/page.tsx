@@ -31,6 +31,7 @@ export default function InvoiceReviewPage() {
   const [editedData, setEditedData] = useState<ExtractedInvoiceData | null>(null);
   const [duplicateError, setDuplicateError] = useState<DuplicateErrorData | null>(null);
   const [cnpjError, setCnpjError] = useState<string | null>(null);
+  const [dateError, setDateError] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [enrichmentSuccess, setEnrichmentSuccess] = useState<string | null>(null);
 
@@ -103,6 +104,22 @@ export default function InvoiceReviewPage() {
 
       // Clear general validation error when user edits
       setValidationError(null);
+    } else if (field === 'issue_date') {
+      // Validate date is not in the future
+      if (value) {
+        const selectedDate = new Date(value);
+        const now = new Date();
+
+        if (selectedDate > now) {
+          setDateError('A data da nota fiscal não pode ser futura');
+        } else {
+          setDateError(null);
+        }
+      } else {
+        setDateError(null);
+      }
+
+      setEditedData({ ...editedData, [field]: value });
     } else {
       setEditedData({ ...editedData, [field]: value });
     }
@@ -116,6 +133,18 @@ export default function InvoiceReviewPage() {
       const cnpjValidationError = getCNPJErrorMessage(editedData.issuer_cnpj);
       if (cnpjValidationError) {
         setCnpjError(cnpjValidationError);
+        setValidationError('Por favor, corrija os erros antes de continuar.');
+        return;
+      }
+    }
+
+    // Validate date is not in the future
+    if (editedData.issue_date) {
+      const selectedDate = new Date(editedData.issue_date);
+      const now = new Date();
+
+      if (selectedDate > now) {
+        setDateError('A data da nota fiscal não pode ser futura');
         setValidationError('Por favor, corrija os erros antes de continuar.');
         return;
       }
@@ -545,19 +574,30 @@ export default function InvoiceReviewPage() {
                       style={{ fontFamily: 'IBM Plex Mono, monospace' }}
                     />
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs tracking-wider text-[#666]">DATA</span>
-                    <input
-                      type="datetime-local"
-                      value={
-                        editedData.issue_date
-                          ? new Date(editedData.issue_date).toISOString().slice(0, 16)
-                          : ''
-                      }
-                      onChange={(e) => { handleHeaderChange('issue_date', e.target.value); }}
-                      className="editable-cell border-b-2 border-transparent bg-transparent px-2 py-1 text-right font-mono text-sm font-semibold transition-colors hover:border-[#e5e5e5] focus:border-[#2d2d2d]"
-                      style={{ fontFamily: 'IBM Plex Mono, monospace' }}
-                    />
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-xs tracking-wider text-[#666]">DATA</span>
+                      <input
+                        type="datetime-local"
+                        value={
+                          editedData.issue_date
+                            ? new Date(editedData.issue_date).toISOString().slice(0, 16)
+                            : ''
+                        }
+                        onChange={(e) => { handleHeaderChange('issue_date', e.target.value); }}
+                        max={new Date().toISOString().slice(0, 16)}
+                        className={`editable-cell border-b-2 bg-transparent px-2 py-1 text-right font-mono text-sm font-semibold transition-colors ${dateError
+                          ? 'border-red-500 text-red-600 focus:border-red-600'
+                          : 'border-transparent hover:border-[#e5e5e5] focus:border-[#2d2d2d]'
+                          }`}
+                        style={{ fontFamily: 'IBM Plex Mono, monospace' }}
+                      />
+                    </div>
+                    {dateError && (
+                      <p className="mt-1 text-right font-mono text-xs text-red-600">
+                        {dateError}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
