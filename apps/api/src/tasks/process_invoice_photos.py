@@ -13,6 +13,7 @@ from src.database import AsyncSessionLocal
 from src.models.invoice import Invoice
 from src.models.invoice_processing import InvoiceProcessing
 from src.services.multi_provider_extractor import extractor
+from src.services.name_normalizer import normalize_items
 from src.services.categorizer import categorize_items
 
 if TYPE_CHECKING:
@@ -114,6 +115,17 @@ async def process_invoice_photos(processing_id: str) -> None:
 
             try:
                 extracted = await extractor.extract_multiple(images)
+
+                # Normalizar nomes dos itens (expande abreviações)
+                if extracted.items:
+                    try:
+                        extracted.items = normalize_items(
+                            extracted.items
+                        )
+                    except Exception as norm_err:
+                        logger.warning(
+                            f"Normalização de nomes falhou: {norm_err}"
+                        )
 
                 # Categorizar itens (segundo passo, não-crítico)
                 if extracted.items:

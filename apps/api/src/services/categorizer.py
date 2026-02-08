@@ -58,10 +58,10 @@ async def categorize_items(
     if not items:
         return items
 
-    # Construir lista de descrições
+    # Construir lista de descrições (prefere normalized_name se disponível)
     descriptions = []
     for i, item in enumerate(items):
-        desc = item.description or "Item sem descrição"
+        desc = item.normalized_name or item.description or "Item sem descrição"
         descriptions.append(f"{i}: {desc}")
 
     prompt_text = CATEGORIZATION_PROMPT + "\n".join(descriptions)

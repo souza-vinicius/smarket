@@ -12,6 +12,7 @@ class ExtractedItem(BaseModel):
 
     code: Optional[str] = None
     description: Optional[str] = None
+    normalized_name: Optional[str] = None
     quantity: Optional[Decimal] = None
     unit: Optional[str] = None
     unit_price: Optional[Decimal] = None

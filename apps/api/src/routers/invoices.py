@@ -29,6 +29,7 @@ from src.parsers.qrcode_parser import (
 from src.parsers.xml_parser import parse_xml_invoice
 from src.services.ai_analyzer import analyzer
 from src.services.cnpj_enrichment import enrich_cnpj_data
+from src.services.name_normalizer import normalize_product_dict
 from src.tasks.process_invoice_photos import process_invoice_photos
 from src.utils.cnpj_validator import validate_cnpj, clean_cnpj, format_cnpj
 from src.config import settings
@@ -376,12 +377,17 @@ async def process_qrcode(
     db.add(invoice)
     await db.flush()  # Get invoice.id
 
+    # Normalizar nomes dos itens (expande abreviações de NF-e)
+    for item_data in invoice_data["products"]:
+        normalize_product_dict(item_data)
+
     # Create invoice items
     for item_data in invoice_data["products"]:
         item = InvoiceItem(
             invoice_id=invoice.id,
             code=item_data["code"],
             description=item_data["description"],
+            normalized_name=item_data.get("normalized_name"),
             quantity=item_data["quantity"],
             unit=item_data["unit"],
             unit_price=item_data["unit_price"],
@@ -466,12 +472,17 @@ async def upload_xml(
     db.add(invoice)
     await db.flush()
 
+    # Normalizar nomes dos itens (expande abreviações de NF-e)
+    for item_data in invoice_data["products"]:
+        normalize_product_dict(item_data)
+
     # Create invoice items
     for item_data in invoice_data["products"]:
         item = InvoiceItem(
             invoice_id=invoice.id,
             code=item_data["code"],
             description=item_data["description"],
+            normalized_name=item_data.get("normalized_name"),
             quantity=item_data["quantity"],
             unit=item_data["unit"],
             unit_price=item_data["unit_price"],
@@ -799,6 +810,7 @@ async def confirm_extracted_invoice(
                 invoice_id=invoice.id,
                 code=item_data.code or "",
                 description=item_data.description or "",
+                normalized_name=item_data.normalized_name,
                 quantity=item_data.quantity,
                 unit=item_data.unit or "UN",
                 unit_price=item_data.unit_price,
