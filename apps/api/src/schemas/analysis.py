@@ -1,6 +1,6 @@
 import uuid
 from datetime import date, datetime
-from typing import Optional, Dict, Any
+from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
@@ -13,7 +13,7 @@ class AnalysisBase(BaseModel):
 
 
 class AnalysisCreate(AnalysisBase):
-    details: Dict[str, Any] = {}
+    details: dict[str, Any] = {}
     reference_period_start: Optional[date] = None
     reference_period_end: Optional[date] = None
     related_categories: list = []
@@ -30,7 +30,7 @@ class AnalysisResponse(AnalysisBase):
     id: uuid.UUID
     user_id: uuid.UUID
     invoice_id: Optional[uuid.UUID]
-    details: Dict[str, Any]
+    details: dict[str, Any]
     reference_period_start: Optional[date]
     reference_period_end: Optional[date]
     related_categories: list

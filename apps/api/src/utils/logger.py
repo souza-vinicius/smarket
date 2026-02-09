@@ -1,5 +1,7 @@
 import structlog
+
 from src.config import settings
+
 
 # Configure structlog
 structlog.configure(

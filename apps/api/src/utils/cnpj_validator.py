@@ -24,7 +24,7 @@ def clean_cnpj(cnpj: str) -> str:
         >>> clean_cnpj("00000000000191")
         "00000000000191"
     """
-    return re.sub(r'[^0-9]', '', cnpj)
+    return re.sub(r"[^0-9]", "", cnpj)
 
 
 def validate_cnpj(cnpj: str) -> bool:
@@ -59,10 +59,7 @@ def validate_cnpj(cnpj: str) -> bool:
 
     # Calculate first verification digit
     multipliers_first = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
-    sum_first = sum(
-        int(cnpj_digits[i]) * multipliers_first[i]
-        for i in range(12)
-    )
+    sum_first = sum(int(cnpj_digits[i]) * multipliers_first[i] for i in range(12))
     remainder_first = sum_first % 11
     digit_first = 0 if remainder_first < 2 else 11 - remainder_first
 
@@ -72,10 +69,7 @@ def validate_cnpj(cnpj: str) -> bool:
 
     # Calculate second verification digit
     multipliers_second = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
-    sum_second = sum(
-        int(cnpj_digits[i]) * multipliers_second[i]
-        for i in range(13)
-    )
+    sum_second = sum(int(cnpj_digits[i]) * multipliers_second[i] for i in range(13))
     remainder_second = sum_second % 11
     digit_second = 0 if remainder_second < 2 else 11 - remainder_second
 

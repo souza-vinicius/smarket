@@ -7,6 +7,7 @@ import redis.asyncio as redis
 
 from src.config import settings
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -21,9 +22,7 @@ class PromptCache:
         """Conecta ao Redis."""
         try:
             self.redis_client = redis.from_url(
-                settings.REDIS_URL,
-                encoding="utf-8",
-                decode_responses=True
+                settings.REDIS_URL, encoding="utf-8", decode_responses=True
             )
             await self.redis_client.ping()
             logger.info("Redis connection established for prompt cache")
@@ -39,11 +38,7 @@ class PromptCache:
         """Gera hash da imagem para cache."""
         return hashlib.md5(image_bytes).hexdigest()
 
-    async def get(
-        self,
-        provider: str,
-        image_bytes: bytes
-    ) -> Optional[dict]:
+    async def get(self, provider: str, image_bytes: bytes) -> Optional[dict]:
         """Busca resultado em cache.
 
         Args:
@@ -72,12 +67,7 @@ class PromptCache:
             logger.warning(f"Cache get error: {e}")
             return None
 
-    async def set(
-        self,
-        provider: str,
-        image_bytes: bytes,
-        result: dict
-    ) -> bool:
+    async def set(self, provider: str, image_bytes: bytes, result: dict) -> bool:
         """Salva resultado em cache.
 
         Args:
@@ -97,9 +87,7 @@ class PromptCache:
             cache_key = self._get_cache_key(provider, image_hash)
 
             await self.redis_client.setex(
-                cache_key,
-                self.ttl,
-                json.dumps(result, default=str)
+                cache_key, self.ttl, json.dumps(result, default=str)
             )
             logger.debug(f"Cached result for {cache_key}")
             return True
@@ -142,19 +130,12 @@ class PromptCache:
 prompt_cache = PromptCache()
 
 
-async def get_cached_extraction(
-    provider: str,
-    image_bytes: bytes
-) -> Optional[dict]:
+async def get_cached_extraction(provider: str, image_bytes: bytes) -> Optional[dict]:
     """Wrapper para buscar extração em cache."""
     return await prompt_cache.get(provider, image_bytes)
 
 
-async def cache_extraction(
-    provider: str,
-    image_bytes: bytes,
-    result: dict
-) -> bool:
+async def cache_extraction(provider: str, image_bytes: bytes, result: dict) -> bool:
     """Wrapper para salvar extração em cache."""
     return await prompt_cache.set(provider, image_bytes, result)
 

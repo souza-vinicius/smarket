@@ -5,10 +5,10 @@ Utiliza OpenAI API para gerar análises inteligentes sobre notas fiscais.
 
 from datetime import timedelta
 from decimal import Decimal
-from typing import List, Dict, Any, Optional
+from typing import Any, Optional
 
 from openai import AsyncOpenAI
-from sqlalchemy import select, func, and_
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config import settings
@@ -27,11 +27,8 @@ class AIAnalyzer:
         self.model = "gpt-4o-mini"
 
     async def analyze_invoice(
-        self,
-        invoice: Invoice,
-        user_history: Dict[str, Any],
-        db: AsyncSession
-    ) -> List[Analysis]:
+        self, invoice: Invoice, user_history: dict[str, Any], db: AsyncSession
+    ) -> list[Analysis]:
         """
         Analisa uma nota fiscal específica e gera insights.
 
@@ -60,9 +57,7 @@ class AIAnalyzer:
             merchant = merchant_result.scalar_one_or_none()
 
         # Gerar diferentes tipos de análises
-        price_alerts = await self._detect_price_alerts(
-            invoice, items, user_history, db
-        )
+        price_alerts = await self._detect_price_alerts(invoice, items, user_history, db)
         analyses.extend(price_alerts)
 
         category_insights = await self._generate_category_insights(
@@ -77,9 +72,7 @@ class AIAnalyzer:
             analyses.append(merchant_analysis)
 
         # Gerar resumo da compra
-        summary = await self._generate_purchase_summary(
-            invoice, items, merchant, db
-        )
+        summary = await self._generate_purchase_summary(invoice, items, merchant, db)
         if summary:
             analyses.append(summary)
 
@@ -88,10 +81,10 @@ class AIAnalyzer:
     async def _detect_price_alerts(
         self,
         invoice: Invoice,
-        items: List[InvoiceItem],
-        user_history: Dict[str, Any],
-        db: AsyncSession
-    ) -> List[Analysis]:
+        items: list[InvoiceItem],
+        user_history: dict[str, Any],
+        db: AsyncSession,
+    ) -> list[Analysis]:
         """
         Detecta preços acima da média para produtos na nota.
         """
@@ -100,24 +93,18 @@ class AIAnalyzer:
         for item in items:
             # Buscar histórico de preços para este produto
             result = await db.execute(
-                select(
-                    InvoiceItem.unit_price,
-                    Invoice.merchant_id,
-                    Invoice.issue_date
-                ).join(
-                    Invoice, Invoice.id == InvoiceItem.invoice_id
-                ).join(
-                    Product, Product.id == InvoiceItem.product_id
-                ).where(
+                select(InvoiceItem.unit_price, Invoice.merchant_id, Invoice.issue_date)
+                .join(Invoice, Invoice.id == InvoiceItem.invoice_id)
+                .join(Product, Product.id == InvoiceItem.product_id)
+                .where(
                     and_(
                         Product.description.ilike(f"%{item.description}%"),
                         Invoice.user_id == invoice.user_id,
-                        Invoice.issue_date >= invoice.issue_date -
-                        timedelta(days=90)
+                        Invoice.issue_date >= invoice.issue_date - timedelta(days=90),
                     )
-                ).order_by(
-                    Invoice.issue_date.desc()
-                ).limit(10)
+                )
+                .order_by(Invoice.issue_date.desc())
+                .limit(10)
             )
             price_history = result.all()
 
@@ -131,10 +118,7 @@ class AIAnalyzer:
             if item.unit_price > avg_price * Decimal("1.2"):
                 # Usar IA para gerar descrição personalizada
                 prompt = self._build_price_alert_prompt(
-                    item.description,
-                    item.unit_price,
-                    avg_price,
-                    len(price_history)
+                    item.description, item.unit_price, avg_price, len(price_history)
                 )
 
                 response = await self.client.chat.completions.create(
@@ -145,15 +129,12 @@ class AIAnalyzer:
                             "content": (
                                 "Você é um analista de compras especializado "
                                 "em identificar oportunidades de economia."
-                            )
+                            ),
                         },
-                        {
-                            "role": "user",
-                            "content": prompt
-                        }
+                        {"role": "user", "content": prompt},
                     ],
                     temperature=0.7,
-                    max_tokens=300
+                    max_tokens=300,
                 )
 
                 ai_text = response.choices[0].message.content
@@ -163,7 +144,8 @@ class AIAnalyzer:
                     invoice_id=invoice.id,
                     type="price_alert",
                     priority=(
-                        "high" if item.unit_price > avg_price * Decimal("1.5")
+                        "high"
+                        if item.unit_price > avg_price * Decimal("1.5")
                         else "medium"
                     ),
                     title=f"Preço acima da média: {item.description}",
@@ -176,13 +158,12 @@ class AIAnalyzer:
                             (item.unit_price - avg_price) / avg_price * 100
                         ),
                         "history_count": len(price_history),
-                        "quantity": item.quantity
+                        "quantity": item.quantity,
                     },
-                    reference_period_start=invoice.issue_date -
-                    timedelta(days=90),
+                    reference_period_start=invoice.issue_date - timedelta(days=90),
                     reference_period_end=invoice.issue_date,
                     ai_model=self.model,
-                    confidence_score=0.8
+                    confidence_score=0.8,
                 )
 
                 alerts.append(alert)
@@ -192,10 +173,10 @@ class AIAnalyzer:
     async def _generate_category_insights(
         self,
         invoice: Invoice,
-        items: List[InvoiceItem],
-        user_history: Dict[str, Any],
-        db: AsyncSession
-    ) -> List[Analysis]:
+        items: list[InvoiceItem],
+        user_history: dict[str, Any],
+        db: AsyncSession,
+    ) -> list[Analysis]:
         """
         Gera insights sobre gastos por categoria.
         """
@@ -217,13 +198,13 @@ class AIAnalyzer:
             # Buscar gastos mensais nesta categoria
             month_start = invoice.issue_date.replace(day=1)
             result = await db.execute(
-                select(func.sum(InvoiceItem.total_price)).join(
-                    Invoice, Invoice.id == InvoiceItem.invoice_id
-                ).where(
+                select(func.sum(InvoiceItem.total_price))
+                .join(Invoice, Invoice.id == InvoiceItem.invoice_id)
+                .where(
                     and_(
                         Invoice.user_id == invoice.user_id,
                         InvoiceItem.category == category,
-                        Invoice.issue_date >= month_start
+                        Invoice.issue_date >= month_start,
                     )
                 )
             )
@@ -233,38 +214,30 @@ class AIAnalyzer:
             three_months_ago = month_start - timedelta(days=90)
             result = await db.execute(
                 select(
-                    func.date_trunc('month', Invoice.issue_date).label(
-                        'month'
-                    ),
-                    func.sum(InvoiceItem.total_price).label('total')
-                ).join(
-                    Invoice, Invoice.id == InvoiceItem.invoice_id
-                ).where(
+                    func.date_trunc("month", Invoice.issue_date).label("month"),
+                    func.sum(InvoiceItem.total_price).label("total"),
+                )
+                .join(Invoice, Invoice.id == InvoiceItem.invoice_id)
+                .where(
                     and_(
                         Invoice.user_id == invoice.user_id,
                         InvoiceItem.category == category,
-                        Invoice.issue_date >= three_months_ago
+                        Invoice.issue_date >= three_months_ago,
                     )
-                ).group_by(
-                    func.date_trunc('month', Invoice.issue_date)
                 )
+                .group_by(func.date_trunc("month", Invoice.issue_date))
             )
             monthly_totals = result.all()
 
             if len(monthly_totals) < 2:
                 continue
 
-            avg_monthly = sum(m[1] for m in monthly_totals) / len(
-                monthly_totals
-            )
+            avg_monthly = sum(m[1] for m in monthly_totals) / len(monthly_totals)
 
             # Se gasto atual for 30% acima da média, gerar insight
             if month_total > avg_monthly * Decimal("1.3"):
                 prompt = self._build_category_insight_prompt(
-                    category,
-                    month_total,
-                    avg_monthly,
-                    len(monthly_totals)
+                    category, month_total, avg_monthly, len(monthly_totals)
                 )
 
                 response = await self.client.chat.completions.create(
@@ -275,15 +248,12 @@ class AIAnalyzer:
                             "content": (
                                 "Você é um analista financeiro especializado "
                                 "em controle de gastos."
-                            )
+                            ),
                         },
-                        {
-                            "role": "user",
-                            "content": prompt
-                        }
+                        {"role": "user", "content": prompt},
                     ],
                     temperature=0.7,
-                    max_tokens=300
+                    max_tokens=300,
                 )
 
                 ai_text = response.choices[0].message.content
@@ -302,13 +272,13 @@ class AIAnalyzer:
                         "difference_percent": float(
                             (month_total - avg_monthly) / avg_monthly * 100
                         ),
-                        "months_analyzed": len(monthly_totals)
+                        "months_analyzed": len(monthly_totals),
                     },
                     reference_period_start=three_months_ago,
                     reference_period_end=invoice.issue_date,
                     related_categories=[category],
                     ai_model=self.model,
-                    confidence_score=0.75
+                    confidence_score=0.75,
                 )
 
                 insights.append(insight)
@@ -319,8 +289,8 @@ class AIAnalyzer:
         self,
         invoice: Invoice,
         merchant: Optional[Merchant],
-        user_history: Dict[str, Any],
-        db: AsyncSession
+        user_history: dict[str, Any],
+        db: AsyncSession,
     ) -> Optional[Analysis]:
         """
         Analisa o estabelecimento e gera insights.
@@ -331,13 +301,13 @@ class AIAnalyzer:
         # Buscar histórico de compras neste merchant
         result = await db.execute(
             select(
-                func.count(Invoice.id).label('visit_count'),
-                func.sum(Invoice.total_value).label('total_spent'),
-                func.avg(Invoice.total_value).label('avg_ticket')
+                func.count(Invoice.id).label("visit_count"),
+                func.sum(Invoice.total_value).label("total_spent"),
+                func.avg(Invoice.total_value).label("avg_ticket"),
             ).where(
                 and_(
                     Invoice.user_id == invoice.user_id,
-                    Invoice.merchant_id == merchant.id
+                    Invoice.merchant_id == merchant.id,
                 )
             )
         )
@@ -349,30 +319,25 @@ class AIAnalyzer:
         # Comparar com outros merchants da mesma categoria
         if merchant.category:
             result = await db.execute(
-                select(
-                    Merchant.name,
-                    func.avg(Invoice.total_value).label('avg_ticket')
-                ).join(
-                    Invoice, Invoice.merchant_id == Merchant.id
-                ).where(
+                select(Merchant.name, func.avg(Invoice.total_value).label("avg_ticket"))
+                .join(Invoice, Invoice.merchant_id == Merchant.id)
+                .where(
                     and_(
                         Invoice.user_id == invoice.user_id,
-                        Merchant.category == merchant.category
+                        Merchant.category == merchant.category,
                     )
-                ).group_by(
-                    Merchant.id
-                ).order_by(
-                    func.avg(Invoice.total_value).asc()
                 )
+                .group_by(Merchant.id)
+                .order_by(func.avg(Invoice.total_value).asc())
             )
             category_merchants = result.all()
 
             if len(category_merchants) > 1:
                 # Encontrar posição deste merchant
                 current_avg = float(merchant_stats.avg_ticket)
-                category_avg = sum(
-                    m[1] for m in category_merchants
-                ) / len(category_merchants)
+                category_avg = sum(m[1] for m in category_merchants) / len(
+                    category_merchants
+                )
 
                 # Se ticket médio for 20% acima da categoria
                 if current_avg > category_avg * 1.2:
@@ -381,7 +346,7 @@ class AIAnalyzer:
                         merchant.category,
                         current_avg,
                         category_avg,
-                        merchant_stats.visit_count
+                        merchant_stats.visit_count,
                     )
 
                     response = await self.client.chat.completions.create(
@@ -393,15 +358,12 @@ class AIAnalyzer:
                                     "Você é um analista de compras "
                                     "especializado em comparação de preços "
                                     "entre estabelecimentos."
-                                )
+                                ),
                             },
-                            {
-                                "role": "user",
-                                "content": prompt
-                            }
+                            {"role": "user", "content": prompt},
                         ],
                         temperature=0.7,
-                        max_tokens=300
+                        max_tokens=300,
                     )
 
                     ai_text = response.choices[0].message.content
@@ -419,14 +381,13 @@ class AIAnalyzer:
                             "current_avg_ticket": current_avg,
                             "category_avg_ticket": category_avg,
                             "difference_percent": (
-                                (current_avg - category_avg) /
-                                category_avg * 100
+                                (current_avg - category_avg) / category_avg * 100
                             ),
-                            "visit_count": merchant_stats.visit_count
+                            "visit_count": merchant_stats.visit_count,
                         },
                         related_merchants=[merchant.id],
                         ai_model=self.model,
-                        confidence_score=0.7
+                        confidence_score=0.7,
                     )
 
         return None
@@ -434,9 +395,9 @@ class AIAnalyzer:
     async def _generate_purchase_summary(
         self,
         invoice: Invoice,
-        items: List[InvoiceItem],
+        items: list[InvoiceItem],
         merchant: Optional[Merchant],
-        db: AsyncSession
+        db: AsyncSession,
     ) -> Optional[Analysis]:
         """
         Gera um resumo da compra com insights gerais.
@@ -451,7 +412,7 @@ class AIAnalyzer:
                 "quantity": item.quantity,
                 "unit_price": float(item.unit_price),
                 "total_price": float(item.total_price),
-                "category": item.category_name
+                "category": item.category_name,
             }
             for item in items
         ]
@@ -460,7 +421,7 @@ class AIAnalyzer:
             invoice.total_value,
             items_summary,
             merchant.name if merchant else None,
-            merchant.category if merchant else None
+            merchant.category if merchant else None,
         )
 
         response = await self.client.chat.completions.create(
@@ -471,15 +432,12 @@ class AIAnalyzer:
                     "content": (
                         "Você é um assistente financeiro que ajuda "
                         "usuários a entenderem suas compras."
-                    )
+                    ),
                 },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
+                {"role": "user", "content": prompt},
             ],
             temperature=0.7,
-            max_tokens=400
+            max_tokens=400,
         )
 
         ai_text = response.choices[0].message.content
@@ -497,10 +455,10 @@ class AIAnalyzer:
                 "merchant": merchant.name if merchant else None,
                 "categories": list(
                     set(item.category_name for item in items if item.category_name)
-                )
+                ),
             },
             ai_model=self.model,
-            confidence_score=0.85
+            confidence_score=0.85,
         )
 
     def _build_price_alert_prompt(
@@ -508,10 +466,10 @@ class AIAnalyzer:
         product: str,
         current_price: Decimal,
         avg_price: Decimal,
-        history_count: int
+        history_count: int,
     ) -> str:
         """Constrói prompt para alerta de preço."""
-        diff_percent = ((current_price - avg_price) / avg_price * 100)
+        diff_percent = (current_price - avg_price) / avg_price * 100
         return (
             f"Analise a seguinte situação de compra:\n\n"
             f"Produto: {product}\n"
@@ -531,10 +489,10 @@ class AIAnalyzer:
         category: str,
         current_month: Decimal,
         avg_monthly: Decimal,
-        months_analyzed: int
+        months_analyzed: int,
     ) -> str:
         """Constrói prompt para insight de categoria."""
-        diff_percent = ((current_month - avg_monthly) / avg_monthly * 100)
+        diff_percent = (current_month - avg_monthly) / avg_monthly * 100
         return (
             f"Analise o seguinte padrão de gastos:\n\n"
             f"Categoria: {category}\n"
@@ -555,10 +513,10 @@ class AIAnalyzer:
         merchant_category: str,
         current_avg: float,
         category_avg: float,
-        visit_count: int
+        visit_count: int,
     ) -> str:
         """Constrói prompt para insight de merchant."""
-        diff_percent = ((current_avg - category_avg) / category_avg * 100)
+        diff_percent = (current_avg - category_avg) / category_avg * 100
         return (
             f"Analise o seguinte estabelecimento:\n\n"
             f"Nome: {merchant_name}\n"
@@ -577,16 +535,18 @@ class AIAnalyzer:
     def _build_summary_prompt(
         self,
         total_value: Decimal,
-        items: List[Dict[str, Any]],
+        items: list[dict[str, Any]],
         merchant_name: Optional[str],
-        merchant_category: Optional[str]
+        merchant_category: Optional[str],
     ) -> str:
         """Constrói prompt para resumo da compra."""
-        items_text = "\n".join([
-            f"- {item['description']} ({item['quantity']}x "
-            f"R$ {item['unit_price']:.2f} = R$ {item['total_price']:.2f})"
-            for item in items
-        ])
+        items_text = "\n".join(
+            [
+                f"- {item['description']} ({item['quantity']}x "
+                f"R$ {item['unit_price']:.2f} = R$ {item['total_price']:.2f})"
+                for item in items
+            ]
+        )
 
         merchant_info = (
             f"{merchant_name or 'Não informado'} "

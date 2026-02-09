@@ -1,5 +1,4 @@
 from pydantic_settings import BaseSettings
-from typing import List
 
 
 class Settings(BaseSettings):
@@ -8,7 +7,9 @@ class Settings(BaseSettings):
     DEBUG: bool = False
 
     # Database
-    DATABASE_URL: str = "postgresql+asyncpg://smarket:smarket_password@postgres:5432/smarket"
+    DATABASE_URL: (
+        str
+    ) = "postgresql+asyncpg://smarket:smarket_password@postgres:5432/smarket"
     DB_ECHO: bool = False
 
     # JWT
@@ -53,7 +54,7 @@ class Settings(BaseSettings):
     CNPJ_CACHE_TTL: int = 86400  # 24 hours in seconds
 
     @property
-    def allowed_origins_list(self) -> List[str]:
+    def allowed_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",")]
 
     @property

@@ -32,6 +32,7 @@ class UserResponse(UserBase):
 
 class UserProfileUpdate(BaseModel):
     """Schema for updating user profile information for AI analysis."""
+
     household_income: Optional[Decimal] = Field(None, ge=0)
     adults_count: Optional[int] = Field(None, ge=0, le=20)
     children_count: Optional[int] = Field(None, ge=0, le=20)
@@ -39,6 +40,7 @@ class UserProfileUpdate(BaseModel):
 
 class UserProfileResponse(BaseModel):
     """Schema for user profile response including AI-relevant fields."""
+
     id: uuid.UUID
     email: EmailStr
     full_name: str

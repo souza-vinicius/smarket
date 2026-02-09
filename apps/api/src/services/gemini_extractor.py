@@ -1,12 +1,13 @@
 import base64
 import logging
 
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage
 from langchain_core.output_parsers import PydanticOutputParser
+from langchain_google_genai import ChatGoogleGenerativeAI
 
 from src.config import settings
 from src.schemas.invoice_processing import ExtractedInvoiceData
+
 
 logger = logging.getLogger(__name__)
 
@@ -36,16 +37,12 @@ class LangChainGeminiExtractor:
             model=settings.GEMINI_MODEL,
             api_key=settings.GEMINI_API_KEY,
             temperature=0.1,
-            max_output_tokens=2048
+            max_output_tokens=2048,
         )
-        self.parser = PydanticOutputParser(
-            pydantic_object=ExtractedInvoiceData
-        )
+        self.parser = PydanticOutputParser(pydantic_object=ExtractedInvoiceData)
 
     async def extract_from_image(
-        self,
-        image_bytes: bytes,
-        image_mime_type: str = "image/jpeg"
+        self, image_bytes: bytes, image_mime_type: str = "image/jpeg"
     ) -> ExtractedInvoiceData:
         """Extrai dados de uma imagem de nota fiscal.
 
@@ -66,10 +63,7 @@ class LangChainGeminiExtractor:
             message = HumanMessage(
                 content=[
                     {"type": "text", "text": SYSTEM_PROMPT},
-                    {
-                        "type": "image_url",
-                        "image_url": {"url": image_url}
-                    }
+                    {"type": "image_url", "image_url": {"url": image_url}},
                 ]
             )
 
@@ -83,7 +77,7 @@ class LangChainGeminiExtractor:
 
         except Exception as e:
             logger.error(f"Erro na extração com LangChain: {e}")
-            raise ValueError(f"Extração falhou: {str(e)}")
+            raise ValueError(f"Extração falhou: {e!s}")
 
 
 # DEPRECATED: Use multi_provider_extractor for automatic fallback

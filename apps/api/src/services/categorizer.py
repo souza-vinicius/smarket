@@ -7,13 +7,14 @@ Usa modelo de texto (barato) para classificar itens em categorias.
 import json
 import logging
 import re
-from typing import List, Optional
+from typing import Optional
 
-from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
+from langchain_openai import ChatOpenAI
 
 from src.config import settings
 from src.schemas.invoice_processing import ExtractedItem
+
 
 logger = logging.getLogger(__name__)
 
@@ -42,8 +43,8 @@ Produtos para categorizar:
 
 
 async def categorize_items(
-    items: List[ExtractedItem],
-) -> List[ExtractedItem]:
+    items: list[ExtractedItem],
+) -> list[ExtractedItem]:
     """Categoriza uma lista de itens extraídos.
 
     Usa OpenRouter (ou fallback) para classificar itens em categorias.
@@ -78,8 +79,8 @@ async def categorize_items(
 
         # Limpar markdown
         if content.startswith("```"):
-            content = re.sub(r'^```(?:json)?\s*', '', content)
-            content = re.sub(r'\s*```$', '', content)
+            content = re.sub(r"^```(?:json)?\s*", "", content)
+            content = re.sub(r"\s*```$", "", content)
 
         categories = json.loads(content)
 
@@ -90,9 +91,7 @@ async def categorize_items(
                 items[idx].category_name = cat.get("category_name")
                 items[idx].subcategory = cat.get("subcategory")
 
-        logger.info(
-            f"✓ Categorização completa: {len(categories)} itens categorizados"
-        )
+        logger.info(f"✓ Categorização completa: {len(categories)} itens categorizados")
 
     except Exception as e:
         logger.warning(f"Categorização falhou (não-crítico): {e}")
