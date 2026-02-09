@@ -291,6 +291,7 @@ async def update_invoice(
                     invoice_id=invoice_id,
                     code=item_data.code or "",
                     description=item_data.description or "",
+                    normalized_name=item_data.normalized_name,
                     quantity=item_data.quantity,
                     unit=item_data.unit or "UN",
                     unit_price=item_data.unit_price,

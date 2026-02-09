@@ -291,7 +291,9 @@ export default function InvoiceDetailsPage() {
                             className={`border-b border-slate-100 transition-colors hover:bg-slate-50 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'
                               }`}
                           >
-                            <td className="p-4 text-slate-900">{item.description}</td>
+                            <td className="p-4 text-slate-900">
+                              {item.normalized_name || item.description}
+                            </td>
                             <td className="p-4 text-right font-mono text-slate-900">
                               {(Number(item.quantity) || 0).toFixed(3)}
                             </td>

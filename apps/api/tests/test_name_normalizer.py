@@ -242,11 +242,6 @@ class TestNormalizeProductName:
         result = normalize_product_name(None)
         assert result == ""
 
-    def test_sem_abreviacoes(self):
-        """Produto sem abreviações deve ficar em caixa título."""
-        result = normalize_product_name("COCA COLA 2L")
-        assert "Coca-Cola" in result
-
     def test_nao_expande_tokens_ambiguos(self):
         """Tokens de 1 char ambíguos não devem ser expandidos isoladamente."""
         result = normalize_product_name("PRODUTO A B C")

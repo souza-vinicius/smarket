@@ -44,6 +44,7 @@ export default function InvoiceEditPage() {
       const items: InvoiceItem[] = (invoice.items ?? invoice.products ?? []).map((item) => ({
         code: item.code || '',
         description: item.description || '',
+        normalized_name: item.normalized_name || undefined,
         quantity: Number(item.quantity) || 0,
         unit: item.unit || 'UN',
         unit_price: Number(item.unit_price) || 0,
@@ -77,8 +78,19 @@ export default function InvoiceEditPage() {
       // eslint-disable-next-line security/detect-object-injection
       newItems[index] = { ...newItems[index], [field]: numValue };
     } else {
-      // eslint-disable-next-line security/detect-object-injection
-      newItems[index] = { ...newItems[index], [field]: value };
+      // Special handling for description field - update both description and normalized_name
+      if (field === 'description') {
+        // eslint-disable-next-line security/detect-object-injection
+        newItems[index] = {
+          ...newItems[index],
+          description: value as string,
+          // If there was a normalized_name, update it too so the input reflects the change
+          normalized_name: newItems[index].normalized_name ? value as string : undefined
+        };
+      } else {
+        // eslint-disable-next-line security/detect-object-injection
+        newItems[index] = { ...newItems[index], [field]: value };
+      }
     }
 
     if (field === 'quantity' || field === 'unit_price') {
@@ -236,6 +248,7 @@ export default function InvoiceEditPage() {
         items: editedData.items.map((item) => ({
           code: item.code || '',
           description: item.description,
+          normalized_name: item.normalized_name || undefined,
           quantity: Number(item.quantity) || 0,
           unit: item.unit || 'UN',
           unit_price: Number(item.unit_price) || 0,
@@ -530,28 +543,28 @@ export default function InvoiceEditPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b-2 border-[#2d2d2d]">
-                      <th className="w-16 px-2 py-3 text-left font-mono text-xs tracking-wider text-[#666]">
+                      <th className="w-20 px-2 py-3 text-left font-mono text-xs tracking-wider text-[#666]">
                         CÓD
                       </th>
-                      <th className="px-2 py-3 text-left font-mono text-xs tracking-wider text-[#666]">
+                      <th className="min-w-64 px-2 py-3 text-left font-mono text-xs tracking-wider text-[#666]">
                         DESCRIÇÃO
                       </th>
-                      <th className="w-24 px-2 py-3 text-right font-mono text-xs tracking-wider text-[#666]">
+                      <th className="w-20 px-2 py-3 text-right font-mono text-xs tracking-wider text-[#666]">
                         QTD
                       </th>
                       <th className="w-16 px-2 py-3 text-center font-mono text-xs tracking-wider text-[#666]">
                         UN
                       </th>
-                      <th className="w-24 px-2 py-3 text-left font-mono text-xs tracking-wider text-[#666]">
+                      <th className="w-28 px-2 py-3 text-left font-mono text-xs tracking-wider text-[#666]">
                         CATEGORIA
                       </th>
-                      <th className="w-24 px-2 py-3 text-left font-mono text-xs tracking-wider text-[#666]">
+                      <th className="w-28 px-2 py-3 text-left font-mono text-xs tracking-wider text-[#666]">
                         SUBCATEGORIA
                       </th>
-                      <th className="w-32 px-2 py-3 text-right font-mono text-xs tracking-wider text-[#666]">
+                      <th className="w-28 px-2 py-3 text-right font-mono text-xs tracking-wider text-[#666]">
                         PREÇO UN.
                       </th>
-                      <th className="w-32 px-2 py-3 text-right font-mono text-xs tracking-wider text-[#666]">
+                      <th className="w-28 px-2 py-3 text-right font-mono text-xs tracking-wider text-[#666]">
                         TOTAL
                       </th>
                       <th className="w-10 px-1 py-3" />
@@ -560,7 +573,7 @@ export default function InvoiceEditPage() {
                   <tbody>
                     {editedData.items.map((item, index) => (
                       <tr
-                        key={`${String(index)}-${item.description}`}
+                        key={`item-${index}`}
                         className="border-b border-dotted border-[#e5e5e5] transition-colors hover:bg-[#faf9f7]"
                       >
                         <td className="px-2 py-3">
@@ -576,7 +589,7 @@ export default function InvoiceEditPage() {
                         <td className="px-2 py-3">
                           <input
                             type="text"
-                            value={item.description}
+                            value={item.normalized_name || item.description}
                             onChange={(e) => { handleItemChange(index, 'description', e.target.value); }}
                             className="editable-cell w-full border-b-2 border-transparent bg-transparent p-1 font-mono text-sm transition-colors hover:border-[#e5e5e5] focus:border-[#2d2d2d]"
                             style={{ fontFamily: 'IBM Plex Mono, monospace' }}

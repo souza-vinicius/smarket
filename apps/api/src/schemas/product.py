@@ -58,6 +58,7 @@ class ProductList(BaseModel):
 class ProductPurchaseResult(BaseModel):
     id: uuid.UUID
     description: str
+    normalized_name: Optional[str] = None
     quantity: Decimal
     unit: str
     unit_price: Decimal

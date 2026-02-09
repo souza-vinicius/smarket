@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field, field_validator
 class ProductBase(BaseModel):
     code: str
     description: str
+    normalized_name: Optional[str] = None
     quantity: Decimal
     unit: str
     unit_price: Decimal
@@ -76,6 +77,7 @@ class InvoiceItemUpdate(BaseModel):
     id: Optional[uuid.UUID] = None
     code: Optional[str] = None
     description: str
+    normalized_name: Optional[str] = None
     quantity: Decimal
     unit: str = "UN"
     unit_price: Decimal

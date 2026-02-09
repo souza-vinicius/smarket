@@ -44,6 +44,7 @@ export interface Token {
 export interface InvoiceItem {
   code?: string;
   description: string;
+  normalized_name?: string;
   quantity: number;
   unit: string;
   unit_price: number;
@@ -101,6 +102,7 @@ export interface InvoiceItemUpdate {
   id?: string;
   code?: string;
   description: string;
+  normalized_name?: string;
   quantity: number;
   unit: string;
   unit_price: number;
