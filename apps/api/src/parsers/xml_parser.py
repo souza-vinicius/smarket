@@ -59,13 +59,15 @@ def parse_xml_invoice(xml_content: bytes) -> dict[str, Any]:
     for det in det_elements:
         prod = det.find("nfe:prod", ns)
 
+        discount = Decimal(get_text(prod, "nfe:vDesc", ns, "0"))
         product = {
             "code": get_text(prod, "nfe:cProd", ns, ""),
             "description": get_text(prod, "nfe:xProd", ns, ""),
             "quantity": Decimal(get_text(prod, "nfe:qCom", ns, "0")),
             "unit": get_text(prod, "nfe:uCom", ns, "UN"),
             "unit_price": Decimal(get_text(prod, "nfe:vUnCom", ns, "0")),
-            "total_price": Decimal(get_text(prod, "nfe:vProd", ns, "0")),
+            "discount": discount,
+            "total_price": Decimal(get_text(prod, "nfe:vProd", ns, "0")) - discount,
         }
         products.append(product)
 

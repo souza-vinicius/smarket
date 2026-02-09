@@ -48,6 +48,7 @@ export interface InvoiceItem {
   quantity: number;
   unit: string;
   unit_price: number;
+  discount?: number;
   total_price: number;
   category_name?: string;
   subcategory?: string;
@@ -106,6 +107,7 @@ export interface InvoiceItemUpdate {
   quantity: number;
   unit: string;
   unit_price: number;
+  discount?: number;
   total_price: number;
   category_name?: string;
   subcategory?: string;

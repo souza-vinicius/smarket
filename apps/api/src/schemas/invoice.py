@@ -83,6 +83,7 @@ class InvoiceItemUpdate(BaseModel):
     quantity: Decimal
     unit: str = "UN"
     unit_price: Decimal
+    discount: Decimal = Decimal("0")
     total_price: Decimal
     category_name: Optional[str] = None
     subcategory: Optional[str] = None

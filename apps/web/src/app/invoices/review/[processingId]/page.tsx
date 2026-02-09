@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 
 import { type AxiosError } from "axios";
 
+import { Badge } from "@/components/ui/badge";
 import { useCNPJEnrichment, type CNPJEnrichmentError } from "@/hooks/use-cnpj-enrichment";
 import {
   useProcessingStatus,
@@ -851,21 +852,28 @@ export default function InvoiceReviewPage() {
                           />
                         </td>
                         <td className="px-2 py-3 text-right font-mono text-sm font-semibold">
-                          <span className="inline-flex items-center gap-1">
-                            R$ {(Number(item.total_price) || 0).toFixed(2)}
-                            {Math.abs(
-                              (Number(item.quantity) || 0) * (Number(item.unit_price) || 0) -
-                                (Number(item.total_price) || 0)
-                            ) > 0.02 &&
-                              Number(item.total_price) > 0 && (
-                                <span
-                                  title="Total recalculado (qtd × preço unitário)"
-                                  className="text-amber-500"
-                                >
-                                  ⟳
-                                </span>
-                              )}
-                          </span>
+                          <div className="flex flex-col items-end gap-1">
+                            <span className="inline-flex items-center gap-1">
+                              R$ {(Number(item.total_price) || 0).toFixed(2)}
+                              {Math.abs(
+                                (Number(item.quantity) || 0) * (Number(item.unit_price) || 0) -
+                                  (Number(item.total_price) || 0)
+                              ) > 0.02 &&
+                                Number(item.total_price) > 0 && (
+                                  <span
+                                    title="Total recalculado (qtd × preço unitário)"
+                                    className="text-amber-500"
+                                  >
+                                    ⟳
+                                  </span>
+                                )}
+                            </span>
+                            {item.discount && Number(item.discount) > 0 && (
+                              <Badge variant="success" className="text-xs">
+                                DESC: R$ {Number(item.discount).toFixed(2)}
+                              </Badge>
+                            )}
+                          </div>
                         </td>
                         <td className="px-1 py-3 text-center">
                           {editedData.items.length > 1 && (

@@ -188,8 +188,9 @@ export function useProcessingStatus(
     enabled: !!processingId,
     refetchInterval: (query) => {
       // Stop refetching if status is extracted, confirmed, or error
+      // Polls every 2 seconds while status is "pending" or "processing"
       const status = query.state.data?.status;
-      return status === "pending" || status === "processing" ? 2000 : false;
+      return status === "pending" || status === "processing" ? 3000 : false;
     },
     retry: 3,
   });

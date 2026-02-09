@@ -333,7 +333,7 @@ def _extraction_to_dict(
     items = []
     for item in extracted.items:
         item_dict = item.model_dump()
-        for key in ["quantity", "unit_price", "total_price"]:
+        for key in ["quantity", "unit_price", "discount", "total_price"]:
             if key in item_dict and item_dict[key] is not None:
                 item_dict[key] = float(item_dict[key])
         items.append(item_dict)

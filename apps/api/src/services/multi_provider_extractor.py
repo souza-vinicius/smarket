@@ -64,6 +64,10 @@ REGRAS DE FORMATAÇÃO (CRÍTICO — siga exatamente):
    Notas fiscais mostram um código antes da descrição (ex: "001 LEITE INTEGRAL 1L")
    → code: "001", description: "LEITE INTEGRAL 1L"
    NUNCA inclua o código na description. Se houver código, coloque no campo "code".
+8. discount: valor de desconto no item (decimal, 0 se não houver)
+   Notas fiscais podem conter colunas "Desc", "Vl.Desc", "DESC(-)" ou "Desconto"
+   Se houver desconto, total_price deve ser (quantity × unit_price) - discount
+   Se não houver coluna de desconto na nota, retorne 0
 
 VERIFICAÇÃO OBRIGATÓRIA ANTES DE RESPONDER:
 - Some todos os total_price dos itens
@@ -92,15 +96,17 @@ Retorne APENAS JSON válido (sem markdown, sem ```):
       "quantity": 2.0,
       "unit": "UN",
       "unit_price": 5.99,
+      "discount": 0,
       "total_price": 11.98
     },
     {
       "code": "002",
-      "description": "ARROZ TIPO 1 CAMIL 5KG",
-      "quantity": 1.0,
+      "description": "CERVEJA SKOL LT 350ML",
+      "quantity": 6.0,
       "unit": "UN",
-      "unit_price": 28.90,
-      "total_price": 28.90
+      "unit_price": 3.99,
+      "discount": 5.94,
+      "total_price": 18.00
     }
   ],
   "confidence": 0.92,
@@ -210,11 +216,20 @@ def validate_and_fix_extraction(data: ExtractedInvoiceData) -> ExtractedInvoiceD
                         f"'{extracted_code}' → desc='{cleaned_desc}'"
                     )
 
+    # --- Normalizar discount: None → 0 ---
+    for item in data.items:
+        if item.discount is None:
+            item.discount = Decimal("0")
+        elif item.discount < 0:
+            item.discount = abs(item.discount)
+
     # --- Validar e corrigir totais dos itens ---
     items_fixed = 0
     for item in data.items:
         if item.quantity is not None and item.unit_price is not None:
-            expected_total = item.quantity * item.unit_price
+            gross = item.quantity * item.unit_price
+            discount = item.discount or Decimal("0")
+            expected_total = gross - discount
             # Arredondar para 2 casas decimais
             expected_total = Decimal(str(round(float(expected_total), 2)))
 
@@ -226,8 +241,8 @@ def validate_and_fix_extraction(data: ExtractedInvoiceData) -> ExtractedInvoiceD
                 if diff > 0.02:
                     logger.debug(
                         f"Item '{item.description}': total_price "
-                        f"{item.total_price} ≠ qty×price "
-                        f"{item.quantity}×{item.unit_price}="
+                        f"{item.total_price} ≠ (qty×price)-discount "
+                        f"({item.quantity}×{item.unit_price})-{discount}="
                         f"{expected_total} (diff={diff:.2f}). Recalculando."
                     )
                     item.total_price = expected_total
@@ -235,7 +250,8 @@ def validate_and_fix_extraction(data: ExtractedInvoiceData) -> ExtractedInvoiceD
 
     if items_fixed > 0:
         warnings.append(
-            f"{items_fixed} item(ns) com total recalculado " f"(quantity × unit_price)"
+            f"{items_fixed} item(ns) com total recalculado "
+            f"((quantity × unit_price) - discount)"
         )
 
     # --- Validar total geral vs soma dos itens ---

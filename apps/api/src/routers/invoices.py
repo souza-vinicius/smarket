@@ -302,6 +302,7 @@ async def update_invoice(
                     quantity=item_data.quantity,
                     unit=item_data.unit or "UN",
                     unit_price=item_data.unit_price,
+                    discount=item_data.discount or 0,
                     total_price=item_data.total_price,
                     category_name=item_data.category_name,
                     subcategory=item_data.subcategory,
@@ -393,6 +394,7 @@ async def process_qrcode(
             quantity=item_data["quantity"],
             unit=item_data["unit"],
             unit_price=item_data["unit_price"],
+            discount=item_data.get("discount", 0),
             total_price=item_data["total_price"],
         )
         db.add(item)
@@ -474,6 +476,7 @@ async def upload_xml(
             quantity=item_data["quantity"],
             unit=item_data["unit"],
             unit_price=item_data["unit_price"],
+            discount=item_data.get("discount", 0),
             total_price=item_data["total_price"],
         )
         db.add(item)
@@ -806,6 +809,7 @@ async def confirm_extracted_invoice(
                 quantity=item_data.quantity,
                 unit=item_data.unit or "UN",
                 unit_price=item_data.unit_price,
+                discount=item_data.discount or 0,
                 total_price=item_data.total_price,
                 category_name=item_data.category_name,
                 subcategory=item_data.subcategory,

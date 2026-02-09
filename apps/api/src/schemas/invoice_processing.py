@@ -16,6 +16,7 @@ class ExtractedItem(BaseModel):
     quantity: Optional[Decimal] = None
     unit: Optional[str] = None
     unit_price: Optional[Decimal] = None
+    discount: Optional[Decimal] = None
     total_price: Optional[Decimal] = None
     category_name: Optional[str] = None
     subcategory: Optional[str] = None
