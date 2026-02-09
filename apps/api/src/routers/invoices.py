@@ -32,10 +32,11 @@ from src.services.cnpj_enrichment import enrich_cnpj_data
 from src.services.name_normalizer import normalize_product_dict
 from src.tasks.process_invoice_photos import process_invoice_photos
 from src.utils.cnpj_validator import validate_cnpj, clean_cnpj, format_cnpj
+from src.utils.logger import logger
 from src.config import settings
 
 router = APIRouter()
-logger = logging.getLogger(__name__)
+logger_stdlib = logging.getLogger(__name__)
 
 
 @router.get("/", response_model=List[InvoiceList])
@@ -410,7 +411,13 @@ async def process_qrcode(
         await db.commit()
     except Exception as e:
         # Log error but don't fail the invoice creation
-        print(f"Error generating AI analyses: {e}")
+        logger.error(
+            "error_generating_ai_analyses",
+            invoice_id=invoice.id,
+            user_id=current_user.id,
+            error=str(e),
+            exc_info=True
+        )
 
     return invoice
 
@@ -505,7 +512,13 @@ async def upload_xml(
         await db.commit()
     except Exception as e:
         # Log error but don't fail the invoice creation
-        print(f"Error generating AI analyses: {e}")
+        logger.error(
+            "error_generating_ai_analyses",
+            invoice_id=invoice.id,
+            user_id=current_user.id,
+            error=str(e),
+            exc_info=True
+        )
 
     return invoice
 
@@ -526,7 +539,11 @@ async def upload_invoice_photos(
     Supports multiple images for long receipts that don't fit
     in a single photo.
     """
-    print(f"DEBUG: upload_invoice_photos called with {len(files)} files")
+    logger.info(
+        "upload_invoice_photos_called",
+        file_count=len(files),
+        user_id=current_user.id
+    )
     if not files:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
