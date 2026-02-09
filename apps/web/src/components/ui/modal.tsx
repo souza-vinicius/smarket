@@ -1,8 +1,10 @@
-'use client';
+"use client";
 
-import { ReactNode } from 'react';
-import { X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { type ReactNode } from "react";
+
+import { X } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
 
 interface ModalProps {
   isOpen: boolean;
@@ -11,14 +13,14 @@ interface ModalProps {
   description?: string;
   children?: ReactNode;
   footer?: ReactNode;
-  size?: 'sm' | 'md' | 'lg';
+  size?: "sm" | "md" | "lg";
   closeButton?: boolean;
 }
 
 const sizeClasses = {
-  sm: 'max-w-sm',
-  md: 'max-w-md',
-  lg: 'max-w-lg',
+  sm: "max-w-sm",
+  md: "max-w-md",
+  lg: "max-w-lg",
 };
 
 export function Modal({
@@ -28,10 +30,12 @@ export function Modal({
   description,
   children,
   footer,
-  size = 'md',
+  size = "md",
   closeButton = true,
 }: ModalProps) {
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
   return (
     <>
@@ -46,7 +50,9 @@ export function Modal({
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div
           className={`relative flex flex-col rounded-xl border border-slate-200 bg-white shadow-xl ${sizeClasses[size]} max-h-[90vh] overflow-y-auto`}
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+          }}
         >
           {/* Close Button */}
           {closeButton && (
@@ -60,11 +66,9 @@ export function Modal({
 
           {/* Header */}
           {title && (
-            <div className="border-b border-slate-200 px-6 pt-6 pb-4">
+            <div className="border-b border-slate-200 px-6 pb-4 pt-6">
               <h2 className="text-xl font-semibold text-slate-900">{title}</h2>
-              {description && (
-                <p className="mt-1 text-sm text-slate-600">{description}</p>
-              )}
+              {description && <p className="mt-1 text-sm text-slate-600">{description}</p>}
             </div>
           )}
 
@@ -73,7 +77,7 @@ export function Modal({
 
           {/* Footer */}
           {footer && (
-            <div className="border-t border-slate-200 px-6 py-4 flex justify-end gap-3">
+            <div className="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">
               {footer}
             </div>
           )}
@@ -92,33 +96,39 @@ interface ConfirmModalProps {
   isLoading?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
-  variant?: 'danger' | 'default';
+  variant?: "danger" | "default";
 }
 
 export function ConfirmModal({
   isOpen,
   title,
   description,
-  confirmText = 'Confirmar',
-  cancelText = 'Cancelar',
+  confirmText = "Confirmar",
+  cancelText = "Cancelar",
   isLoading = false,
   onConfirm,
   onCancel,
-  variant = 'default',
+  variant = "default",
 }: ConfirmModalProps) {
   return (
-    <Modal isOpen={isOpen} onClose={onCancel} title={title} description={description} closeButton={false}>
+    <Modal
+      isOpen={isOpen}
+      onClose={onCancel}
+      title={title}
+      description={description}
+      closeButton={false}
+    >
       <div className="flex gap-3">
         <Button variant="outline" onClick={onCancel} disabled={isLoading} className="flex-1">
           {cancelText}
         </Button>
         <Button
-          variant={variant === 'danger' ? 'destructive' : 'primary'}
+          variant={variant === "danger" ? "destructive" : "primary"}
           onClick={onConfirm}
           disabled={isLoading}
           className="flex-1"
         >
-          {isLoading ? 'Processando...' : confirmText}
+          {isLoading ? "Processando..." : confirmText}
         </Button>
       </div>
     </Modal>

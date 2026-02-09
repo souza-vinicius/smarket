@@ -1,16 +1,16 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { useState } from "react";
 
-import Link from 'next/link';
+import Link from "next/link";
 
-import { Eye, EyeOff, ArrowRight, Receipt, Search } from 'lucide-react';
+import { Eye, EyeOff, ArrowRight, Receipt, Search } from "lucide-react";
 
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from "@/hooks/use-auth";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const { login, isLoginPending, loginError } = useAuth();
 
@@ -47,15 +47,14 @@ export default function LoginPage() {
               Analista de Compras Inteligente
             </h2>
             <p className="text-lg leading-relaxed text-emerald-100/80">
-              Transforme seus dados de faturamento em insights acionáveis com nossa tecnologia de análise avançada.
+              Transforme seus dados de faturamento em insights acionáveis com nossa tecnologia de
+              análise avançada.
             </p>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="relative z-10 text-sm text-emerald-100/40">
-          © 2024 SMarket Inc.
-        </div>
+        <div className="relative z-10 text-sm text-emerald-100/40">© 2024 SMarket Inc.</div>
       </div>
 
       {/* Right Panel: Login Form */}
@@ -83,20 +82,25 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             {loginError && (
               <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
-                {loginError.message || 'Erro ao fazer login. Verifique suas credenciais.'}
+                {loginError.message || "Erro ao fazer login. Verifique suas credenciais."}
               </div>
             )}
 
             {/* Email Input */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-emerald-900 dark:text-emerald-100" htmlFor="email">
+              <label
+                className="text-sm font-medium text-emerald-900 dark:text-emerald-100"
+                htmlFor="email"
+              >
                 E-mail
               </label>
               <input
                 id="email"
                 type="email"
                 value={email}
-                onChange={(e) => { setEmail(e.target.value); }}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                }}
                 placeholder="nome@exemplo.com"
                 required
                 className="h-12 w-full rounded-lg border border-gray-200 bg-white px-4 text-emerald-950 transition-all placeholder:text-gray-400 focus:border-smarket-primary focus:outline-none focus:ring-2 focus:ring-smarket-primary/50 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-white"
@@ -105,22 +109,29 @@ export default function LoginPage() {
 
             {/* Password Input */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-emerald-900 dark:text-emerald-100" htmlFor="password">
+              <label
+                className="text-sm font-medium text-emerald-900 dark:text-emerald-100"
+                htmlFor="password"
+              >
                 Senha
               </label>
               <div className="relative">
                 <input
                   id="password"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   value={password}
-                  onChange={(e) => { setPassword(e.target.value); }}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                  }}
                   placeholder="••••••••"
                   required
                   className="h-12 w-full rounded-lg border border-gray-200 bg-white px-4 pr-12 text-emerald-950 transition-all placeholder:text-gray-400 focus:border-smarket-primary focus:outline-none focus:ring-2 focus:ring-smarket-primary/50 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-white"
                 />
                 <button
                   type="button"
-                  onClick={() => { setShowPassword(!showPassword); }}
+                  onClick={() => {
+                    setShowPassword(!showPassword);
+                  }}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 transition-colors hover:text-emerald-600"
                 >
                   {showPassword ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
@@ -155,8 +166,20 @@ export default function LoginPage() {
             >
               {isLoginPending ? (
                 <svg className="size-5 animate-spin" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    fill="none"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
                 </svg>
               ) : (
                 <>
@@ -170,7 +193,7 @@ export default function LoginPage() {
           {/* Footer */}
           <div className="border-t border-gray-100 pt-4 text-center dark:border-emerald-900/50">
             <p className="text-sm text-emerald-700/70 dark:text-emerald-200/60">
-              Ainda não tem uma conta?{' '}
+              Ainda não tem uma conta?{" "}
               <Link
                 href="/register"
                 className="font-bold text-emerald-700 transition-colors hover:text-emerald-900 dark:text-smarket-primary dark:hover:text-white"

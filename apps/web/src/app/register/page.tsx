@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { useState } from "react";
 
-import Link from 'next/link';
+import Link from "next/link";
 
-import { Eye, EyeOff, ArrowRight, Receipt, Search } from 'lucide-react';
+import { Eye, EyeOff, ArrowRight, Receipt, Search } from "lucide-react";
 
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from "@/hooks/use-auth";
 
 // Constant-time comparison to prevent timing attacks
 function secureCompare(a: string, b: string): boolean {
@@ -21,32 +21,32 @@ function secureCompare(a: string, b: string): boolean {
 }
 
 export default function RegisterPage() {
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const [validationError, setValidationError] = useState('');
+  const [validationError, setValidationError] = useState("");
 
   const { register, isRegisterPending, registerError } = useAuth();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setValidationError('');
+    setValidationError("");
 
     if (password.length < 8) {
-      setValidationError('A senha deve ter pelo menos 8 caracteres');
+      setValidationError("A senha deve ter pelo menos 8 caracteres");
       return;
     }
 
     if (!secureCompare(password, confirmPassword)) {
-      setValidationError('As senhas não coincidem');
+      setValidationError("As senhas não coincidem");
       return;
     }
 
     if (!acceptedTerms) {
-      setValidationError('Você precisa aceitar os termos para continuar');
+      setValidationError("Você precisa aceitar os termos para continuar");
       return;
     }
 
@@ -81,15 +81,14 @@ export default function RegisterPage() {
               Analista de Compras Inteligente
             </h2>
             <p className="text-lg leading-relaxed text-emerald-100/80">
-              Transforme seus dados de faturamento em insights acionáveis com nossa tecnologia de análise avançada.
+              Transforme seus dados de faturamento em insights acionáveis com nossa tecnologia de
+              análise avançada.
             </p>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="relative z-10 text-sm text-emerald-100/40">
-          © 2024 SMarket Inc.
-        </div>
+        <div className="relative z-10 text-sm text-emerald-100/40">© 2024 SMarket Inc.</div>
       </div>
 
       {/* Right Panel: Registration Form */}
@@ -117,20 +116,25 @@ export default function RegisterPage() {
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             {(validationError || registerError) && (
               <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
-                {validationError || registerError?.message || 'Erro ao criar conta'}
+                {validationError || registerError?.message || "Erro ao criar conta"}
               </div>
             )}
 
             {/* Name Input */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-emerald-900 dark:text-emerald-100" htmlFor="name">
+              <label
+                className="text-sm font-medium text-emerald-900 dark:text-emerald-100"
+                htmlFor="name"
+              >
                 Nome completo
               </label>
               <input
                 id="name"
                 type="text"
                 value={fullName}
-                onChange={(e) => { setFullName(e.target.value); }}
+                onChange={(e) => {
+                  setFullName(e.target.value);
+                }}
                 placeholder="Maria Silva"
                 required
                 className="h-12 w-full rounded-lg border border-gray-200 bg-white px-4 text-emerald-950 transition-all placeholder:text-gray-400 focus:border-smarket-primary focus:outline-none focus:ring-2 focus:ring-smarket-primary/50 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-white"
@@ -139,14 +143,19 @@ export default function RegisterPage() {
 
             {/* Email Input */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-emerald-900 dark:text-emerald-100" htmlFor="email">
+              <label
+                className="text-sm font-medium text-emerald-900 dark:text-emerald-100"
+                htmlFor="email"
+              >
                 E-mail
               </label>
               <input
                 id="email"
                 type="email"
                 value={email}
-                onChange={(e) => { setEmail(e.target.value); }}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                }}
                 placeholder="nome@exemplo.com"
                 required
                 className="h-12 w-full rounded-lg border border-gray-200 bg-white px-4 text-emerald-950 transition-all placeholder:text-gray-400 focus:border-smarket-primary focus:outline-none focus:ring-2 focus:ring-smarket-primary/50 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-white"
@@ -155,40 +164,54 @@ export default function RegisterPage() {
 
             {/* Password Input */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-emerald-900 dark:text-emerald-100" htmlFor="password">
+              <label
+                className="text-sm font-medium text-emerald-900 dark:text-emerald-100"
+                htmlFor="password"
+              >
                 Senha
               </label>
               <div className="relative">
                 <input
                   id="password"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   value={password}
-                  onChange={(e) => { setPassword(e.target.value); }}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                  }}
                   placeholder="••••••••"
                   required
                   className="h-12 w-full rounded-lg border border-gray-200 bg-white px-4 pr-12 text-emerald-950 transition-all placeholder:text-gray-400 focus:border-smarket-primary focus:outline-none focus:ring-2 focus:ring-smarket-primary/50 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-white"
                 />
                 <button
                   type="button"
-                  onClick={() => { setShowPassword(!showPassword); }}
+                  onClick={() => {
+                    setShowPassword(!showPassword);
+                  }}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 transition-colors hover:text-emerald-600"
                 >
                   {showPassword ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
                 </button>
               </div>
-              <p className="text-xs text-emerald-600/60 dark:text-emerald-300/50">Mínimo de 8 caracteres</p>
+              <p className="text-xs text-emerald-600/60 dark:text-emerald-300/50">
+                Mínimo de 8 caracteres
+              </p>
             </div>
 
             {/* Confirm Password Input */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-emerald-900 dark:text-emerald-100" htmlFor="confirmPassword">
+              <label
+                className="text-sm font-medium text-emerald-900 dark:text-emerald-100"
+                htmlFor="confirmPassword"
+              >
                 Confirmar senha
               </label>
               <input
                 id="confirmPassword"
-                type={showPassword ? 'text' : 'password'}
+                type={showPassword ? "text" : "password"}
                 value={confirmPassword}
-                onChange={(e) => { setConfirmPassword(e.target.value); }}
+                onChange={(e) => {
+                  setConfirmPassword(e.target.value);
+                }}
                 placeholder="••••••••"
                 required
                 className="h-12 w-full rounded-lg border border-gray-200 bg-white px-4 text-emerald-950 transition-all placeholder:text-gray-400 focus:border-smarket-primary focus:outline-none focus:ring-2 focus:ring-smarket-primary/50 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-white"
@@ -202,17 +225,28 @@ export default function RegisterPage() {
                   id="terms"
                   type="checkbox"
                   checked={acceptedTerms}
-                  onChange={(e) => { setAcceptedTerms(e.target.checked); }}
+                  onChange={(e) => {
+                    setAcceptedTerms(e.target.checked);
+                  }}
                   className="size-4 cursor-pointer rounded border-gray-300 text-smarket-primary focus:ring-smarket-primary/50"
                 />
               </div>
-              <label className="cursor-pointer text-sm text-emerald-700 dark:text-emerald-200/70" htmlFor="terms">
-                Eu aceito os{' '}
-                <Link href="/terms" className="font-medium text-emerald-900 hover:underline dark:text-emerald-100">
+              <label
+                className="cursor-pointer text-sm text-emerald-700 dark:text-emerald-200/70"
+                htmlFor="terms"
+              >
+                Eu aceito os{" "}
+                <Link
+                  href="/terms"
+                  className="font-medium text-emerald-900 hover:underline dark:text-emerald-100"
+                >
                   Termos de Uso
-                </Link>{' '}
-                e{' '}
-                <Link href="/privacy" className="font-medium text-emerald-900 hover:underline dark:text-emerald-100">
+                </Link>{" "}
+                e{" "}
+                <Link
+                  href="/privacy"
+                  className="font-medium text-emerald-900 hover:underline dark:text-emerald-100"
+                >
                   Política de Privacidade
                 </Link>
               </label>
@@ -226,8 +260,20 @@ export default function RegisterPage() {
             >
               {isRegisterPending ? (
                 <svg className="size-5 animate-spin" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    fill="none"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
                 </svg>
               ) : (
                 <>
@@ -241,7 +287,7 @@ export default function RegisterPage() {
           {/* Footer */}
           <div className="border-t border-gray-100 pt-2 text-center dark:border-emerald-900/50">
             <p className="text-sm text-emerald-700/70 dark:text-emerald-200/60">
-              Já tem uma conta?{' '}
+              Já tem uma conta?{" "}
               <Link
                 href="/login"
                 className="font-bold text-emerald-700 transition-colors hover:text-emerald-900 dark:text-smarket-primary dark:hover:text-white"

@@ -1,12 +1,18 @@
-'use client';
+"use client";
 
-import { useQuery, useMutation, useQueryClient, type UseQueryResult, type UseMutationResult } from '@tanstack/react-query';
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  type UseQueryResult,
+  type UseMutationResult,
+} from "@tanstack/react-query";
 
-import { apiClient } from '@/lib/api';
-import { type UserProfile, type UserProfileUpdate } from '@/types';
+import { apiClient } from "@/lib/api";
+import { type UserProfile, type UserProfileUpdate } from "@/types";
 
 const SETTINGS_KEYS = {
-  profile: ['settings', 'profile'] as const,
+  profile: ["settings", "profile"] as const,
 };
 
 export function useProfile(): UseQueryResult<UserProfile> {

@@ -1,37 +1,37 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 
-import { Save, User, Home, Users, Check } from 'lucide-react';
+import { Save, User, Home, Users, Check } from "lucide-react";
 
-import { Header } from '@/components/layout/header';
-import { Sidebar } from '@/components/layout/sidebar';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useProfile, useUpdateProfile } from '@/hooks/use-settings';
+import { Header } from "@/components/layout/header";
+import { Sidebar } from "@/components/layout/sidebar";
+import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useProfile, useUpdateProfile } from "@/hooks/use-settings";
 
 export default function SettingsPage() {
   const { data: profile, isLoading } = useProfile();
   const updateProfile = useUpdateProfile();
 
-  const [householdIncome, setHouseholdIncome] = useState('');
-  const [adultsCount, setAdultsCount] = useState('');
-  const [childrenCount, setChildrenCount] = useState('');
+  const [householdIncome, setHouseholdIncome] = useState("");
+  const [adultsCount, setAdultsCount] = useState("");
+  const [childrenCount, setChildrenCount] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
     if (profile) {
-      setHouseholdIncome(profile.household_income?.toString() || '');
-      setAdultsCount(profile.adults_count?.toString() || '');
-      setChildrenCount(profile.children_count?.toString() || '');
+      setHouseholdIncome(profile.household_income?.toString() || "");
+      setAdultsCount(profile.adults_count?.toString() || "");
+      setChildrenCount(profile.children_count?.toString() || "");
     }
   }, [profile]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     await updateProfile.mutateAsync({
       household_income: householdIncome ? parseFloat(householdIncome) : undefined,
       adults_count: adultsCount ? parseInt(adultsCount) : undefined,
@@ -39,19 +39,18 @@ export default function SettingsPage() {
     });
 
     setShowSuccess(true);
-    setTimeout(() => { setShowSuccess(false); }, 3000);
+    setTimeout(() => {
+      setShowSuccess(false);
+    }, 3000);
   };
 
   return (
     <div className="flex min-h-screen bg-slate-50">
       <Sidebar />
-      
+
       <div className="flex-1 pl-64">
-        <Header 
-          title="Configurações" 
-          subtitle="Gerencie seu perfil e preferências"
-        />
-        
+        <Header title="Configurações" subtitle="Gerencie seu perfil e preferências" />
+
         <main className="p-6">
           <div className="max-w-2xl">
             {/* Profile Card */}
@@ -78,12 +77,20 @@ export default function SettingsPage() {
                     <Skeleton className="h-16 w-full" />
                   </div>
                 ) : (
-                  <form onSubmit={(e) => { void handleSubmit(e); }} className="space-y-6">
+                  <form
+                    onSubmit={(e) => {
+                      void handleSubmit(e);
+                    }}
+                    className="space-y-6"
+                  >
                     {/* Household Income */}
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <Home className="size-4 text-slate-500" />
-                        <label htmlFor="household-income" className="text-sm font-medium text-slate-900">
+                        <label
+                          htmlFor="household-income"
+                          className="text-sm font-medium text-slate-900"
+                        >
                           Renda Mensal da Casa (R$)
                         </label>
                       </div>
@@ -93,7 +100,9 @@ export default function SettingsPage() {
                         step="0.01"
                         min="0"
                         value={householdIncome}
-                        onChange={(e) => { setHouseholdIncome(e.target.value); }}
+                        onChange={(e) => {
+                          setHouseholdIncome(e.target.value);
+                        }}
                         placeholder="0,00"
                         className="max-w-xs"
                       />
@@ -106,7 +115,10 @@ export default function SettingsPage() {
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <Users className="size-4 text-slate-500" />
-                        <label htmlFor="adults-count" className="text-sm font-medium text-slate-900">
+                        <label
+                          htmlFor="adults-count"
+                          className="text-sm font-medium text-slate-900"
+                        >
                           Quantidade de Adultos
                         </label>
                       </div>
@@ -116,20 +128,23 @@ export default function SettingsPage() {
                         min="0"
                         max="20"
                         value={adultsCount}
-                        onChange={(e) => { setAdultsCount(e.target.value); }}
+                        onChange={(e) => {
+                          setAdultsCount(e.target.value);
+                        }}
                         placeholder="1"
                         className="max-w-[120px]"
                       />
-                      <p className="text-xs text-slate-500">
-                        Número de adultos que moram na casa
-                      </p>
+                      <p className="text-xs text-slate-500">Número de adultos que moram na casa</p>
                     </div>
 
                     {/* Children Count */}
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <Users className="size-4 text-slate-500" />
-                        <label htmlFor="children-count" className="text-sm font-medium text-slate-900">
+                        <label
+                          htmlFor="children-count"
+                          className="text-sm font-medium text-slate-900"
+                        >
                           Quantidade de Crianças
                         </label>
                       </div>
@@ -139,13 +154,13 @@ export default function SettingsPage() {
                         min="0"
                         max="20"
                         value={childrenCount}
-                        onChange={(e) => { setChildrenCount(e.target.value); }}
+                        onChange={(e) => {
+                          setChildrenCount(e.target.value);
+                        }}
                         placeholder="0"
                         className="max-w-[120px]"
                       />
-                      <p className="text-xs text-slate-500">
-                        Número de crianças que moram na casa
-                      </p>
+                      <p className="text-xs text-slate-500">Número de crianças que moram na casa</p>
                     </div>
 
                     {/* Submit Button */}
@@ -192,10 +207,10 @@ export default function SettingsPage() {
                       Por que essas informações são importantes?
                     </h4>
                     <p className="mt-1 text-sm text-slate-600">
-                      Usamos esses dados para gerar insights personalizados sobre seus gastos.
-                      Por exemplo, podemos comparar sua proporção de gastos com alimentos em
-                      relação à sua renda, ou sugerir quantidades ideais de compras baseadas
-                      no tamanho da sua família.
+                      Usamos esses dados para gerar insights personalizados sobre seus gastos. Por
+                      exemplo, podemos comparar sua proporção de gastos com alimentos em relação à
+                      sua renda, ou sugerir quantidades ideais de compras baseadas no tamanho da sua
+                      família.
                     </p>
                   </div>
                 </div>

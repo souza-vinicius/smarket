@@ -1,39 +1,47 @@
-'use client';
+"use client";
+import { useState } from "react";
 
-import { useState } from 'react';
+import { useRouter } from "next/navigation";
 
-import { useRouter } from 'next/navigation';
+import { Plus, Search, FileText, Calendar, Store, MoreVertical } from "lucide-react";
 
-import { Plus, Search, FileText, Calendar, Store, MoreVertical } from 'lucide-react';
-
-import { UploadModal } from '@/components/invoices/upload-modal';
-import { Header } from '@/components/layout/header';
-import { Sidebar } from '@/components/layout/sidebar';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useInvoices, useUploadXML, useProcessQRCode, useUploadPhotos, usePendingProcessing, useDeleteInvoice, useDeleteProcessing } from '@/hooks/use-invoices';
-import { useInvoicesSummary } from '@/hooks/use-invoices-summary';
-import { PendingList } from '@/components/invoices/pending-list';
-import { DeleteProcessingModal } from '@/components/invoices/delete-processing-modal';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { DeleteProcessingModal } from "@/components/invoices/delete-processing-modal";
+import { PendingList } from "@/components/invoices/pending-list";
+import { UploadModal } from "@/components/invoices/upload-modal";
+import { Header } from "@/components/layout/header";
+import { Sidebar } from "@/components/layout/sidebar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  useInvoices,
+  useUploadXML,
+  useProcessQRCode,
+  useUploadPhotos,
+  usePendingProcessing,
+  useDeleteProcessing,
+} from "@/hooks/use-invoices";
+import { useInvoicesSummary } from "@/hooks/use-invoices-summary";
+import { formatCurrency, formatDate } from "@/lib/utils";
 
 export default function InvoicesPage() {
   const router = useRouter();
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'nfce' | 'nfe'>('all');
-  const [view, setView] = useState<'all' | 'processed' | 'pending'>('all');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterType, setFilterType] = useState<"all" | "nfce" | "nfe">("all");
+  const [view, setView] = useState<"all" | "processed" | "pending">("all");
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [processingToDelete, setProcessingToDelete] = useState<{ id: string; issuerName?: string } | null>(null);
+  const [processingToDelete, setProcessingToDelete] = useState<{
+    id: string;
+    issuerName?: string;
+  } | null>(null);
   const { data: invoices, isLoading } = useInvoices();
   const { data: pendingProcessing, isLoading: isPendingLoading } = usePendingProcessing();
   const { data: summary, isLoading: isSummaryLoading } = useInvoicesSummary();
   const uploadXMLMutation = useUploadXML();
   const uploadPhotosMutation = useUploadPhotos();
   const processQRCodeMutation = useProcessQRCode();
-  const deleteInvoiceMutation = useDeleteInvoice();
   const deleteProcessingMutation = useDeleteProcessing();
 
   const handleUploadXML = (file: File) => {
@@ -55,11 +63,14 @@ export default function InvoicesPage() {
   };
 
   const handleProcessQRCode = (url: string) => {
-    processQRCodeMutation.mutate({ qrcode_url: url }, {
-      onSuccess: () => {
-        setIsUploadModalOpen(false);
-      },
-    });
+    processQRCodeMutation.mutate(
+      { qrcode_url: url },
+      {
+        onSuccess: () => {
+          setIsUploadModalOpen(false);
+        },
+      }
+    );
   };
 
   const handleViewDetails = (id: string) => {
@@ -67,19 +78,19 @@ export default function InvoicesPage() {
   };
 
   // Filter invoices based on search and type
-  const filteredInvoices = invoices?.filter((invoice) => {
-    const matchesSearch =
-      invoice.issuer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      invoice.access_key.includes(searchQuery);
-    const matchesType =
-      filterType === 'all' ||
-      (invoice.type && invoice.type.toLowerCase() === filterType);
-    return matchesSearch && matchesType;
-  }) || [];
+  const filteredInvoices =
+    invoices?.filter((invoice) => {
+      const matchesSearch =
+        invoice.issuer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        invoice.access_key.includes(searchQuery);
+      const matchesType =
+        filterType === "all" || (invoice.type && invoice.type.toLowerCase() === filterType);
+      return matchesSearch && matchesType;
+    }) || [];
 
   // Determine what to display based on view
-  const showPending = view === 'all' || view === 'pending';
-  const showProcessed = view === 'all' || view === 'processed';
+  const showPending = view === "all" || view === "pending";
+  const showProcessed = view === "all" || view === "processed";
   const pendingCount = pendingProcessing?.length || 0;
   const processedCount = filteredInvoices.length || 0;
 
@@ -88,10 +99,7 @@ export default function InvoicesPage() {
       <Sidebar />
 
       <div className="flex-1 pl-64">
-        <Header
-          title="Notas Fiscais"
-          subtitle="Gerencie suas notas fiscais NFC-e e NF-e"
-        />
+        <Header title="Notas Fiscais" subtitle="Gerencie suas notas fiscais NFC-e e NF-e" />
 
         <main className="p-6">
           {/* Stats Cards */}
@@ -100,9 +108,7 @@ export default function InvoicesPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-slate-600">Total de Notas</p>
-                  <p className="mt-1 text-3xl font-bold text-slate-900">
-                    {invoices?.length || 0}
-                  </p>
+                  <p className="mt-1 text-3xl font-bold text-slate-900">{invoices?.length || 0}</p>
                 </div>
                 <div className="flex size-12 items-center justify-center rounded-lg bg-emerald-100">
                   <FileText className="size-6 text-emerald-600" />
@@ -133,14 +139,14 @@ export default function InvoicesPage() {
                 <div>
                   <p className="text-sm font-medium text-slate-600">Este Mês</p>
                   <p className="mt-1 text-3xl font-bold text-slate-900">
-                    {
-                      invoices?.filter(inv => {
-                        const invoiceDate = new Date(inv.issue_date);
-                        const now = new Date();
-                        return invoiceDate.getMonth() === now.getMonth() &&
-                               invoiceDate.getFullYear() === now.getFullYear();
-                      }).length || 0
-                    }
+                    {invoices?.filter((inv) => {
+                      const invoiceDate = new Date(inv.issue_date);
+                      const now = new Date();
+                      return (
+                        invoiceDate.getMonth() === now.getMonth() &&
+                        invoiceDate.getFullYear() === now.getFullYear()
+                      );
+                    }).length || 0}
                   </p>
                 </div>
                 <div className="flex size-12 items-center justify-center rounded-lg bg-purple-100">
@@ -168,28 +174,28 @@ export default function InvoicesPage() {
 
               <div className="flex gap-2">
                 <Button
-                  variant={filterType === 'all' ? 'primary' : 'outline'}
+                  variant={filterType === "all" ? "primary" : "outline"}
                   size="md"
                   onClick={() => {
-                    setFilterType('all');
+                    setFilterType("all");
                   }}
                 >
                   Todas
                 </Button>
                 <Button
-                  variant={filterType === 'nfce' ? 'primary' : 'outline'}
+                  variant={filterType === "nfce" ? "primary" : "outline"}
                   size="md"
                   onClick={() => {
-                    setFilterType('nfce');
+                    setFilterType("nfce");
                   }}
                 >
                   NFC-e
                 </Button>
                 <Button
-                  variant={filterType === 'nfe' ? 'primary' : 'outline'}
+                  variant={filterType === "nfe" ? "primary" : "outline"}
                   size="md"
                   onClick={() => {
-                    setFilterType('nfe');
+                    setFilterType("nfe");
                   }}
                 >
                   NF-e
@@ -213,22 +219,22 @@ export default function InvoicesPage() {
           {/* View Filter Tabs */}
           <div className="mb-6 flex gap-2 border-b border-slate-200">
             <Button
-              variant={view === 'all' ? 'primary' : 'ghost'}
+              variant={view === "all" ? "primary" : "ghost"}
               size="sm"
               onClick={() => {
-                setView('all');
+                setView("all");
               }}
-              className="border-b-2 rounded-none"
+              className="rounded-none border-b-2"
             >
               Todas
             </Button>
             <Button
-              variant={view === 'pending' ? 'primary' : 'ghost'}
+              variant={view === "pending" ? "primary" : "ghost"}
               size="sm"
               onClick={() => {
-                setView('pending');
+                setView("pending");
               }}
-              className="border-b-2 rounded-none"
+              className="rounded-none border-b-2"
             >
               Aguardando
               {pendingCount > 0 && (
@@ -236,12 +242,12 @@ export default function InvoicesPage() {
               )}
             </Button>
             <Button
-              variant={view === 'processed' ? 'primary' : 'ghost'}
+              variant={view === "processed" ? "primary" : "ghost"}
               size="sm"
               onClick={() => {
-                setView('processed');
+                setView("processed");
               }}
-              className="border-b-2 rounded-none"
+              className="rounded-none border-b-2"
             >
               Processadas
               {processedCount > 0 && (
@@ -258,17 +264,18 @@ export default function InvoicesPage() {
                   Notas Aguardando Processamento/Revisão
                 </h2>
                 <p className="text-sm text-slate-600">
-                  Você tem {pendingCount} nota{pendingCount !== 1 ? 's' : ''} aguardando processamento ou revisão
+                  Você tem {pendingCount} nota{pendingCount !== 1 ? "s" : ""} aguardando
+                  processamento ou revisão
                 </p>
               </div>
               <PendingList
                 items={pendingProcessing || []}
                 isLoading={isPendingLoading}
                 onDelete={(processingId) => {
-                  const item = pendingProcessing?.find(p => p.processing_id === processingId);
+                  const item = pendingProcessing?.find((p) => p.processing_id === processingId);
                   setProcessingToDelete({
                     id: processingId,
-                    issuerName: item?.extracted_issuer_name || 'Processamento',
+                    issuerName: item?.extracted_issuer_name || "Processamento",
                   });
                   setDeleteModalOpen(true);
                 }}
@@ -286,9 +293,7 @@ export default function InvoicesPage() {
           {showProcessed && (
             <div>
               <div className="mb-4">
-                <h2 className="text-lg font-semibold text-slate-900">
-                  Notas Processadas
-                </h2>
+                <h2 className="text-lg font-semibold text-slate-900">Notas Processadas</h2>
               </div>
 
               {/* Invoice List */}
@@ -296,7 +301,10 @@ export default function InvoicesPage() {
                 {isLoading ? (
                   <div className="space-y-4 p-8">
                     {Array.from({ length: 5 }).map((_, i) => (
-                      <div key={`skeleton-${String(i)}`} className="flex items-center gap-4 border-b border-slate-100 p-4">
+                      <div
+                        key={`skeleton-${String(i)}`}
+                        className="flex items-center gap-4 border-b border-slate-100 p-4"
+                      >
                         <Skeleton className="size-12 rounded-lg" />
                         <div className="flex-1 space-y-2">
                           <Skeleton className="h-4 w-1/3" />
@@ -342,9 +350,7 @@ export default function InvoicesPage() {
                           <p className="text-lg font-bold text-slate-900">
                             {formatCurrency(invoice.total_value)}
                           </p>
-                          <p className="text-xs text-slate-500">
-                            {formatDate(invoice.created_at)}
-                          </p>
+                          <p className="text-xs text-slate-500">{formatDate(invoice.created_at)}</p>
                         </div>
 
                         <div className="flex flex-shrink-0 items-center gap-2">
@@ -357,11 +363,7 @@ export default function InvoicesPage() {
                           >
                             Ver Detalhes
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="p-2"
-                          >
+                          <Button variant="ghost" size="sm" className="p-2">
                             <MoreVertical className="size-4" />
                           </Button>
                         </div>
@@ -374,16 +376,16 @@ export default function InvoicesPage() {
                       <FileText className="size-8 text-slate-400" />
                     </div>
                     <h3 className="mb-2 text-lg font-semibold text-slate-900">
-                      {searchQuery || filterType !== 'all'
-                        ? 'Nenhuma nota fiscal encontrada'
-                        : 'Nenhuma nota fiscal registrada'}
+                      {searchQuery || filterType !== "all"
+                        ? "Nenhuma nota fiscal encontrada"
+                        : "Nenhuma nota fiscal registrada"}
                     </h3>
                     <p className="mb-4 text-slate-600">
-                      {searchQuery || filterType !== 'all'
-                        ? 'Tente ajustar os filtros de busca'
-                        : 'Adicione sua primeira nota fiscal para começar'}
+                      {searchQuery || filterType !== "all"
+                        ? "Tente ajustar os filtros de busca"
+                        : "Adicione sua primeira nota fiscal para começar"}
                     </p>
-                    {!searchQuery && filterType === 'all' && (
+                    {!searchQuery && filterType === "all" && (
                       <Button
                         variant="primary"
                         leftIcon={<Plus className="size-4" />}
@@ -422,11 +424,17 @@ export default function InvoicesPage() {
       {/* Upload Modal */}
       <UploadModal
         isOpen={isUploadModalOpen}
-        onClose={() => { setIsUploadModalOpen(false); }}
+        onClose={() => {
+          setIsUploadModalOpen(false);
+        }}
         onUploadXML={handleUploadXML}
         onUploadImages={handleUploadImages}
         onProcessQRCode={handleProcessQRCode}
-        isUploading={uploadXMLMutation.isPending || processQRCodeMutation.isPending || uploadPhotosMutation.isPending}
+        isUploading={
+          uploadXMLMutation.isPending ||
+          processQRCodeMutation.isPending ||
+          uploadPhotosMutation.isPending
+        }
       />
     </div>
   );

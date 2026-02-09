@@ -12,11 +12,7 @@ export const metadata: Metadata = {
   description: "Analise suas notas fiscais e economize dinheiro com insights inteligentes",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR">
       <body className={inter.className}>

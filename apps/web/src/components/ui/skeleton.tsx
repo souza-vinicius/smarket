@@ -1,14 +1,9 @@
-import { cn } from '@/lib/utils';
+import { cn } from "@/lib/utils";
 
-type SkeletonProps = React.HTMLAttributes<HTMLDivElement>
+type SkeletonProps = React.HTMLAttributes<HTMLDivElement>;
 
 function Skeleton({ className, ...props }: SkeletonProps): React.JSX.Element {
-  return (
-    <div
-      className={cn('animate-pulse rounded-md bg-muted', className)}
-      {...props}
-    />
-  );
+  return <div className={cn("animate-pulse rounded-md bg-muted", className)} {...props} />;
 }
 
 export { Skeleton };

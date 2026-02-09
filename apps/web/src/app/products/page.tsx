@@ -1,22 +1,22 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { useState } from "react";
 
-import { useRouter } from 'next/navigation';
+import { useRouter } from "next/navigation";
 
-import { Search, ShoppingCart, Store, Calendar, Package } from 'lucide-react';
+import { Search, ShoppingCart, Store, Calendar, Package } from "lucide-react";
 
-import { Header } from '@/components/layout/header';
-import { Sidebar } from '@/components/layout/sidebar';
-import { Input } from '@/components/ui/input';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
-import { useProductSearch } from '@/hooks/use-products';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { Header } from "@/components/layout/header";
+import { Sidebar } from "@/components/layout/sidebar";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useProductSearch } from "@/hooks/use-products";
+import { formatCurrency, formatDate } from "@/lib/utils";
 
 export default function ProductsPage() {
   const router = useRouter();
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const { data: results, isLoading, debouncedQuery } = useProductSearch(query);
 
   const isSearching = debouncedQuery.length >= 2;
@@ -26,10 +26,7 @@ export default function ProductsPage() {
       <Sidebar />
 
       <div className="flex-1 pl-64">
-        <Header
-          title="Buscar Produtos"
-          subtitle="Pesquise produtos e veja o histórico de preços"
-        />
+        <Header title="Buscar Produtos" subtitle="Pesquise produtos e veja o histórico de preços" />
 
         <main className="p-6">
           {/* Search Input */}
@@ -40,7 +37,9 @@ export default function ProductsPage() {
                 type="text"
                 placeholder="Digite o nome do produto (ex: arroz, leite, café...)"
                 value={query}
-                onChange={(e) => { setQuery(e.target.value); }}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                }}
                 className="h-14 rounded-xl border-slate-300 pl-12 text-lg shadow-sm focus-visible:ring-emerald-500"
               />
               {query.length > 0 && query.length < 2 && (
@@ -57,11 +56,10 @@ export default function ProductsPage() {
               <div className="mx-auto mb-4 flex size-20 items-center justify-center rounded-full bg-slate-100">
                 <ShoppingCart className="size-10 text-slate-400" />
               </div>
-              <h3 className="mb-2 text-lg font-semibold text-slate-900">
-                Busque por um produto
-              </h3>
+              <h3 className="mb-2 text-lg font-semibold text-slate-900">Busque por um produto</h3>
               <p className="mx-auto max-w-md text-slate-600">
-                Digite o nome de um produto para ver todas as vezes que ele foi comprado e o valor pago em cada compra.
+                Digite o nome de um produto para ver todas as vezes que ele foi comprado e o valor
+                pago em cada compra.
               </p>
             </div>
           )}
@@ -69,7 +67,10 @@ export default function ProductsPage() {
           {isSearching && isLoading && (
             <div className="space-y-3">
               {Array.from({ length: 5 }).map((_, i) => (
-                <div key={`skeleton-${String(i)}`} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div
+                  key={`skeleton-${String(i)}`}
+                  className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+                >
                   <div className="flex items-center gap-4">
                     <Skeleton className="size-10 rounded-lg" />
                     <div className="flex-1 space-y-2">
@@ -87,9 +88,11 @@ export default function ProductsPage() {
             <div>
               <div className="mb-4 flex items-center justify-between">
                 <p className="text-sm text-slate-600">
-                  <span className="font-semibold text-slate-900">{results.length}</span>{' '}
-                  {results.length === 1 ? 'resultado encontrado' : 'resultados encontrados'} para{' '}
-                  <span className="font-semibold text-emerald-700">&quot;{debouncedQuery}&quot;</span>
+                  <span className="font-semibold text-slate-900">{results.length}</span>{" "}
+                  {results.length === 1 ? "resultado encontrado" : "resultados encontrados"} para{" "}
+                  <span className="font-semibold text-emerald-700">
+                    &quot;{debouncedQuery}&quot;
+                  </span>
                 </p>
               </div>
 
@@ -100,16 +103,16 @@ export default function ProductsPage() {
                       key={item.id}
                       type="button"
                       className="flex w-full items-center gap-4 p-4 text-left transition-colors hover:bg-slate-50"
-                      onClick={() => { router.push(`/invoices/${item.invoice_id}`); }}
+                      onClick={() => {
+                        router.push(`/invoices/${item.invoice_id}`);
+                      }}
                     >
                       <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-100">
                         <Package className="size-5 text-emerald-600" />
                       </div>
 
                       <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium text-slate-900">
-                          {item.description}
-                        </p>
+                        <p className="truncate font-medium text-slate-900">{item.description}</p>
                         <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-slate-500">
                           <span className="flex items-center gap-1">
                             <Store className="size-3" />

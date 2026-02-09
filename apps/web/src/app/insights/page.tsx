@@ -1,59 +1,65 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { useState } from "react";
 
-import { Filter, CheckCircle, AlertTriangle, TrendingUp, Info, Lightbulb, Sparkles } from 'lucide-react';
+import {
+  Filter,
+  CheckCircle,
+  AlertTriangle,
+  TrendingUp,
+  Info,
+  Lightbulb,
+  Sparkles,
+} from "lucide-react";
 
-import { InsightCard } from '@/components/dashboard/insight-card';
-import { Header } from '@/components/layout/header';
-import { Sidebar } from '@/components/layout/sidebar';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useInsights, useMarkInsightAsRead } from '@/hooks/use-insights';
+import { InsightCard } from "@/components/dashboard/insight-card";
+import { Header } from "@/components/layout/header";
+import { Sidebar } from "@/components/layout/sidebar";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useInsights, useMarkInsightAsRead } from "@/hooks/use-insights";
 
-type FilterType = 'all' | 'unread' | 'price_alert' | 'category_insight' | 'merchant_pattern';
-type PriorityFilter = 'all' | 'critical' | 'high' | 'medium' | 'low';
+type FilterType = "all" | "unread" | "price_alert" | "category_insight" | "merchant_pattern";
+type PriorityFilter = "all" | "critical" | "high" | "medium" | "low";
 
 export default function InsightsPage() {
-  const [typeFilter, setTypeFilter] = useState<FilterType>('all');
-  const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('all');
-  
+  const [typeFilter, setTypeFilter] = useState<FilterType>("all");
+  const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("all");
+
   const { data: insights, isLoading } = useInsights({
-    type: typeFilter === 'all' ? undefined : typeFilter,
-    priority: priorityFilter === 'all' ? undefined : priorityFilter,
+    type: typeFilter === "all" ? undefined : typeFilter,
+    priority: priorityFilter === "all" ? undefined : priorityFilter,
   });
-  
+
   const markAsReadMutation = useMarkInsightAsRead();
 
   const filters: { value: FilterType; label: string; icon: React.ReactNode }[] = [
-    { value: 'all', label: 'Todos', icon: <Filter className="size-4" /> },
-    { value: 'unread', label: 'Não Lidos', icon: <CheckCircle className="size-4" /> },
-    { value: 'price_alert', label: 'Alertas de Preço', icon: <AlertTriangle className="size-4" /> },
-    { value: 'category_insight', label: 'Categorias', icon: <TrendingUp className="size-4" /> },
-    { value: 'merchant_pattern', label: 'Estabelecimentos', icon: <Info className="size-4" /> },
+    { value: "all", label: "Todos", icon: <Filter className="size-4" /> },
+    { value: "unread", label: "Não Lidos", icon: <CheckCircle className="size-4" /> },
+    { value: "price_alert", label: "Alertas de Preço", icon: <AlertTriangle className="size-4" /> },
+    { value: "category_insight", label: "Categorias", icon: <TrendingUp className="size-4" /> },
+    { value: "merchant_pattern", label: "Estabelecimentos", icon: <Info className="size-4" /> },
   ];
 
   const priorityFilters: { value: PriorityFilter; label: string; color: string }[] = [
-    { value: 'all', label: 'Todas Prioridades', color: 'bg-slate-100 text-slate-700' },
-    { value: 'critical', label: 'Crítica', color: 'bg-red-100 text-red-700' },
-    { value: 'high', label: 'Alta', color: 'bg-orange-100 text-orange-700' },
-    { value: 'medium', label: 'Média', color: 'bg-yellow-100 text-yellow-700' },
-    { value: 'low', label: 'Baixa', color: 'bg-green-100 text-green-700' },
+    { value: "all", label: "Todas Prioridades", color: "bg-slate-100 text-slate-700" },
+    { value: "critical", label: "Crítica", color: "bg-red-100 text-red-700" },
+    { value: "high", label: "Alta", color: "bg-orange-100 text-orange-700" },
+    { value: "medium", label: "Média", color: "bg-yellow-100 text-yellow-700" },
+    { value: "low", label: "Baixa", color: "bg-green-100 text-green-700" },
   ];
 
   const unreadCount = insights?.filter((i) => !i.is_read).length || 0;
-  const criticalCount = insights?.filter((i) => i.priority === 'critical' && !i.is_read).length || 0;
+  const criticalCount =
+    insights?.filter((i) => i.priority === "critical" && !i.is_read).length || 0;
 
   return (
     <div className="flex min-h-screen bg-slate-50">
       <Sidebar />
-      
+
       <div className="flex-1 pl-64">
-        <Header 
-          title="Insights" 
-          subtitle="Análises e recomendações para economizar"
-        />
-        
+        <Header title="Insights" subtitle="Análises e recomendações para economizar" />
+
         <main className="p-6">
           {/* Stats Cards */}
           <div className="mb-6 grid gap-4 md:grid-cols-3">
@@ -61,9 +67,7 @@ export default function InsightsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-slate-600">Total de Insights</p>
-                  <p className="mt-1 text-3xl font-bold text-slate-900">
-                    {insights?.length || 0}
-                  </p>
+                  <p className="mt-1 text-3xl font-bold text-slate-900">{insights?.length || 0}</p>
                 </div>
                 <div className="flex size-12 items-center justify-center rounded-lg bg-blue-100">
                   <Lightbulb className="size-6 text-blue-600" />
@@ -75,9 +79,7 @@ export default function InsightsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-slate-600">Não Lidos</p>
-                  <p className="mt-1 text-3xl font-bold text-emerald-600">
-                    {unreadCount}
-                  </p>
+                  <p className="mt-1 text-3xl font-bold text-emerald-600">{unreadCount}</p>
                 </div>
                 <div className="flex size-12 items-center justify-center rounded-lg bg-emerald-100">
                   <CheckCircle className="size-6 text-emerald-600" />
@@ -89,9 +91,7 @@ export default function InsightsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-slate-600">Alertas Críticos</p>
-                  <p className="mt-1 text-3xl font-bold text-red-600">
-                    {criticalCount}
-                  </p>
+                  <p className="mt-1 text-3xl font-bold text-red-600">{criticalCount}</p>
                 </div>
                 <div className="flex size-12 items-center justify-center rounded-lg bg-red-100">
                   <AlertTriangle className="size-6 text-red-600" />
@@ -106,16 +106,18 @@ export default function InsightsPage() {
               <Filter className="size-4 text-slate-500" />
               <span className="text-sm font-medium text-slate-700">Filtrar por tipo:</span>
             </div>
-            
+
             <div className="flex flex-wrap gap-2">
               {filters.map((filter) => (
                 <button
                   key={filter.value}
-                  onClick={() => { setTypeFilter(filter.value); }}
+                  onClick={() => {
+                    setTypeFilter(filter.value);
+                  }}
                   className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${
                     typeFilter === filter.value
-                      ? 'bg-emerald-600 text-white shadow-md'
-                      : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-100'
+                      ? "bg-emerald-600 text-white shadow-md"
+                      : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-100"
                   }`}
                 >
                   {filter.icon}
@@ -133,11 +135,13 @@ export default function InsightsPage() {
               {priorityFilters.map((filter) => (
                 <button
                   key={filter.value}
-                  onClick={() => { setPriorityFilter(filter.value); }}
+                  onClick={() => {
+                    setPriorityFilter(filter.value);
+                  }}
                   className={`rounded-full px-4 py-2 text-sm font-medium transition-all ${
                     priorityFilter === filter.value
-                      ? `${filter.color  } ring-2 ring-current ring-offset-2`
-                      : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-100'
+                      ? `${filter.color} ring-2 ring-current ring-offset-2`
+                      : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-100"
                   }`}
                 >
                   {filter.label}
@@ -159,7 +163,9 @@ export default function InsightsPage() {
                 <InsightCard
                   key={insight.id}
                   insight={insight}
-                  onMarkAsRead={(id) => { markAsReadMutation.mutate(id); }}
+                  onMarkAsRead={(id) => {
+                    markAsReadMutation.mutate(id);
+                  }}
                 />
               ))}
             </div>
@@ -172,16 +178,16 @@ export default function InsightsPage() {
                 Nenhum insight encontrado
               </h3>
               <p className="mb-4 text-slate-600">
-                {typeFilter !== 'all' || priorityFilter !== 'all'
-                  ? 'Tente ajustar os filtros para ver mais insights'
-                  : 'Adicione notas fiscais para começar a receber insights personalizados'}
+                {typeFilter !== "all" || priorityFilter !== "all"
+                  ? "Tente ajustar os filtros para ver mais insights"
+                  : "Adicione notas fiscais para começar a receber insights personalizados"}
               </p>
-              {(typeFilter !== 'all' || priorityFilter !== 'all') && (
+              {(typeFilter !== "all" || priorityFilter !== "all") && (
                 <Button
                   variant="outline"
                   onClick={() => {
-                    setTypeFilter('all');
-                    setPriorityFilter('all');
+                    setTypeFilter("all");
+                    setPriorityFilter("all");
                   }}
                 >
                   Limpar Filtros

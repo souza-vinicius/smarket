@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { AlertTriangle, Info, Lightbulb, TrendingUp } from 'lucide-react';
+import { AlertTriangle, Info, Lightbulb, TrendingUp } from "lucide-react";
 
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatDate, getPriorityBgColor } from '@/lib/utils';
-import { type Analysis } from '@/types';
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatDate, getPriorityBgColor } from "@/lib/utils";
+import { type Analysis } from "@/types";
 
 interface InsightCardProps {
   insight: Analysis;
@@ -21,17 +21,17 @@ const typeIcons: Record<string, React.ReactNode> = {
 };
 
 const typeLabels: Record<string, string> = {
-  price_alert: 'Alerta de Preço',
-  category_insight: 'Insight de Categoria',
-  merchant_pattern: 'Padrão de Estabelecimento',
-  savings_opportunity: 'Oportunidade de Economia',
+  price_alert: "Alerta de Preço",
+  category_insight: "Insight de Categoria",
+  merchant_pattern: "Padrão de Estabelecimento",
+  savings_opportunity: "Oportunidade de Economia",
 };
 
 const priorityLabels: Record<string, string> = {
-  critical: 'Crítico',
-  high: 'Alto',
-  medium: 'Médio',
-  low: 'Baixo',
+  critical: "Crítico",
+  high: "Alto",
+  medium: "Médio",
+  low: "Baixo",
 };
 
 export function InsightCard({ insight, onMarkAsRead }: InsightCardProps) {
@@ -47,11 +47,11 @@ export function InsightCard({ insight, onMarkAsRead }: InsightCardProps) {
           </div>
           <Badge
             variant={
-              insight.priority === 'high' || insight.priority === 'critical'
-                ? 'destructive'
-                : insight.priority === 'medium'
-                ? 'warning'
-                : 'secondary'
+              insight.priority === "high" || insight.priority === "critical"
+                ? "destructive"
+                : insight.priority === "medium"
+                  ? "warning"
+                  : "secondary"
             }
             className="text-xs"
           >
@@ -63,14 +63,14 @@ export function InsightCard({ insight, onMarkAsRead }: InsightCardProps) {
       <CardContent>
         <p className="text-sm text-muted-foreground">{insight.description}</p>
         <div className="mt-4 flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">
-            {formatDate(insight.created_at)}
-          </span>
+          <span className="text-xs text-muted-foreground">{formatDate(insight.created_at)}</span>
           {!insight.is_read && onMarkAsRead && (
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => { onMarkAsRead(insight.id); }}
+              onClick={() => {
+                onMarkAsRead(insight.id);
+              }}
             >
               Marcar como lido
             </Button>

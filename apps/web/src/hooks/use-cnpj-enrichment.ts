@@ -1,7 +1,8 @@
-import { useMutation } from '@tanstack/react-query';
-import { type AxiosError } from 'axios';
-import { apiClient } from '@/lib/api';
-import { cleanCNPJ } from '@/lib/cnpj';
+import { useMutation } from "@tanstack/react-query";
+import { type AxiosError } from "axios";
+
+import { apiClient } from "@/lib/api";
+import { cleanCNPJ } from "@/lib/cnpj";
 
 interface CNPJEnrichmentData {
   razao_social: string;
@@ -42,17 +43,17 @@ export function useCNPJEnrichment() {
       // Clean CNPJ (remove formatting) before sending
       const cleanedCNPJ = cleanCNPJ(cnpj);
 
-      console.log('Enriching CNPJ:', cnpj, '→ cleaned:', cleanedCNPJ);
-      console.log('Request URL:', `/invoices/cnpj/${cleanedCNPJ}/enrich`);
+      console.log("Enriching CNPJ:", cnpj, "→ cleaned:", cleanedCNPJ);
+      console.log("Request URL:", `/invoices/cnpj/${cleanedCNPJ}/enrich`);
 
       try {
         const response = await apiClient.get<CNPJEnrichmentResponse>(
           `/invoices/cnpj/${cleanedCNPJ}/enrich`
         );
-        console.log('Enrichment response:', response);
+        console.log("Enrichment response:", response);
         return response;
       } catch (error) {
-        console.error('Enrichment request failed:', error);
+        console.error("Enrichment request failed:", error);
         throw error;
       }
     },

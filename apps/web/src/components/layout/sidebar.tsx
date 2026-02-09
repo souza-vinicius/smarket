@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 import {
   LayoutDashboard,
@@ -11,10 +11,10 @@ import {
   Receipt,
   Search,
   Settings,
-} from 'lucide-react';
+} from "lucide-react";
 
-import { useAuth } from '@/hooks/use-auth';
-import { cn } from '@/lib/utils';
+import { useAuth } from "@/hooks/use-auth";
+import { cn } from "@/lib/utils";
 
 interface NavItem {
   label: string;
@@ -25,28 +25,28 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   {
-    label: 'Dashboard',
-    href: '/dashboard',
+    label: "Dashboard",
+    href: "/dashboard",
     icon: <LayoutDashboard className="size-5" />,
   },
   {
-    label: 'Análises',
-    href: '/dashboard/analytics',
+    label: "Análises",
+    href: "/dashboard/analytics",
     icon: <TrendingUp className="size-5" />,
   },
   {
-    label: 'Notas Fiscais',
-    href: '/invoices',
+    label: "Notas Fiscais",
+    href: "/invoices",
     icon: <Receipt className="size-5" />,
   },
   {
-    label: 'Produtos',
-    href: '/products',
+    label: "Produtos",
+    href: "/products",
     icon: <Search className="size-5" />,
   },
   {
-    label: 'Insights',
-    href: '/insights',
+    label: "Insights",
+    href: "/insights",
     icon: <Lightbulb className="size-5" />,
   },
 ];
@@ -79,10 +79,10 @@ export function Sidebar() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all',
+                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
                   isActive
-                    ? 'bg-gradient-to-r from-emerald-50 to-teal-50 text-emerald-700 shadow-sm'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                    ? "bg-gradient-to-r from-emerald-50 to-teal-50 text-emerald-700 shadow-sm"
+                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                 )}
               >
                 {item.icon}
@@ -101,15 +101,13 @@ export function Sidebar() {
         <div className="border-t border-slate-200 p-4">
           <div className="mb-3 flex items-center gap-3 rounded-lg bg-slate-50 p-3">
             <div className="flex size-10 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 font-semibold text-white">
-              {user?.full_name.charAt(0).toUpperCase() || 'U'}
+              {user?.full_name.charAt(0).toUpperCase() || "U"}
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-slate-900">
-                {user?.full_name || 'Usuário'}
+                {user?.full_name || "Usuário"}
               </p>
-              <p className="truncate text-xs text-slate-500">
-                {user?.email || 'user@example.com'}
-              </p>
+              <p className="truncate text-xs text-slate-500">{user?.email || "user@example.com"}</p>
             </div>
           </div>
 

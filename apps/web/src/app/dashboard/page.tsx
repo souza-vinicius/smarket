@@ -1,23 +1,31 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { useState } from "react";
 
-import { useRouter } from 'next/navigation';
+import { useRouter } from "next/navigation";
 
-import { DollarSign, FileText, AlertCircle, TrendingUp, Plus, ArrowUpRight, Sparkles } from 'lucide-react';
+import {
+  DollarSign,
+  FileText,
+  AlertCircle,
+  TrendingUp,
+  Plus,
+  ArrowUpRight,
+  Sparkles,
+} from "lucide-react";
 
-import { InsightCard } from '@/components/dashboard/insight-card';
-import { SummaryCard } from '@/components/dashboard/summary-card';
-import { UploadModal } from '@/components/invoices/upload-modal';
-import { Header } from '@/components/layout/header';
-import { Sidebar } from '@/components/layout/sidebar';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useDashboardSummary, useRecentInsights } from '@/hooks/use-dashboard';
-import { useMarkInsightAsRead } from '@/hooks/use-insights';
-import { useUploadXML, useProcessQRCode, useUploadPhotos } from '@/hooks/use-invoices';
+import { InsightCard } from "@/components/dashboard/insight-card";
+import { SummaryCard } from "@/components/dashboard/summary-card";
+import { UploadModal } from "@/components/invoices/upload-modal";
+import { Header } from "@/components/layout/header";
+import { Sidebar } from "@/components/layout/sidebar";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useDashboardSummary, useRecentInsights } from "@/hooks/use-dashboard";
+import { useMarkInsightAsRead } from "@/hooks/use-insights";
+import { useUploadXML, useProcessQRCode, useUploadPhotos } from "@/hooks/use-invoices";
 
-type UploadMode = 'qrcode' | 'xml' | 'photo' | null;
+type UploadMode = "qrcode" | "xml" | "photo" | null;
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -34,7 +42,7 @@ export default function DashboardPage() {
     uploadXMLMutation.mutate(file, {
       onSuccess: () => {
         setUploadMode(null);
-        router.push('/invoices');
+        router.push("/invoices");
       },
     });
   };
@@ -51,12 +59,15 @@ export default function DashboardPage() {
   };
 
   const handleProcessQRCode = (url: string) => {
-    processQRCodeMutation.mutate({ qrcode_url: url }, {
-      onSuccess: () => {
-        setUploadMode(null);
-        router.push('/invoices');
-      },
-    });
+    processQRCodeMutation.mutate(
+      { qrcode_url: url },
+      {
+        onSuccess: () => {
+          setUploadMode(null);
+          router.push("/invoices");
+        },
+      }
+    );
   };
 
   return (
@@ -64,10 +75,7 @@ export default function DashboardPage() {
       <Sidebar />
 
       <div className="flex-1 pl-64">
-        <Header
-          title="Dashboard"
-          subtitle="Visão geral dos seus gastos e insights"
-        />
+        <Header title="Dashboard" subtitle="Visão geral dos seus gastos e insights" />
 
         <main className="p-6">
           {/* Welcome Section */}
@@ -120,7 +128,7 @@ export default function DashboardPage() {
                 <SummaryCard
                   title="Top Estabelecimento"
                   value={summary.top_merchant_this_month?.total || 0}
-                  subtitle={summary.top_merchant_this_month?.name || 'N/A'}
+                  subtitle={summary.top_merchant_this_month?.name || "N/A"}
                   icon={<TrendingUp className="size-5" />}
                   format="currency"
                 />
@@ -135,15 +143,13 @@ export default function DashboardPage() {
               size="lg"
               leftIcon={<Plus className="size-4" />}
               className="shadow-md"
-              onClick={() => { setUploadMode('photo'); }}
+              onClick={() => {
+                setUploadMode("photo");
+              }}
             >
               Adicionar Nota Fiscal
             </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              leftIcon={<TrendingUp className="size-4" />}
-            >
+            <Button variant="outline" size="lg" leftIcon={<TrendingUp className="size-4" />}>
               Ver Análises
             </Button>
           </div>
@@ -175,7 +181,9 @@ export default function DashboardPage() {
                   <InsightCard
                     key={insight.id}
                     insight={insight}
-                    onMarkAsRead={(id) => { markAsReadMutation.mutate(id); }}
+                    onMarkAsRead={(id) => {
+                      markAsReadMutation.mutate(id);
+                    }}
                   />
                 ))}
               </div>
@@ -184,16 +192,16 @@ export default function DashboardPage() {
                 <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-slate-100">
                   <Sparkles className="size-8 text-slate-400" />
                 </div>
-                <h3 className="mb-2 text-lg font-semibold text-slate-900">
-                  Nenhum insight ainda
-                </h3>
+                <h3 className="mb-2 text-lg font-semibold text-slate-900">Nenhum insight ainda</h3>
                 <p className="mb-4 text-slate-600">
                   Adicione suas notas fiscais para começar a receber insights personalizados
                 </p>
                 <Button
                   variant="primary"
                   leftIcon={<Plus className="size-4" />}
-                  onClick={() => { setUploadMode('photo'); }}
+                  onClick={() => {
+                    setUploadMode("photo");
+                  }}
                 >
                   Adicionar Primeira Nota
                 </Button>
@@ -206,12 +214,18 @@ export default function DashboardPage() {
       {/* Upload Modal */}
       <UploadModal
         isOpen={uploadMode !== null}
-        onClose={() => { setUploadMode(null); }}
+        onClose={() => {
+          setUploadMode(null);
+        }}
         onUploadXML={handleUploadXML}
         onUploadImages={handleUploadImages}
         onProcessQRCode={handleProcessQRCode}
-        isUploading={uploadXMLMutation.isPending || processQRCodeMutation.isPending || uploadPhotosMutation.isPending}
-        initialTab={uploadMode === 'qrcode' ? 'qrcode' : 'images'}
+        isUploading={
+          uploadXMLMutation.isPending ||
+          processQRCodeMutation.isPending ||
+          uploadPhotosMutation.isPending
+        }
+        initialTab={uploadMode === "qrcode" ? "qrcode" : "images"}
       />
     </div>
   );

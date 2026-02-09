@@ -1,18 +1,18 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { useState } from "react";
 
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter } from "next/navigation";
 
-import { ArrowLeft, Download, Trash2, CheckCircle, Eye, EyeOff, Pencil } from 'lucide-react';
+import { ArrowLeft, Download, Trash2, CheckCircle, Eye, EyeOff, Pencil } from "lucide-react";
 
-import { Header } from '@/components/layout/header';
-import { Sidebar } from '@/components/layout/sidebar';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useInvoice, useDeleteInvoice } from '@/hooks/use-invoices';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { Header } from "@/components/layout/header";
+import { Sidebar } from "@/components/layout/sidebar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useInvoice, useDeleteInvoice } from "@/hooks/use-invoices";
+import { formatCurrency, formatDate } from "@/lib/utils";
 
 export default function InvoiceDetailsPage() {
   const params = useParams();
@@ -25,17 +25,21 @@ export default function InvoiceDetailsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const handleDelete = async () => {
-    if (!invoice) { return; }
-    if (!confirm('Tem certeza que deseja deletar esta nota fiscal?')) { return; }
+    if (!invoice) {
+      return;
+    }
+    if (!confirm("Tem certeza que deseja deletar esta nota fiscal?")) {
+      return;
+    }
 
     setDeletingId(invoiceId);
     deleteInvoice.mutate(invoiceId, {
       onSuccess: () => {
-        router.push('/invoices');
+        router.push("/invoices");
       },
       onError: () => {
         setDeletingId(null);
-        alert('Erro ao deletar nota fiscal');
+        alert("Erro ao deletar nota fiscal");
       },
     });
   };
@@ -70,7 +74,9 @@ export default function InvoiceDetailsPage() {
                 <p className="mb-4 text-red-600">Nota fiscal não encontrada</p>
                 <Button
                   variant="primary"
-                  onClick={() => { router.push('/invoices'); }}
+                  onClick={() => {
+                    router.push("/invoices");
+                  }}
                 >
                   Voltar para Notas Fiscais
                 </Button>
@@ -82,30 +88,34 @@ export default function InvoiceDetailsPage() {
     );
   }
 
-  const sourceLabel = {
-    qrcode: 'QR Code',
-    xml: 'XML',
-    pdf: 'PDF',
-    manual: 'Manual',
-    photo: 'Foto',
-    image: 'Imagem',
-  }[invoice.source] || invoice.source;
+  const sourceLabel =
+    {
+      qrcode: "QR Code",
+      xml: "XML",
+      pdf: "PDF",
+      manual: "Manual",
+      photo: "Foto",
+      image: "Imagem",
+    }[invoice.source] || invoice.source;
 
-  const sourceColor = {
-    qrcode: 'bg-blue-100 text-blue-800',
-    xml: 'bg-purple-100 text-purple-800',
-    pdf: 'bg-red-100 text-red-800',
-    manual: 'bg-gray-100 text-gray-800',
-    photo: 'bg-emerald-100 text-emerald-800',
-    image: 'bg-emerald-100 text-emerald-800',
-  }[invoice.source] || 'bg-slate-100 text-slate-800';
+  const sourceColor =
+    {
+      qrcode: "bg-blue-100 text-blue-800",
+      xml: "bg-purple-100 text-purple-800",
+      pdf: "bg-red-100 text-red-800",
+      manual: "bg-gray-100 text-gray-800",
+      photo: "bg-emerald-100 text-emerald-800",
+      image: "bg-emerald-100 text-emerald-800",
+    }[invoice.source] || "bg-slate-100 text-slate-800";
 
-  const subtotal = invoice.items?.reduce((sum, item) => {
-    const totalPrice = typeof item.total_price === 'string'
-      ? parseFloat(item.total_price)
-      : Number(item.total_price) || 0;
-    return sum + totalPrice;
-  }, 0) || 0;
+  const subtotal =
+    invoice.items?.reduce((sum, item) => {
+      const totalPrice =
+        typeof item.total_price === "string"
+          ? parseFloat(item.total_price)
+          : Number(item.total_price) || 0;
+      return sum + totalPrice;
+    }, 0) || 0;
   const discount = 0; // TODO: get from invoice data
   const tax = 0; // TODO: get from invoice data
 
@@ -124,7 +134,9 @@ export default function InvoiceDetailsPage() {
             {/* Back Button and Actions */}
             <div className="mb-6 flex items-center justify-between">
               <button
-                onClick={() => { router.push('/invoices'); }}
+                onClick={() => {
+                  router.push("/invoices");
+                }}
                 className="flex items-center gap-2 font-medium text-slate-600 transition-colors hover:text-slate-900"
               >
                 <ArrowLeft className="size-4" />
@@ -136,7 +148,9 @@ export default function InvoiceDetailsPage() {
                   variant="outline"
                   size="sm"
                   leftIcon={<Pencil className="size-4" />}
-                  onClick={() => { router.push(`/invoices/${invoiceId}/edit`); }}
+                  onClick={() => {
+                    router.push(`/invoices/${invoiceId}/edit`);
+                  }}
                 >
                   Editar
                 </Button>
@@ -152,11 +166,13 @@ export default function InvoiceDetailsPage() {
                   variant="outline"
                   size="sm"
                   leftIcon={<Trash2 className="size-4" />}
-                  onClick={() => { void handleDelete(); }}
+                  onClick={() => {
+                    void handleDelete();
+                  }}
                   disabled={deletingId === invoiceId}
                   className="hover:border-red-300 hover:text-red-600"
                 >
-                  {deletingId === invoiceId ? 'Deletando...' : 'Deletar'}
+                  {deletingId === invoiceId ? "Deletando..." : "Deletar"}
                 </Button>
               </div>
             </div>
@@ -170,9 +186,7 @@ export default function InvoiceDetailsPage() {
                     <h1 className="mb-2 text-3xl font-bold text-slate-900">
                       {invoice.issuer_name}
                     </h1>
-                    <p className="font-mono text-sm text-slate-600">
-                      CNPJ: {invoice.issuer_cnpj}
-                    </p>
+                    <p className="font-mono text-sm text-slate-600">CNPJ: {invoice.issuer_cnpj}</p>
                   </div>
                   <Badge variant="outline" className={sourceColor}>
                     {sourceLabel}
@@ -193,9 +207,7 @@ export default function InvoiceDetailsPage() {
                     <p className="mb-1 font-mono text-xs uppercase tracking-wider text-slate-500">
                       Tipo
                     </p>
-                    <p className="text-lg font-semibold text-slate-900">
-                      {invoice.type}
-                    </p>
+                    <p className="text-lg font-semibold text-slate-900">{invoice.type}</p>
                   </div>
                   <div>
                     <p className="mb-1 font-mono text-xs uppercase tracking-wider text-slate-500">
@@ -211,9 +223,7 @@ export default function InvoiceDetailsPage() {
                     </p>
                     <div className="flex items-center gap-2">
                       <CheckCircle className="size-5 text-emerald-600" />
-                      <span className="text-lg font-semibold text-emerald-600">
-                        Processada
-                      </span>
+                      <span className="text-lg font-semibold text-emerald-600">Processada</span>
                     </div>
                   </div>
                 </div>
@@ -230,18 +240,20 @@ export default function InvoiceDetailsPage() {
                       className="break-all font-mono text-sm tracking-wider text-slate-600"
                       style={{
                         opacity: showAccessKey ? 1 : 0.5,
-                        letterSpacing: '0.1em',
+                        letterSpacing: "0.1em",
                       }}
                     >
                       {showAccessKey
                         ? invoice.access_key
-                        : '••••••••••••••••••••••••••••••••••••••••••'}
+                        : "••••••••••••••••••••••••••••••••••••••••••"}
                     </p>
                   </div>
                   <button
-                    onClick={() => { setShowAccessKey(!showAccessKey); }}
+                    onClick={() => {
+                      setShowAccessKey(!showAccessKey);
+                    }}
                     className="rounded-lg p-2 transition-colors hover:bg-slate-200"
-                    title={showAccessKey ? 'Ocultar' : 'Mostrar'}
+                    title={showAccessKey ? "Ocultar" : "Mostrar"}
                   >
                     {showAccessKey ? (
                       <EyeOff className="size-5 text-slate-600" />
@@ -288,8 +300,9 @@ export default function InvoiceDetailsPage() {
                         invoice.items.map((item, idx) => (
                           <tr
                             key={item.id}
-                            className={`border-b border-slate-100 transition-colors hover:bg-slate-50 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'
-                              }`}
+                            className={`border-b border-slate-100 transition-colors hover:bg-slate-50 ${
+                              idx % 2 === 0 ? "bg-white" : "bg-slate-50"
+                            }`}
                           >
                             <td className="p-4 text-slate-900">
                               {item.normalized_name || item.description}
@@ -297,15 +310,9 @@ export default function InvoiceDetailsPage() {
                             <td className="p-4 text-right font-mono text-slate-900">
                               {(Number(item.quantity) || 0).toFixed(3)}
                             </td>
-                            <td className="p-4 text-center text-slate-700">
-                              {item.unit || ''}
-                            </td>
-                            <td className="p-4 text-slate-700">
-                              {item.category_name || '-'}
-                            </td>
-                            <td className="p-4 text-slate-700">
-                              {item.subcategory || '-'}
-                            </td>
+                            <td className="p-4 text-center text-slate-700">{item.unit || ""}</td>
+                            <td className="p-4 text-slate-700">{item.category_name || "-"}</td>
+                            <td className="p-4 text-slate-700">{item.subcategory || "-"}</td>
                             <td className="p-4 text-right font-mono text-slate-900">
                               R$ {(Number(item.unit_price) || 0).toFixed(2)}
                             </td>
@@ -357,7 +364,7 @@ export default function InvoiceDetailsPage() {
                   <div className="flex items-center justify-between pt-4">
                     <span className="text-lg font-bold text-slate-900">Total</span>
                     <span className="font-mono text-3xl font-bold text-emerald-600">
-                      R$ {formatCurrency(invoice.total_value).replace('R$ ', '')}
+                      R$ {formatCurrency(invoice.total_value).replace("R$ ", "")}
                     </span>
                   </div>
                 </div>

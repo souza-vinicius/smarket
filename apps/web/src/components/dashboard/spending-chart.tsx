@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   BarChart,
@@ -13,10 +13,10 @@ import {
   PieChart,
   Pie,
   Cell,
-} from 'recharts';
+} from "recharts";
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatCurrency } from '@/lib/utils';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatCurrency } from "@/lib/utils";
 
 interface MonthlySpending {
   month: string;
@@ -51,12 +51,9 @@ interface SubcategoryChartProps {
   title?: string;
 }
 
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
 
-export function MonthlySpendingChart({
-  data,
-  title = 'Gastos por Mês',
-}: SpendingChartProps) {
+export function MonthlySpendingChart({ data, title = "Gastos por Mês" }: SpendingChartProps) {
   return (
     <Card>
       <CardHeader>
@@ -69,28 +66,24 @@ export function MonthlySpendingChart({
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
               <XAxis
                 dataKey="month"
-                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                axisLine={{ stroke: 'hsl(var(--border))' }}
+                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                axisLine={{ stroke: "hsl(var(--border))" }}
               />
               <YAxis
-                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                axisLine={{ stroke: 'hsl(var(--border))' }}
+                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                axisLine={{ stroke: "hsl(var(--border))" }}
                 // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
                 tickFormatter={(value: number) => `R$ ${value}`}
               />
               <Tooltip
                 formatter={(value: number) => formatCurrency(value)}
                 contentStyle={{
-                  backgroundColor: 'hsl(var(--card))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px',
+                  backgroundColor: "hsl(var(--card))",
+                  border: "1px solid hsl(var(--border))",
+                  borderRadius: "8px",
                 }}
               />
-              <Bar
-                dataKey="amount"
-                fill="hsl(var(--primary))"
-                radius={[4, 4, 0, 0]}
-              />
+              <Bar dataKey="amount" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -101,7 +94,7 @@ export function MonthlySpendingChart({
 
 export function CategorySpendingChart({
   data,
-  title = 'Gastos por Categoria',
+  title = "Gastos por Categoria",
 }: CategoryChartProps) {
   return (
     <Card>
@@ -131,9 +124,9 @@ export function CategorySpendingChart({
               <Tooltip
                 formatter={(value: number) => formatCurrency(value)}
                 contentStyle={{
-                  backgroundColor: 'hsl(var(--card))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px',
+                  backgroundColor: "hsl(var(--card))",
+                  border: "1px solid hsl(var(--border))",
+                  borderRadius: "8px",
                 }}
               />
             </PieChart>
@@ -160,10 +153,7 @@ export function CategorySpendingChart({
   );
 }
 
-export function TrendLineChart({
-  data,
-  title = 'Tendência de Gastos',
-}: SpendingChartProps) {
+export function TrendLineChart({ data, title = "Tendência de Gastos" }: SpendingChartProps) {
   return (
     <Card>
       <CardHeader>
@@ -176,21 +166,21 @@ export function TrendLineChart({
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
               <XAxis
                 dataKey="month"
-                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                axisLine={{ stroke: 'hsl(var(--border))' }}
+                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                axisLine={{ stroke: "hsl(var(--border))" }}
               />
               <YAxis
-                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                axisLine={{ stroke: 'hsl(var(--border))' }}
+                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                axisLine={{ stroke: "hsl(var(--border))" }}
                 // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
                 tickFormatter={(value: number) => `R$ ${value}`}
               />
               <Tooltip
                 formatter={(value: number) => formatCurrency(value)}
                 contentStyle={{
-                  backgroundColor: 'hsl(var(--card))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px',
+                  backgroundColor: "hsl(var(--card))",
+                  border: "1px solid hsl(var(--border))",
+                  borderRadius: "8px",
                 }}
               />
               <Line
@@ -198,7 +188,7 @@ export function TrendLineChart({
                 dataKey="amount"
                 stroke="hsl(var(--primary))"
                 strokeWidth={2}
-                dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2 }}
+                dot={{ fill: "hsl(var(--primary))", strokeWidth: 2 }}
               />
             </LineChart>
           </ResponsiveContainer>
@@ -210,12 +200,10 @@ export function TrendLineChart({
 
 export function SubcategorySpendingChart({
   data,
-  title = 'Gastos por Subcategoria',
+  title = "Gastos por Subcategoria",
 }: SubcategoryChartProps) {
   // Sort data by amount descending and take top 10
-  const topSubcategories = [...data]
-    .sort((a, b) => b.amount - a.amount)
-    .slice(0, 10);
+  const topSubcategories = [...data].sort((a, b) => b.amount - a.amount).slice(0, 10);
 
   return (
     <Card>
@@ -229,16 +217,16 @@ export function SubcategorySpendingChart({
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
               <XAxis
                 type="number"
-                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                axisLine={{ stroke: 'hsl(var(--border))' }}
+                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                axisLine={{ stroke: "hsl(var(--border))" }}
                 // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
                 tickFormatter={(value: number) => `R$ ${value}`}
               />
               <YAxis
                 type="category"
                 dataKey="name"
-                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                axisLine={{ stroke: 'hsl(var(--border))' }}
+                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                axisLine={{ stroke: "hsl(var(--border))" }}
                 width={120}
               />
               <Tooltip
@@ -248,15 +236,12 @@ export function SubcategorySpendingChart({
                   return item ? `${item.parent_name} - ${label}` : label;
                 }}
                 contentStyle={{
-                  backgroundColor: 'hsl(var(--card))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px',
+                  backgroundColor: "hsl(var(--card))",
+                  border: "1px solid hsl(var(--border))",
+                  borderRadius: "8px",
                 }}
               />
-              <Bar
-                dataKey="amount"
-                radius={[0, 4, 4, 0]}
-              >
+              <Bar dataKey="amount" radius={[0, 4, 4, 0]}>
                 {topSubcategories.map((entry, index) => (
                   <Cell
                     key={`cell-${String(index)}`}

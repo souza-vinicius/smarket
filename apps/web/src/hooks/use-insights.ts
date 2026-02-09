@@ -1,17 +1,23 @@
-'use client';
+"use client";
 
-import { useQuery, useMutation, useQueryClient, type UseQueryResult, type UseMutationResult } from '@tanstack/react-query';
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  type UseQueryResult,
+  type UseMutationResult,
+} from "@tanstack/react-query";
 
-import { DASHBOARD_KEYS } from '@/hooks/use-dashboard';
-import { apiClient } from '@/lib/api';
-import { type Analysis } from '@/types';
+import { DASHBOARD_KEYS } from "@/hooks/use-dashboard";
+import { apiClient } from "@/lib/api";
+import { type Analysis } from "@/types";
 
 const INSIGHT_KEYS = {
-  all: ['insights'] as const,
-  lists: () => [...INSIGHT_KEYS.all, 'list'] as const,
+  all: ["insights"] as const,
+  lists: () => [...INSIGHT_KEYS.all, "list"] as const,
   list: (filters: { type?: string; priority?: string; is_read?: boolean }) =>
     [...INSIGHT_KEYS.lists(), filters] as const,
-  details: () => [...INSIGHT_KEYS.all, 'detail'] as const,
+  details: () => [...INSIGHT_KEYS.all, "detail"] as const,
   detail: (id: string) => [...INSIGHT_KEYS.details(), id] as const,
 };
 
@@ -34,11 +40,17 @@ export function useInsights(filters: InsightsFilters = {}): UseQueryResult<Analy
         limit: String(limit),
       };
 
-      if (type) params.type = type;
-      if (priority) params.priority = priority;
-      if (is_read !== undefined) params.is_read = String(is_read);
+      if (type) {
+        params.type = type;
+      }
+      if (priority) {
+        params.priority = priority;
+      }
+      if (is_read !== undefined) {
+        params.is_read = String(is_read);
+      }
 
-      return apiClient.get<Analysis[]>('/analysis', params);
+      return apiClient.get<Analysis[]>("/analysis", params);
     },
   });
 }

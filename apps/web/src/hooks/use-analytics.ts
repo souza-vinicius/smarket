@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import { useQuery, type UseQueryResult } from '@tanstack/react-query';
+import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 
-import { apiClient } from '@/lib/api';
+import { apiClient } from "@/lib/api";
 
 const ANALYTICS_KEYS = {
-  spendingTrends: (months: number) => ['analytics', 'spending-trends', months] as const,
-  categorySpending: (months: number) => ['analytics', 'category-spending', months] as const,
-  merchantInsights: (limit: number) => ['analytics', 'merchant-insights', limit] as const,
+  spendingTrends: (months: number) => ["analytics", "spending-trends", months] as const,
+  categorySpending: (months: number) => ["analytics", "category-spending", months] as const,
+  merchantInsights: (limit: number) => ["analytics", "merchant-insights", limit] as const,
 };
 
 interface MonthlyTrend {
@@ -57,7 +57,7 @@ export function useSpendingTrends(months = 6): UseQueryResult<SpendingTrendsResp
   return useQuery({
     queryKey: ANALYTICS_KEYS.spendingTrends(months),
     queryFn: async () => {
-      return apiClient.get<SpendingTrendsResponse>('/analysis/spending-trends/data', {
+      return apiClient.get<SpendingTrendsResponse>("/analysis/spending-trends/data", {
         months: String(months),
       });
     },
@@ -68,7 +68,7 @@ export function useCategorySpending(months = 6): UseQueryResult<CategorySpending
   return useQuery({
     queryKey: ANALYTICS_KEYS.categorySpending(months),
     queryFn: async () => {
-      return apiClient.get<CategorySpendingResponse>('/analysis/category-spending/data', {
+      return apiClient.get<CategorySpendingResponse>("/analysis/category-spending/data", {
         months: String(months),
       });
     },
@@ -79,7 +79,7 @@ export function useMerchantInsights(limit = 10): UseQueryResult<MerchantInsights
   return useQuery({
     queryKey: ANALYTICS_KEYS.merchantInsights(limit),
     queryFn: async () => {
-      return apiClient.get<MerchantInsightsResponse>('/analysis/merchant-insights/data', {
+      return apiClient.get<MerchantInsightsResponse>("/analysis/merchant-insights/data", {
         limit: String(limit),
       });
     },

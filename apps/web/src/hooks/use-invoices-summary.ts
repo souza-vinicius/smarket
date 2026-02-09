@@ -1,5 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
-import { apiClient } from '@/lib/api';
+import { useQuery } from "@tanstack/react-query";
+
+import { apiClient } from "@/lib/api";
 
 interface Category {
   category: string;
@@ -14,9 +15,9 @@ export interface InvoicesSummary {
 
 export function useInvoicesSummary() {
   return useQuery<InvoicesSummary>({
-    queryKey: ['invoices-summary'],
+    queryKey: ["invoices-summary"],
     queryFn: async () => {
-      const response = await apiClient.get<InvoicesSummary>('/invoices/stats/summary');
+      const response = await apiClient.get<InvoicesSummary>("/invoices/stats/summary");
       return response;
     },
     refetchInterval: 30000, // Refetch every 30 seconds
