@@ -6,6 +6,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.config import settings
+from src.exceptions import SMarketException, handle_exception
 from src.routers import (
     analysis,
     auth,
@@ -111,3 +112,9 @@ async def root():
         "docs": "/docs",
         "features": "/features",
     }
+
+
+@app.exception_handler(SMarketException)
+async def smarket_exception_handler(request: Request, exc: SMarketException):
+    """Handle SMarket custom exceptions."""
+    return handle_exception(exc)

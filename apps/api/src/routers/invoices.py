@@ -44,6 +44,14 @@ from src.tasks.process_invoice_photos import process_invoice_photos
 from src.utils.cnpj_validator import clean_cnpj, format_cnpj, validate_cnpj
 from src.utils.logger import logger
 
+from src.exceptions import (
+    AIServiceError,
+    ExternalServiceError,
+    InvalidInvoiceFormatError,
+    InvoiceAlreadyExistsError,
+    InvoiceProcessingError,
+)
+
 
 router = APIRouter()
 logger_stdlib = logging.getLogger(__name__)
@@ -311,9 +319,8 @@ async def update_invoice(
     except Exception as e:
         logger.error(f"Error updating invoice: {e}", exc_info=True)
         await db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to update invoice: {e!s}",
+        raise InvoiceProcessingError(
+            message=f"Failed to update invoice: {e!s}"
         )
 
 
@@ -349,9 +356,8 @@ async def process_qrcode(
     try:
         invoice_data = await fetch_invoice_from_sefaz(access_key)
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Failed to fetch invoice from Sefaz: {e!s}",
+        raise ExternalServiceError(
+            message=f"Failed to fetch invoice from Sefaz: {e!s}"
         )
 
     # Create invoice
@@ -432,9 +438,8 @@ async def upload_xml(
     try:
         invoice_data = parse_xml_invoice(content)
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to parse XML: {e!s}",
+        raise InvalidInvoiceFormatError(
+            message=f"Failed to parse XML: {e!s}"
         )
 
     # Check if invoice already exists
@@ -869,17 +874,12 @@ async def confirm_extracted_invoice(
         error_str = str(e).lower()
         if "unique constraint" in error_str or "duplicate key" in error_str:
             if "access_key" in error_str:
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail={
-                        "message": "Esta nota fiscal já foi cadastrada anteriormente",
-                        "error": "duplicate_invoice",
-                    },
+                raise InvoiceAlreadyExistsError(
+                    message="Esta nota fiscal já foi cadastrada anteriormente"
                 )
 
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to confirm invoice: {e!s}",
+        raise InvoiceProcessingError(
+            message=f"Failed to confirm invoice: {e!s}"
         )
 
 
@@ -1035,7 +1035,7 @@ async def enrich_cnpj(cnpj: str, current_user: User = Depends(get_current_user))
                 detail={
                     "error": "cnpj_not_found",
                     "message": "CNPJ não encontrado nas bases de dados públicas",
-                    "cnpj": format_cnpj(cnpj_clean),
+                    "cnpj": format_cpnj(cnpj_clean),
                     "hint": "Verifique se o CNPJ está correto e ativo",
                 },
             )
@@ -1046,7 +1046,7 @@ async def enrich_cnpj(cnpj: str, current_user: User = Depends(get_current_user))
 
         return {
             "success": True,
-            "cnpj": format_cnpj(cnpj_clean),
+            "cnpj": format_cpnj(cnpj_clean),
             "data": enriched_data,
             "suggested_name": enriched_data.get("razao_social")
             or enriched_data.get("nome_fantasia"),
@@ -1056,13 +1056,8 @@ async def enrich_cnpj(cnpj: str, current_user: User = Depends(get_current_user))
         raise
     except Exception as e:
         logger.error(f"Error enriching CNPJ {cnpj_clean}: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={
-                "error": "enrichment_failed",
-                "message": "Falha ao consultar dados do CNPJ. Tente novamente.",
-                "hint": "As APIs públicas podem estar temporariamente indisponíveis",
-            },
+        raise ExternalServiceError(
+            message="Falha ao consultar dados do CNPJ. Tente novamente."
         )
 
 
