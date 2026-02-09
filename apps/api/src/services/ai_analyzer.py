@@ -95,10 +95,9 @@ class AIAnalyzer:
             result = await db.execute(
                 select(InvoiceItem.unit_price, Invoice.merchant_id, Invoice.issue_date)
                 .join(Invoice, Invoice.id == InvoiceItem.invoice_id)
-                .join(Product, Product.id == InvoiceItem.product_id)
                 .where(
                     and_(
-                        Product.description.ilike(f"%{item.description}%"),
+                        InvoiceItem.description.ilike(f"%{item.description}%"),
                         Invoice.user_id == invoice.user_id,
                         Invoice.issue_date >= invoice.issue_date - timedelta(days=90),
                     )

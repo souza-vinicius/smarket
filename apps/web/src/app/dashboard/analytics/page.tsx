@@ -17,10 +17,20 @@ export default function AnalyticsPage() {
 
   // Transform API data for charts
   const monthlyData =
-    trendsData?.trends.map((t) => ({
-      month: new Date(t.month).toLocaleDateString("pt-BR", { month: "short" }),
-      amount: Number(t.total) || 0,
-    })) ?? [];
+    trendsData?.trends.map((t) => {
+      // Extract year and month from "YYYY-MM-DD" string to avoid timezone issues
+      const [year, month] = t.month.split("-");
+      const monthIndex = parseInt(month, 10) - 1;
+      const monthName = new Date(
+        parseInt(year, 10),
+        monthIndex,
+        1
+      ).toLocaleDateString("pt-BR", { month: "short" });
+      return {
+        month: monthName,
+        amount: Number(t.total) || 0,
+      };
+    }) ?? [];
 
   const categoryChartData =
     categoryData?.categories.map((c) => ({
