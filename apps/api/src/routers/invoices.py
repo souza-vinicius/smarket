@@ -37,9 +37,9 @@ from src.schemas.invoice_processing import (
     ProcessingResponse,
     ProcessingStatus,
 )
-from src.services.ai_analyzer import analyzer
 from src.services.cnpj_enrichment import enrich_cnpj_data
 from src.services.name_normalizer import normalize_product_dict
+from src.tasks.ai_analysis import run_ai_analysis
 from src.tasks.process_invoice_photos import process_invoice_photos
 from src.utils.cnpj_validator import clean_cnpj, format_cnpj, validate_cnpj
 from src.utils.logger import logger
@@ -329,6 +329,7 @@ async def update_invoice(
 )
 async def process_qrcode(
     request: QRCodeRequest,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -399,22 +400,8 @@ async def process_qrcode(
     await db.commit()
     await db.refresh(invoice)
 
-    # Generate AI analyses (background task)
-    try:
-        user_history = await _get_user_history(current_user.id, db)
-        analyses = await analyzer.analyze_invoice(invoice, user_history, db)
-        for analysis in analyses:
-            db.add(analysis)
-        await db.commit()
-    except Exception as e:
-        # Log error but don't fail the invoice creation
-        logger.error(
-            "error_generating_ai_analyses",
-            invoice_id=invoice.id,
-            user_id=current_user.id,
-            error=str(e),
-            exc_info=True,
-        )
+    # Generate AI analyses in background
+    background_tasks.add_task(run_ai_analysis, str(invoice.id), str(current_user.id))
 
     return invoice
 
@@ -423,6 +410,7 @@ async def process_qrcode(
     "/upload/xml", response_model=InvoiceResponse, status_code=status.HTTP_201_CREATED
 )
 async def upload_xml(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -493,22 +481,8 @@ async def upload_xml(
     await db.commit()
     await db.refresh(invoice)
 
-    # Generate AI analyses (background task)
-    try:
-        user_history = await _get_user_history(current_user.id, db)
-        analyses = await analyzer.analyze_invoice(invoice, user_history, db)
-        for analysis in analyses:
-            db.add(analysis)
-        await db.commit()
-    except Exception as e:
-        # Log error but don't fail the invoice creation
-        logger.error(
-            "error_generating_ai_analyses",
-            invoice_id=invoice.id,
-            user_id=current_user.id,
-            error=str(e),
-            exc_info=True,
-        )
+    # Generate AI analyses in background
+    background_tasks.add_task(run_ai_analysis, str(invoice.id), str(current_user.id))
 
     return invoice
 
@@ -639,6 +613,7 @@ async def get_processing_status(
 async def confirm_extracted_invoice(
     processing_id: uuid.UUID,
     request: ProcessingConfirmRequest,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -845,6 +820,11 @@ async def confirm_extracted_invoice(
         await db.commit()
         await db.refresh(invoice)
 
+        # Generate AI analyses in background
+        background_tasks.add_task(
+            run_ai_analysis, str(invoice.id), str(current_user.id)
+        )
+
         # Limpar arquivos de upload após confirmação
         if processing.image_ids:
             deleted = 0
@@ -939,42 +919,6 @@ async def delete_invoice(
 
     await db.delete(invoice)
     await db.commit()
-
-
-async def _get_user_history(user_id: uuid.UUID, db: AsyncSession) -> dict:
-    """
-    Get user's purchase history for AI analysis.
-    """
-    # Get total invoices count
-    result = await db.execute(
-        select(func.count(Invoice.id)).where(Invoice.user_id == user_id)
-    )
-    total_invoices = result.scalar() or 0
-
-    # Get total spent
-    result = await db.execute(
-        select(func.sum(Invoice.total_value)).where(Invoice.user_id == user_id)
-    )
-    total_spent = result.scalar() or 0
-
-    # Get top categories
-    result = await db.execute(
-        select(InvoiceItem.category, func.sum(InvoiceItem.total_price).label("total"))
-        .join(Invoice, Invoice.id == InvoiceItem.invoice_id)
-        .where(Invoice.user_id == user_id)
-        .group_by(InvoiceItem.category)
-        .order_by(func.sum(InvoiceItem.total_price).desc())
-        .limit(5)
-    )
-    top_categories = result.all()
-
-    return {
-        "total_invoices": total_invoices,
-        "total_spent": float(total_spent),
-        "top_categories": [
-            {"category": cat[0], "total": float(cat[1])} for cat in top_categories
-        ],
-    }
 
 
 @router.get("/cnpj/{cnpj}/enrich")
@@ -1089,10 +1033,13 @@ async def get_invoices_summary(
 
     # Get top categories
     result = await db.execute(
-        select(InvoiceItem.category, func.sum(InvoiceItem.total_price).label("total"))
+        select(
+            InvoiceItem.category_name,
+            func.sum(InvoiceItem.total_price).label("total"),
+        )
         .join(Invoice, Invoice.id == InvoiceItem.invoice_id)
         .where(Invoice.user_id == current_user.id)
-        .group_by(InvoiceItem.category)
+        .group_by(InvoiceItem.category_name)
         .order_by(func.sum(InvoiceItem.total_price).desc())
         .limit(5)
     )
