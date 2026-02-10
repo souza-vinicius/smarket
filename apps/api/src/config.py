@@ -32,6 +32,8 @@ class Settings(BaseSettings):
     # OpenRouter (unified multi-model API)
     OPENROUTER_API_KEY: str = ""
     OPENROUTER_MODEL: str = "google/gemini-2.0-flash-001"
+    OPENROUTER_MODEL_LITE: str = "google/gemini-2.0-flash-lite-preview-02-05"
+    OPENROUTER_MODEL_FULL: str = "google/gemini-2.0-flash-thinking-exp-01-21"
     OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
 
     # Redis
@@ -45,6 +47,11 @@ class Settings(BaseSettings):
 
     # Uploads
     UPLOAD_DIR: str = "uploads"
+
+    # Image optimization for LLM vision processing
+    IMAGE_OPTIMIZATION_ENABLED: bool = True
+    IMAGE_MAX_DIMENSION: int = 1536  # Max dimension for longest side
+    IMAGE_JPEG_QUALITY: int = 90  # JPEG quality (1-100)
 
     # CNPJ Features - Master flag to disable all CNPJ features at once
     ENABLE_CNPJ_FEATURES: bool = True
@@ -70,6 +77,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = True
+        extra = "ignore"
 
 
 settings = Settings()

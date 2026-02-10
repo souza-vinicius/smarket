@@ -23,8 +23,15 @@ class AIAnalyzer:
     """Serviço de análise de compras usando OpenAI."""
 
     def __init__(self):
-        self.client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
-        self.model = "gpt-4o-mini"
+        if settings.OPENROUTER_API_KEY:
+            self.client = AsyncOpenAI(
+                base_url=settings.OPENROUTER_BASE_URL,
+                api_key=settings.OPENROUTER_API_KEY,
+            )
+            self.model = settings.OPENROUTER_MODEL
+        else:
+            self.client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+            self.model = "gpt-4o-mini"
 
     async def analyze_invoice(
         self, invoice: Invoice, user_history: dict[str, Any], db: AsyncSession
@@ -202,7 +209,7 @@ class AIAnalyzer:
                 .where(
                     and_(
                         Invoice.user_id == invoice.user_id,
-                        InvoiceItem.category == category,
+                        InvoiceItem.category_name == category,
                         Invoice.issue_date >= month_start,
                     )
                 )
@@ -211,20 +218,22 @@ class AIAnalyzer:
 
             # Buscar média dos últimos 3 meses
             three_months_ago = month_start - timedelta(days=90)
+            month_trunc = func.date_trunc("month", Invoice.issue_date).label("month")
+
             result = await db.execute(
                 select(
-                    func.date_trunc("month", Invoice.issue_date).label("month"),
+                    month_trunc,
                     func.sum(InvoiceItem.total_price).label("total"),
                 )
                 .join(Invoice, Invoice.id == InvoiceItem.invoice_id)
                 .where(
                     and_(
                         Invoice.user_id == invoice.user_id,
-                        InvoiceItem.category == category,
+                        InvoiceItem.category_name == category,
                         Invoice.issue_date >= three_months_ago,
                     )
                 )
-                .group_by(func.date_trunc("month", Invoice.issue_date))
+                .group_by(month_trunc)
             )
             monthly_totals = result.all()
 

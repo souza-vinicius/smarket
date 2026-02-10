@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 import aiofiles
 from sqlalchemy import and_, select
 
+from src.config import settings
 from src.database import AsyncSessionLocal
 from src.models.invoice import Invoice
 from src.models.invoice_processing import InvoiceProcessing
@@ -73,6 +74,36 @@ async def process_invoice_photos(processing_id: str) -> None:
 
                     mime_type = _get_mime_type(image_id)
 
+                    # Optimize image for LLM vision processing
+                    if settings.IMAGE_OPTIMIZATION_ENABLED:
+                        try:
+                            from src.utils.image_processing import resize_image_for_llm
+
+                            original_size = len(image_bytes)
+                            image_bytes = resize_image_for_llm(
+                                image_bytes,
+                                mime_type,
+                                max_dimension=settings.IMAGE_MAX_DIMENSION,
+                                jpeg_quality=settings.IMAGE_JPEG_QUALITY,
+                            )
+                            optimized_size = len(image_bytes)
+
+                            logger.info(
+                                f"Image {idx + 1} optimized: "
+                                f"{original_size/1024:.1f}KB → {optimized_size/1024:.1f}KB "
+                                f"({(1 - optimized_size/original_size)*100:.0f}% reduction)",
+                                extra={"processing_id": processing_id},
+                            )
+
+                            # Update mime_type to JPEG after optimization
+                            mime_type = "image/jpeg"
+
+                        except Exception as opt_error:
+                            logger.warning(
+                                f"Image optimization failed (using original): {opt_error}",
+                                extra={"processing_id": processing_id},
+                            )
+
                     logger.info(
                         f"Image {idx + 1}/{len(processing.image_ids)} loaded: "
                         f"{len(image_bytes)} bytes, type: {mime_type}",
@@ -104,6 +135,15 @@ async def process_invoice_photos(processing_id: str) -> None:
                 processing.updated_at = datetime.utcnow()
                 await db.commit()
                 return
+
+            # Log batch optimization summary
+            if settings.IMAGE_OPTIMIZATION_ENABLED:
+                total_size = sum(len(img[0]) for img in images)
+                logger.info(
+                    f"✓ Image batch ready: {len(images)} image(s), "
+                    f"total size: {total_size/1024:.1f}KB",
+                    extra={"processing_id": processing_id},
+                )
 
             # Enviar TODAS as imagens numa única request à LLM
             logger.info(

@@ -335,7 +335,11 @@ class BaseInvoiceExtractor(ABC):
 def _build_image_content_openai(
     images: list[tuple[bytes, str]],
 ) -> list:
-    """Constrói content list com múltiplas imagens (formato OpenAI)."""
+    """Constrói content list com múltiplas imagens (formato OpenAI).
+
+    Args:
+        images: Lista de (image_bytes, mime_type)
+    """
     n = len(images)
     if n > 1:
         intro = (
@@ -348,9 +352,8 @@ def _build_image_content_openai(
     content: list = [{"type": "text", "text": f"{intro}\n\n{SYSTEM_PROMPT}"}]
     for img_bytes, mime in images:
         b64 = base64.standard_b64encode(img_bytes).decode("utf-8")
-        content.append(
-            {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}}
-        )
+        image_url: dict = {"url": f"data:{mime};base64,{b64}"}
+        content.append({"type": "image_url", "image_url": image_url})
     return content
 
 
@@ -406,11 +409,20 @@ class GeminiExtractor(BaseInvoiceExtractor):
         self,
         images: list[tuple[bytes, str]],
     ) -> ExtractedInvoiceData:
+        from src.services.token_callback import TokenUsageCallback
+
         total = sum(len(b) for b, _ in images)
         logger.debug(f"GeminiExtractor: {len(images)} imagem(ns), {total} bytes")
+
+        # Create callback for token tracking
+        callback = TokenUsageCallback("Gemini", settings.GEMINI_MODEL)
+
         content = _build_image_content_openai(images)
         message = HumanMessage(content=content)
-        response = await self.llm.ainvoke([message])
+
+        # Pass callback to ainvoke for token tracking
+        response = await self.llm.ainvoke([message], config={"callbacks": [callback]})
+
         logger.debug(
             f"GeminiExtractor: Resposta recebida ({len(response.content)} chars)"
         )
@@ -437,11 +449,20 @@ class OpenAIExtractor(BaseInvoiceExtractor):
         self,
         images: list[tuple[bytes, str]],
     ) -> ExtractedInvoiceData:
+        from src.services.token_callback import TokenUsageCallback
+
         total = sum(len(b) for b, _ in images)
         logger.debug(f"OpenAIExtractor: {len(images)} imagem(ns), {total} bytes")
+
+        # Create callback for token tracking
+        callback = TokenUsageCallback("OpenAI", "gpt-4o-mini")
+
         content = _build_image_content_openai(images)
         message = HumanMessage(content=content)
-        response = await self.llm.ainvoke([message])
+
+        # Pass callback to ainvoke for token tracking
+        response = await self.llm.ainvoke([message], config={"callbacks": [callback]})
+
         logger.debug(
             f"OpenAIExtractor: Resposta recebida ({len(response.content)} chars)"
         )
@@ -468,14 +489,23 @@ class AnthropicExtractor(BaseInvoiceExtractor):
         self,
         images: list[tuple[bytes, str]],
     ) -> ExtractedInvoiceData:
+        from src.services.token_callback import TokenUsageCallback
+
         total = sum(len(b) for b, _ in images)
         logger.debug(
             f"AnthropicExtractor: {len(images)} imagem(ns), {total} bytes, "
             f"modelo: {settings.ANTHROPIC_MODEL}"
         )
+
+        # Create callback for token tracking
+        callback = TokenUsageCallback("Anthropic", settings.ANTHROPIC_MODEL)
+
         content = _build_image_content_anthropic(images)
         message = HumanMessage(content=content)
-        response = await self.llm.ainvoke([message])
+
+        # Pass callback to ainvoke for token tracking
+        response = await self.llm.ainvoke([message], config={"callbacks": [callback]})
+
         logger.debug(
             f"AnthropicExtractor: Resposta recebida ({len(response.content)} chars)"
         )
@@ -508,14 +538,23 @@ class OpenRouterExtractor(BaseInvoiceExtractor):
         self,
         images: list[tuple[bytes, str]],
     ) -> ExtractedInvoiceData:
+        from src.services.token_callback import TokenUsageCallback
+
         total = sum(len(b) for b, _ in images)
         logger.debug(
             f"OpenRouterExtractor: {len(images)} imagem(ns), {total} bytes, "
             f"modelo: {self.model_name}"
         )
+
+        # Create callback for token tracking
+        callback = TokenUsageCallback("OpenRouter", self.model_name)
+
         content = _build_image_content_openai(images)
         message = HumanMessage(content=content)
-        response = await self.llm.ainvoke([message])
+
+        # Pass callback to ainvoke for token tracking
+        response = await self.llm.ainvoke([message], config={"callbacks": [callback]})
+
         logger.debug(
             f"OpenRouterExtractor: Resposta recebida ({len(response.content)} chars)"
         )
@@ -527,6 +566,24 @@ class MultiProviderExtractor:
 
     def __init__(self):
         self.providers = []
+
+        # Inicializar modelos específicos para otimização de custo (via OpenRouter)
+        self.lite_extractor = None
+        self.standard_extractor = None
+
+        if settings.OPENROUTER_API_KEY:
+            try:
+                logger.info(f"Initializing Smart Extractors with settings: LITE={settings.OPENROUTER_MODEL_LITE}, FULL={settings.OPENROUTER_MODEL_FULL}")
+
+                # Modelo mais barato/rápido para casos simples (1 imagem)
+                self.lite_extractor = OpenRouterExtractor(model=settings.OPENROUTER_MODEL_LITE)
+
+                # Modelo mais robusto para falhas ou múltiplas imagens
+                self.standard_extractor = OpenRouterExtractor(model=settings.OPENROUTER_MODEL_FULL)
+
+                logger.info("Smart optimization extractors initialized (Lite + Standard)")
+            except Exception as e:
+                logger.warning(f"Failed to initialize smart extractors: {e}", exc_info=True)
 
         # OpenRouter primeiro — permite trocar modelo rapidamente via env var
         if settings.OPENROUTER_API_KEY:
@@ -550,7 +607,7 @@ class MultiProviderExtractor:
             self.providers.append(("anthropic", AnthropicExtractor()))
             logger.info("Anthropic provider initialized")
 
-        if not self.providers:
+        if not self.providers and not (self.lite_extractor or self.standard_extractor):
             raise ValueError("Nenhum provedor de LLM configurado")
 
     async def extract(
@@ -577,30 +634,32 @@ class MultiProviderExtractor:
         Raises:
             ValueError: Se todos os provedores falharem
         """
-
         # Validar imagens
         if not images:
             raise ValueError("At least one image is required")
 
-        total_size = sum(len(b) for b, _ in images)
+        # Log detalhado do tamanho de cada imagem
+        image_sizes = [len(b) for b, _ in images]
+        total_size = sum(image_sizes)
         image_size_mb = total_size / (1024 * 1024)
-        providers_list = ", ".join([name for name, _ in self.providers])
+
         logger.info(
             f"📸 INICIANDO EXTRAÇÃO DE NOTA FISCAL | "
-            f"{len(images)} imagem(ns), {image_size_mb:.2f}MB",
-            extra={
-                "image_count": len(images),
-                "size_mb": round(image_size_mb, 2),
-                "size_bytes": total_size,
-                "available_providers": providers_list,
-            },
+            f"{len(images)} imagem(ns), {image_size_mb:.2f}MB total"
         )
 
-        # Avisar se a imagem é muito grande (Claude tem limite de ~5MB)
-        if image_size_mb > 5:
-            logger.warning(
-                f"Image size {image_size_mb:.2f}MB may exceed provider limits"
-            )
+        # --- SMART SELECTION LOGIC ---
+        # 1. Se tivermos os extratores otimizados configurados (via OpenRouter)
+        if self.lite_extractor and self.standard_extractor:
+            result = await self._smart_extraction(images)
+            if result:
+                return result
+            # Se _smart_extraction retornou None (ou falhou internamente e capturou),
+            # caímos para o fallback dos providers tradicionais abaixo.
+            logger.info("⚠ Smart extraction failed/skipped, falling back to standard providers list")
+
+        # --- FALLBACK: Lista de provedores configurados ---
+
 
         # Gerar cache key baseada na primeira imagem
         cache_image = images[0][0]
@@ -692,6 +751,61 @@ class MultiProviderExtractor:
                 continue
 
         raise ValueError(f"Extração falhou: {errors}")
+
+    async def _smart_extraction(
+        self, images: list[tuple[bytes, str]]
+    ) -> ExtractedInvoiceData | None:
+        """Tentativa otimizada de extração."""
+        # Gerar chave de cache para a primeira imagem
+        cache_image = images[0][0]
+
+        # Caso 1: Apenas 1 imagem -> Tentar Lite
+        if len(images) == 1:
+            try:
+                # Verificar cache primeiro
+                cached = await get_cached_extraction("openrouter_lite", cache_image)
+                if cached:
+                    logger.info("✓ SUCESSO - Cache hit para openrouter_lite")
+                    return ExtractedInvoiceData(**cached)
+
+                logger.info(f"→ Tentando extração RÁPIDA (Lite) com modelo: {self.lite_extractor.model_name}...")
+                if not self.lite_extractor:
+                    # Should not accept if logic is correct, but safe guard
+                     raise ValueError("Lite extractor not initialized")
+
+                result = await self.lite_extractor.extract_multiple(images)
+
+                # Salvar cache
+                await cache_extraction("openrouter_lite", cache_image, result.model_dump())
+
+                logger.info(f"✓ SUCESSO - Extração Lite completa com modelo: {self.lite_extractor.model_name}")
+                return result
+            except Exception as e:
+                logger.warning(f"⚠ Extração Lite falhou: {e}. Tentando Standard...")
+                # Fallthrough to standard
+
+        # Caso 2: Múltiplas imagens OU falha no Lite -> Standard
+        try:
+            # Verificar cache (poderia usar chave diferente, mas ok)
+            cached = await get_cached_extraction("openrouter_standard", cache_image)
+            if cached:
+                logger.info("✓ SUCESSO - Cache hit para openrouter_standard")
+                return ExtractedInvoiceData(**cached)
+
+            logger.info(f"→ Tentando extração ROBUSTA (Standard) com modelo: {self.standard_extractor.model_name}...")
+            if not self.standard_extractor:
+                 raise ValueError("Standard extractor not initialized")
+
+            result = await self.standard_extractor.extract_multiple(images)
+
+            # Salvar cache
+            await cache_extraction("openrouter_standard", cache_image, result.model_dump())
+
+            logger.info(f"✓ SUCESSO - Extração Standard completa com modelo: {self.standard_extractor.model_name}")
+            return result
+        except Exception as e:
+            logger.error(f"⚠ Extração Standard falhou: {e}")
+            return None  # Retorna None para acionar fallback tradicional
 
 
 # Instância global com todos os provedores disponíveis
