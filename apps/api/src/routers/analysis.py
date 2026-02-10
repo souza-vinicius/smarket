@@ -1,3 +1,4 @@
+import logging
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
@@ -16,9 +17,11 @@ from src.models.merchant import Merchant
 from src.models.user import User
 from src.schemas.analysis import AnalysisResponse
 from src.services.ai_analyzer import analyzer
+from src.services.merchant_service import merchant_service
 
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.get("/", response_model=list[AnalysisResponse])
@@ -171,6 +174,30 @@ async def get_dashboard_summary(
         .limit(1)
     )
     top_merchant = top_merchant_result.first()
+
+    # Self-healing: If no top merchant but we have invoices, try to backfill
+    if not top_merchant and invoice_count > 0:
+        try:
+            logger.info(f"Self-healing: Triggering merchant backfill for user {current_user.id}")
+            backfilled_count = await merchant_service.link_all_unlinked_invoices(db, current_user.id)
+            if backfilled_count > 0:
+                # Re-run query if backfilled
+                top_merchant_result = await db.execute(
+                    select(Merchant.name, func.sum(Invoice.total_value).label("total"))
+                    .join(Invoice, Invoice.merchant_id == Merchant.id)
+                    .where(
+                        and_(
+                            Invoice.user_id == current_user.id,
+                            func.date(Invoice.issue_date) >= first_day_of_month,
+                        )
+                    )
+                    .group_by(Merchant.id)
+                    .order_by(func.sum(Invoice.total_value).desc())
+                    .limit(1)
+                )
+                top_merchant = top_merchant_result.first()
+        except Exception as e:
+            logger.error(f"Error during self-healing merchant backfill: {e}")
 
     # Calculate month-over-month change
     month_change = Decimal("0.00")

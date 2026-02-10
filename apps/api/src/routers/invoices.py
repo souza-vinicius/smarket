@@ -38,6 +38,7 @@ from src.schemas.invoice_processing import (
     ProcessingStatus,
 )
 from src.services.cnpj_enrichment import enrich_cnpj_data
+from src.services.merchant_service import merchant_service
 from src.services.name_normalizer import normalize_product_dict
 from src.tasks.ai_analysis import run_ai_analysis
 from src.tasks.process_invoice_photos import process_invoice_photos
@@ -380,6 +381,12 @@ async def process_qrcode(
     db.add(invoice)
     await db.flush()  # Get invoice.id
 
+    # Link to merchant
+    try:
+        await merchant_service.link_invoice_to_merchant(db, invoice)
+    except Exception as me:
+        logger.warning(f"Failed to link invoice {invoice.id} to merchant: {me}")
+
     # Normalizar nomes dos itens (expande abreviações de NF-e)
     for item_data in invoice_data["products"]:
         normalize_product_dict(item_data)
@@ -461,6 +468,12 @@ async def upload_xml(
 
     db.add(invoice)
     await db.flush()
+
+    # Link to merchant
+    try:
+        await merchant_service.link_invoice_to_merchant(db, invoice)
+    except Exception as me:
+        logger.warning(f"Failed to link invoice {invoice.id} to merchant: {me}")
 
     # Normalizar nomes dos itens (expande abreviações de NF-e)
     for item_data in invoice_data["products"]:
@@ -798,6 +811,12 @@ async def confirm_extracted_invoice(
 
         db.add(invoice)
         await db.flush()
+
+        # Link to merchant
+        try:
+            await merchant_service.link_invoice_to_merchant(db, invoice)
+        except Exception as me:
+            logger.warning(f"Failed to link invoice {invoice.id} to merchant: {me}")
 
         # Criar items
         for item_data in request.items:
