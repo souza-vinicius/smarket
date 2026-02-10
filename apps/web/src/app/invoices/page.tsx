@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Receipt,
 } from "lucide-react";
+import { InvoiceCard } from "@/components/invoices/invoice-card";
 import { PageLayout } from "@/components/layout/page-layout";
 import { Button } from "@/components/ui/button";
 import { Card, StatCard } from "@/components/ui/card";
@@ -43,7 +44,7 @@ function UploadModal({
   const [activeTab, setActiveTab] = useState<"photo" | "xml" | "qrcode">("photo");
   const [qrCode, setQrCode] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  
+
   const router = useRouter();
   const uploadXMLMutation = useUploadXML();
   const uploadPhotosMutation = useUploadPhotos();
@@ -92,9 +93,9 @@ function UploadModal({
     }
   };
 
-  const isUploading = 
-    uploadXMLMutation.isPending || 
-    uploadPhotosMutation.isPending || 
+  const isUploading =
+    uploadXMLMutation.isPending ||
+    uploadPhotosMutation.isPending ||
     processQRCodeMutation.isPending;
 
   return (
@@ -132,11 +133,10 @@ function UploadModal({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as typeof activeTab)}
-              className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all ${
-                activeTab === tab.id
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
+              className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all ${activeTab === tab.id
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+                }`}
             >
               {tab.label}
             </button>
@@ -201,58 +201,6 @@ function UploadModal({
   );
 }
 
-// Invoice List Item - Mobile optimized
-function InvoiceListItem({
-  invoice,
-  onClick,
-}: {
-  invoice: {
-    id: string;
-    issuer_name: string;
-    total_value: number;
-    issue_date: string;
-    type?: string;
-    product_count: number;
-  };
-  onClick: () => void;
-}) {
-  return (
-    <div
-      onClick={onClick}
-      className="flex items-center gap-4 p-4 bg-card rounded-xl border border-border cursor-pointer hover:border-primary/30 transition-colors"
-    >
-      <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-primary-subtle flex items-center justify-center">
-        <FileText className="w-6 h-6 text-primary" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
-          <h3 className="font-semibold text-foreground truncate">
-            {invoice.issuer_name}
-          </h3>
-          {invoice.type && (
-            <Badge variant="outline" className="text-xs flex-shrink-0">
-              {invoice.type}
-            </Badge>
-          )}
-        </div>
-        <div className="flex items-center gap-3 text-sm text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <Calendar className="w-3.5 h-3.5" />
-            {formatDate(invoice.issue_date)}
-          </span>
-          <span>•</span>
-          <span>{invoice.product_count} itens</span>
-        </div>
-      </div>
-      <div className="text-right">
-        <p className="font-bold text-foreground">
-          {formatCurrency(invoice.total_value)}
-        </p>
-        <ChevronRight className="w-5 h-5 text-muted-foreground ml-auto mt-1" />
-      </div>
-    </div>
-  );
-}
 
 // Pending Item - Mobile optimized
 function PendingItem({
@@ -454,7 +402,7 @@ export default function InvoicesPage() {
             </span>
           )}
         </div>
-        
+
         {isInvoicesLoading ? (
           <div className="space-y-3">
             <SkeletonListItem />
@@ -464,7 +412,7 @@ export default function InvoicesPage() {
         ) : filteredInvoices.length > 0 ? (
           <div className="space-y-3">
             {filteredInvoices.map((invoice) => (
-              <InvoiceListItem
+              <InvoiceCard
                 key={invoice.id}
                 invoice={invoice}
                 onClick={() => router.push(`/invoices/${invoice.id}`)}

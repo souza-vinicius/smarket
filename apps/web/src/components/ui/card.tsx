@@ -11,15 +11,15 @@ interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 
 const Card = React.forwardRef<HTMLDivElement, CardProps>(
   (
-    { 
-      className, 
-      variant = "default", 
+    {
+      className,
+      variant = "default",
       padding = "md",
       isInteractive = false,
       isPressable = false,
       children,
-      ...props 
-    }, 
+      ...props
+    },
     ref
   ) => {
     const variants = {
@@ -32,8 +32,8 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
     const paddings = {
       none: "",
       sm: "p-3",
-      md: "p-4 sm:p-5",
-      lg: "p-5 sm:p-6",
+      md: "p-3 sm:p-5",
+      lg: "p-4 sm:p-6",
     };
 
     return (
@@ -171,17 +171,17 @@ const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
     }
 
     return (
-      <Card 
-        className={cn("relative overflow-hidden", className)} 
-        ref={ref} 
+      <Card
+        className={cn("relative overflow-hidden", className)}
+        ref={ref}
         {...props}
       >
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-muted-foreground mb-1">
+            <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">
               {title}
             </p>
-            <p className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
+            <p className="text-xl sm:text-3xl font-bold text-foreground tracking-tight">
               {value}
             </p>
             {subtitle && (
@@ -194,10 +194,10 @@ const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
                 "inline-flex items-center gap-1 mt-2 text-sm font-medium",
                 trend.isPositive ? "text-success" : "text-destructive"
               )}>
-                <svg 
-                  className="w-4 h-4" 
-                  fill="none" 
-                  viewBox="0 0 24 24" 
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
                   stroke="currentColor"
                 >
                   {trend.isPositive ? (
@@ -211,8 +211,8 @@ const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
             )}
           </div>
           {icon && (
-            <div className="flex-shrink-0 ml-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-subtle text-primary">
+            <div className="flex-shrink-0 ml-2 sm:ml-4">
+              <div className="flex h-9 w-9 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-primary-subtle text-primary">
                 {icon}
               </div>
             </div>

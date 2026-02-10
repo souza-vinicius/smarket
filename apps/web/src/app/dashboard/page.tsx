@@ -19,7 +19,13 @@ import { Skeleton, SkeletonCard } from "@/components/ui/skeleton";
 import { Modal } from "@/components/ui/modal";
 import { useDashboardSummary, useRecentInsights } from "@/hooks/use-dashboard";
 import { useMarkInsightAsRead } from "@/hooks/use-insights";
-import { useUploadXML, useProcessQRCode, useUploadPhotos } from "@/hooks/use-invoices";
+import {
+  useUploadXML,
+  useProcessQRCode,
+  useUploadPhotos,
+  useInvoices,
+} from "@/hooks/use-invoices";
+import { InvoiceCard } from "@/components/invoices/invoice-card";
 import { formatCurrency } from "@/lib/utils";
 
 // Upload Modal Component
@@ -33,7 +39,7 @@ function UploadModal({
   const [activeTab, setActiveTab] = useState<"photo" | "xml" | "qrcode">("photo");
   const [qrCode, setQrCode] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  
+
   const router = useRouter();
   const uploadXMLMutation = useUploadXML();
   const uploadPhotosMutation = useUploadPhotos();
@@ -83,9 +89,9 @@ function UploadModal({
     }
   };
 
-  const isUploading = 
-    uploadXMLMutation.isPending || 
-    uploadPhotosMutation.isPending || 
+  const isUploading =
+    uploadXMLMutation.isPending ||
+    uploadPhotosMutation.isPending ||
     processQRCodeMutation.isPending;
 
   return (
@@ -123,11 +129,10 @@ function UploadModal({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as typeof activeTab)}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-md text-sm font-medium transition-all ${
-                activeTab === tab.id
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-md text-sm font-medium transition-all ${activeTab === tab.id
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+                }`}
             >
               <span>{tab.icon}</span>
               <span className="hidden sm:inline">{tab.label}</span>
@@ -243,25 +248,23 @@ function InsightCard({
   return (
     <Card
       isInteractive
-      className={`relative overflow-hidden ${
-        !insight.is_read ? "border-primary/30" : ""
-      }`}
+      className={`relative overflow-hidden ${!insight.is_read ? "border-primary/30" : ""
+        }`}
     >
       {!insight.is_read && (
         <span className="absolute top-4 right-4 w-2 h-2 rounded-full bg-primary" />
       )}
       <div className="flex items-start gap-4">
         <div
-          className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center border ${
-            priorityColors[insight.priority as keyof typeof priorityColors] ||
+          className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center border ${priorityColors[insight.priority as keyof typeof priorityColors] ||
             priorityColors.low
-          }`}
+            }`}
         >
           <Sparkles className="w-5 h-5" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="font-semibold text-foreground line-clamp-1">
+            <h3 className="text-sm sm:text-base font-semibold text-foreground line-clamp-1">
               {insight.title}
             </h3>
           </div>
@@ -287,9 +290,10 @@ function InsightCard({
 export default function DashboardPage() {
   const router = useRouter();
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  
+
   const { data: summary, isLoading: isSummaryLoading } = useDashboardSummary();
-  const { data: insights, isLoading: isInsightsLoading } = useRecentInsights(6);
+  const { data: insights, isLoading: isInsightsLoading } = useRecentInsights(3);
+  const { data: recentInvoices, isLoading: isInvoicesLoading } = useInvoices(0, 3);
   const markAsReadMutation = useMarkInsightAsRead();
 
   return (
@@ -319,7 +323,7 @@ export default function DashboardPage() {
       </Card>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {isSummaryLoading ? (
           <>
             <SkeletonCard />
@@ -335,36 +339,35 @@ export default function DashboardPage() {
               trend={
                 summary.month_over_month_change_percent !== 0
                   ? {
-                      value: Math.abs(summary.month_over_month_change_percent),
-                      isPositive: summary.month_over_month_change_percent < 0,
-                    }
+                    value: Math.abs(summary.month_over_month_change_percent),
+                    isPositive: summary.month_over_month_change_percent < 0,
+                  }
                   : undefined
               }
-              icon={<DollarSign className="w-5 h-5" />}
+              icon={<DollarSign className="w-4 h-4 sm:w-5 sm:h-5" />}
             />
             <StatCard
               title="Notas Fiscais"
               value={summary.invoice_count_this_month}
               subtitle="Este mês"
-              icon={<FileText className="w-5 h-5" />}
+              icon={<FileText className="w-4 h-4 sm:w-5 sm:h-5" />}
             />
             <StatCard
               title="Insights"
               value={summary.unread_insights_count}
               subtitle="Não lidos"
-              icon={<AlertCircle className="w-5 h-5" />}
+              icon={<AlertCircle className="w-4 h-4 sm:w-5 sm:h-5" />}
             />
             <StatCard
               title="Top Estabelecimento"
               value={formatCurrency(summary.top_merchant_this_month?.total || 0)}
               subtitle={summary.top_merchant_this_month?.name || "N/A"}
-              icon={<TrendingUp className="w-5 h-5" />}
+              icon={<TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />}
             />
           </>
         ) : null}
       </div>
 
-      {/* Quick Actions - Desktop */}
       <div className="hidden sm:flex gap-3 mb-8">
         <Button
           size="lg"
@@ -382,6 +385,48 @@ export default function DashboardPage() {
           Ver Análises
         </Button>
       </div>
+
+      {/* Recent Invoices Section */}
+      <section className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-xl font-bold text-foreground">Notas Fiscais Recentes</h2>
+            <p className="text-sm text-muted-foreground">
+              Suas últimas compras registradas
+            </p>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            rightIcon={<ArrowRight className="w-4 h-4" />}
+            onClick={() => router.push("/invoices")}
+          >
+            Ver todas
+          </Button>
+        </div>
+
+        {isInvoicesLoading ? (
+          <div className="space-y-3">
+            <Skeleton className="h-20" />
+            <Skeleton className="h-20" />
+            <Skeleton className="h-20" />
+          </div>
+        ) : recentInvoices && recentInvoices.length > 0 ? (
+          <div className="space-y-3">
+            {recentInvoices.map((invoice) => (
+              <InvoiceCard
+                key={invoice.id}
+                invoice={invoice}
+                onClick={() => router.push(`/invoices/${invoice.id}`)}
+              />
+            ))}
+          </div>
+        ) : (
+          <Card className="text-center py-8">
+            <p className="text-muted-foreground text-sm">Nenhuma nota fiscal encontrada</p>
+          </Card>
+        )}
+      </section>
 
       {/* Insights Section */}
       <section>
