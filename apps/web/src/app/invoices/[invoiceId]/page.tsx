@@ -19,6 +19,7 @@ import { ConfirmModal } from "@/components/ui/modal";
 import { Skeleton, SkeletonListItem } from "@/components/ui/skeleton";
 import { useInvoice, useDeleteInvoice } from "@/hooks/use-invoices";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { CategoryDonutChart } from "@/components/invoices/category-donut-chart";
 import { useState } from "react";
 
 interface InvoiceDetailPageProps {
@@ -29,6 +30,7 @@ interface InvoiceDetailPageProps {
 
 function ProductItem({
   product,
+  isFiltered,
 }: {
   product: {
     description: string;
@@ -39,9 +41,14 @@ function ProductItem({
     total_price: number;
     category_name?: string;
   };
+  isFiltered?: boolean;
 }) {
   return (
-    <div className="flex items-start gap-3 py-3 border-b border-border last:border-0">
+    <div
+      className={`flex items-start gap-3 py-3 border-b border-border last:border-0 transition-all ${
+        isFiltered ? "opacity-30 scale-95" : "opacity-100 scale-100"
+      }`}
+    >
       <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary-subtle flex items-center justify-center">
         <Package className="w-5 h-5 text-primary" />
       </div>
@@ -72,7 +79,8 @@ function ProductItem({
 export default function InvoiceDetailPage({ params }: InvoiceDetailPageProps) {
   const router = useRouter();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
   const { data: invoice, isLoading } = useInvoice(params.invoiceId);
   const deleteMutation = useDeleteInvoice();
 
@@ -217,20 +225,51 @@ export default function InvoiceDetailPage({ params }: InvoiceDetailPageProps) {
         </div>
       </Card>
 
+      {/* Category Distribution Chart */}
+      {invoice.products && invoice.products.length > 0 && (
+        <div className="mb-6">
+          <CategoryDonutChart
+            products={invoice.products}
+            onCategoryFilter={setSelectedCategory}
+          />
+        </div>
+      )}
+
       {/* Products List */}
       <section>
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-foreground">
-            Produtos ({invoice.products?.length || 0})
+            Produtos (
+            {selectedCategory
+              ? invoice.products?.filter(
+                  (p) => (p.category_name || "Sem categoria") === selectedCategory
+                ).length
+              : invoice.products?.length || 0}
+            )
           </h3>
+          {selectedCategory && (
+            <Badge variant="default" size="sm">
+              {selectedCategory}
+            </Badge>
+          )}
         </div>
 
         <Card>
           {invoice.products && invoice.products.length > 0 ? (
             <div className="divide-y divide-border">
-              {invoice.products.map((product, index) => (
-                <ProductItem key={index} product={product} />
-              ))}
+              {invoice.products.map((product, index) => {
+                const productCategory = product.category_name || "Sem categoria";
+                const isFiltered =
+                  selectedCategory !== null && productCategory !== selectedCategory;
+
+                return (
+                  <ProductItem
+                    key={index}
+                    product={product}
+                    isFiltered={isFiltered}
+                  />
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-8">

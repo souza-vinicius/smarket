@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import * as React from "react";
 import { useRouter } from "next/navigation";
 import {
   Plus,
@@ -318,20 +319,26 @@ export default function InvoicesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [processingToDelete, setProcessingToDelete] = useState<string | null>(null);
-  
+
   const { data: invoices, isLoading: isInvoicesLoading } = useInvoices();
   const { data: pendingProcessing, isLoading: isPendingLoading } = usePendingProcessing();
   const { data: summary, isLoading: isSummaryLoading } = useInvoicesSummary();
   const deleteProcessingMutation = useDeleteProcessing();
 
   // Filter invoices
-  const filteredInvoices =
-    invoices?.filter((invoice) => {
-      const matchesSearch =
-        invoice.issuer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        invoice.access_key.includes(searchQuery);
-      return matchesSearch;
-    }) || [];
+  const filteredInvoices = React.useMemo(() => {
+    if (!invoices) return [];
+    if (!searchQuery.trim()) return invoices;
+
+    const query = searchQuery.toLowerCase().trim();
+
+    return invoices.filter((invoice) => {
+      const issuerName = invoice.issuer_name?.toLowerCase() || '';
+      const accessKey = invoice.access_key?.toLowerCase() || '';
+
+      return issuerName.includes(query) || accessKey.includes(query);
+    });
+  }, [invoices, searchQuery]);
 
   const handleDelete = () => {
     if (processingToDelete) {
@@ -437,9 +444,16 @@ export default function InvoicesPage() {
 
       {/* Invoices List */}
       <section>
-        <h2 className="text-lg font-semibold text-foreground mb-3">
-          Notas Processadas
-        </h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold text-foreground">
+            Notas Processadas
+          </h2>
+          {searchQuery && (
+            <span className="text-sm text-muted-foreground">
+              {filteredInvoices.length} resultado{filteredInvoices.length !== 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
         
         {isInvoicesLoading ? (
           <div className="space-y-3">
