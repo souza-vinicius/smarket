@@ -65,6 +65,7 @@ ABBREVIATIONS_PACKAGING: dict[str, str] = {
 
 # Estado / Processamento do produto
 ABBREVIATIONS_STATE: dict[str, str] = {
+    "ANTIAD": "Antiaderente",
     "CONG": "Congelado",
     "RESF": "Resfriado",
     "DEF": "Defumado",
@@ -81,6 +82,7 @@ ABBREVIATIONS_STATE: dict[str, str] = {
     "INST": "Instantâneo",
     "TORR": "Torrado",
     "MOI": "Moído",
+    "REFINAD": "Refinado",
     "REF": "Refinado",
     "CRIST": "Cristal",
     "PAST": "Pasteurizado",
@@ -94,6 +96,7 @@ ABBREVIATIONS_STATE: dict[str, str] = {
     "LIGHT": "Light",
     "LT": "Light",
     "ZERO": "Zero",
+    "ZER": "Zero",
     "DIET": "Diet",
     "SEM LACT": "Sem Lactose",
     "S/LACT": "Sem Lactose",
@@ -102,6 +105,7 @@ ABBREVIATIONS_STATE: dict[str, str] = {
 
 # Cortes de carne e formas de preparo
 ABBREVIATIONS_CUTS: dict[str, str] = {
+    "CARN": "Carne",
     "FIL": "Filé",
     "FILE": "Filé",
     "PJ": "Peça",
@@ -151,6 +155,11 @@ ABBREVIATIONS_PRODUCTS: dict[str, str] = {
     "QJO": "Queijo",
     "QUEIJ": "Queijo",
     "PROT": "Proteica",
+    "DESENGO": "Desengordurante",
+    "DESENG": "Desengordurante",
+    "RISTRET": "Ristretto",
+    "RISTRETO": "Ristretto",
+    "PENN": "Penne",
     "DENT": "Dental",
     "DENTAL": "Dental",
     "SH": "Shampoo",
@@ -513,6 +522,7 @@ _UNITS = {
     "LT",
     "L",
     "UN",
+    "UND",
     "PC",
     "PCT",
     "CX",
