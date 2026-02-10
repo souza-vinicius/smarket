@@ -1,9 +1,9 @@
 import uuid
+from datetime import datetime
 from decimal import Decimal
 from typing import Optional
-from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
 
 
 class ProductBase(BaseModel):
@@ -50,6 +50,27 @@ class ProductList(BaseModel):
     purchase_count: int
     average_price: Decimal
     price_trend: str
+
+    class Config:
+        from_attributes = True
+
+
+class ProductPurchaseResult(BaseModel):
+    id: uuid.UUID
+    description: str
+    normalized_name: Optional[str] = None
+    quantity: Decimal
+    unit: str
+    unit_price: Decimal
+    total_price: Decimal
+    issue_date: datetime
+    issuer_name: str
+    merchant_name: Optional[str] = None
+    invoice_id: uuid.UUID
+
+    @field_serializer("quantity", "unit_price", "total_price")
+    def serialize_decimal(self, v: Decimal) -> float:
+        return float(v)
 
     class Config:
         from_attributes = True

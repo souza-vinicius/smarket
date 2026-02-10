@@ -7,12 +7,12 @@ CNPJ databases. It uses BrasilAPI as the primary source with ReceitaWS as fallba
 
 import logging
 from typing import Optional
-from datetime import datetime, timedelta
 
 import httpx
 from cachetools import TTLCache
 
 from src.utils.cnpj_validator import clean_cnpj, format_cnpj
+
 
 logger = logging.getLogger(__name__)
 
@@ -22,9 +22,7 @@ _cnpj_cache: TTLCache = TTLCache(maxsize=1000, ttl=86400)
 
 
 async def enrich_cnpj_data(
-    cnpj: str,
-    timeout: int = 5,
-    use_cache: bool = True
+    cnpj: str, timeout: int = 5, use_cache: bool = True
 ) -> Optional[dict]:
     """
     Enrich CNPJ data using public APIs.
@@ -69,7 +67,7 @@ async def enrich_cnpj_data(
         data = await fetch_from_brasilapi(cnpj_clean, timeout)
         if data:
             logger.info(f"CNPJ enriched from BrasilAPI: {cnpj_clean}")
-            data['source'] = 'brasilapi'
+            data["source"] = "brasilapi"
             _cnpj_cache[cnpj_clean] = data
             return data
     except Exception as e:
@@ -80,7 +78,7 @@ async def enrich_cnpj_data(
         data = await fetch_from_receitaws(cnpj_clean, timeout)
         if data:
             logger.info(f"CNPJ enriched from ReceitaWS: {cnpj_clean}")
-            data['source'] = 'receitaws'
+            data["source"] = "receitaws"
             _cnpj_cache[cnpj_clean] = data
             return data
     except Exception as e:
@@ -119,21 +117,21 @@ async def fetch_from_brasilapi(cnpj: str, timeout: int = 5) -> Optional[dict]:
 
         # Normalize BrasilAPI response to our schema
         return {
-            'razao_social': data.get('razao_social', ''),
-            'nome_fantasia': data.get('nome_fantasia', ''),
-            'cnpj': format_cnpj(data.get('cnpj', cnpj)),
-            'logradouro': data.get('logradouro', ''),
-            'numero': data.get('numero', ''),
-            'complemento': data.get('complemento', ''),
-            'bairro': data.get('bairro', ''),
-            'municipio': data.get('municipio', ''),
-            'uf': data.get('uf', ''),
-            'cep': data.get('cep', ''),
-            'telefone': data.get('ddd_telefone_1', ''),
-            'email': data.get('email', ''),
-            'situacao': data.get('descricao_situacao_cadastral', ''),
-            'cnae_fiscal': str(data.get('cnae_fiscal', '')),
-            'data_abertura': data.get('data_inicio_atividade', ''),
+            "razao_social": data.get("razao_social", ""),
+            "nome_fantasia": data.get("nome_fantasia", ""),
+            "cnpj": format_cnpj(data.get("cnpj", cnpj)),
+            "logradouro": data.get("logradouro", ""),
+            "numero": data.get("numero", ""),
+            "complemento": data.get("complemento", ""),
+            "bairro": data.get("bairro", ""),
+            "municipio": data.get("municipio", ""),
+            "uf": data.get("uf", ""),
+            "cep": data.get("cep", ""),
+            "telefone": data.get("ddd_telefone_1", ""),
+            "email": data.get("email", ""),
+            "situacao": data.get("descricao_situacao_cadastral", ""),
+            "cnae_fiscal": str(data.get("cnae_fiscal", "")),
+            "data_abertura": data.get("data_inicio_atividade", ""),
         }
 
 
@@ -165,27 +163,29 @@ async def fetch_from_receitaws(cnpj: str, timeout: int = 5) -> Optional[dict]:
         data = response.json()
 
         # Check for API error response
-        if data.get('status') == 'ERROR':
+        if data.get("status") == "ERROR":
             logger.error(f"ReceitaWS error: {data.get('message')}")
             return None
 
         # Normalize ReceitaWS response to our schema
         return {
-            'razao_social': data.get('nome', ''),
-            'nome_fantasia': data.get('fantasia', ''),
-            'cnpj': format_cnpj(data.get('cnpj', cnpj)),
-            'logradouro': data.get('logradouro', ''),
-            'numero': data.get('numero', ''),
-            'complemento': data.get('complemento', ''),
-            'bairro': data.get('bairro', ''),
-            'municipio': data.get('municipio', ''),
-            'uf': data.get('uf', ''),
-            'cep': data.get('cep', ''),
-            'telefone': data.get('telefone', ''),
-            'email': data.get('email', ''),
-            'situacao': data.get('situacao', ''),
-            'cnae_fiscal': data.get('atividade_principal', [{}])[0].get('code', '') if data.get('atividade_principal') else '',
-            'data_abertura': data.get('abertura', ''),
+            "razao_social": data.get("nome", ""),
+            "nome_fantasia": data.get("fantasia", ""),
+            "cnpj": format_cnpj(data.get("cnpj", cnpj)),
+            "logradouro": data.get("logradouro", ""),
+            "numero": data.get("numero", ""),
+            "complemento": data.get("complemento", ""),
+            "bairro": data.get("bairro", ""),
+            "municipio": data.get("municipio", ""),
+            "uf": data.get("uf", ""),
+            "cep": data.get("cep", ""),
+            "telefone": data.get("telefone", ""),
+            "email": data.get("email", ""),
+            "situacao": data.get("situacao", ""),
+            "cnae_fiscal": data.get("atividade_principal", [{}])[0].get("code", "")
+            if data.get("atividade_principal")
+            else "",
+            "data_abertura": data.get("abertura", ""),
         }
 
 

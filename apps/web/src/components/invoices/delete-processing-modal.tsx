@@ -1,11 +1,13 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { Check, AlertCircle, Loader2 } from 'lucide-react';
-import { Modal } from '@/components/ui/modal';
-import { Button } from '@/components/ui/button';
+import { useEffect, useState } from "react";
 
-type DeleteState = 'idle' | 'confirming' | 'deleting' | 'success' | 'error';
+import { Check, AlertCircle, Loader2 } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/modal";
+
+type DeleteState = "idle" | "confirming" | "deleting" | "success" | "error";
 
 interface DeleteProcessingModalProps {
   isOpen: boolean;
@@ -22,32 +24,32 @@ export function DeleteProcessingModal({
   onConfirm,
   isDeleting,
   error,
-  issuerName = 'Processamento',
+  issuerName = "Processamento",
 }: DeleteProcessingModalProps) {
-  const [state, setState] = useState<DeleteState>('idle');
+  const [state, setState] = useState<DeleteState>("idle");
 
   useEffect(() => {
     if (!isOpen) {
-      setState('idle');
+      setState("idle");
     } else {
-      setState('confirming');
+      setState("confirming");
     }
   }, [isOpen]);
 
   useEffect(() => {
     if (isDeleting) {
-      setState('deleting');
-    } else if (state === 'deleting') {
+      setState("deleting");
+    } else if (state === "deleting") {
       if (error) {
-        setState('error');
+        setState("error");
       } else {
-        setState('success');
+        setState("success");
       }
     }
   }, [isDeleting, error, state]);
 
   const handleClose = () => {
-    if (state === 'success' || state === 'error') {
+    if (state === "success" || state === "error") {
       onClose();
     }
   };
@@ -57,14 +59,9 @@ export function DeleteProcessingModal({
   };
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={handleClose}
-      closeButton={state !== 'deleting'}
-      size="sm"
-    >
+    <Modal isOpen={isOpen} onClose={handleClose} showCloseButton={state !== "deleting"} size="sm">
       {/* Confirming State */}
-      {state === 'confirming' && (
+      {state === "confirming" && (
         <div className="py-4">
           <div className="mb-4 flex justify-center">
             <div className="flex size-16 items-center justify-center rounded-full bg-red-100">
@@ -74,52 +71,41 @@ export function DeleteProcessingModal({
           <h3 className="mb-2 text-center text-lg font-semibold text-slate-900">
             Deseja remover este processamento?
           </h3>
-          <p className="mb-6 text-center text-sm text-slate-600">
-            {issuerName}
-          </p>
+          <p className="mb-6 text-center text-sm text-slate-600">{issuerName}</p>
           <p className="mb-6 text-center text-xs text-slate-500">
             Esta ação não pode ser desfeita. O registro será permanentemente removido.
           </p>
           <div className="flex gap-3">
-            <Button
-              variant="outline"
-              onClick={onClose}
-              disabled={isDeleting}
-              className="flex-1"
-            >
+            <Button variant="outline" onClick={onClose} disabled={isDeleting} className="flex-1">
               Cancelar
             </Button>
             <Button
-              variant="destructive"
+              variant="danger"
               onClick={handleConfirm}
               disabled={isDeleting}
               className="flex-1"
             >
-              {isDeleting ? 'Removendo...' : 'Remover'}
+              {isDeleting ? "Removendo..." : "Remover"}
             </Button>
           </div>
         </div>
       )}
 
       {/* Deleting State */}
-      {state === 'deleting' && (
+      {state === "deleting" && (
         <div className="py-8 text-center">
           <div className="mb-4 flex justify-center">
             <div className="flex size-16 items-center justify-center rounded-full bg-blue-100">
               <Loader2 className="size-8 animate-spin text-blue-600" />
             </div>
           </div>
-          <h3 className="text-lg font-semibold text-slate-900">
-            Removendo processamento...
-          </h3>
-          <p className="mt-2 text-sm text-slate-600">
-            Por favor aguarde
-          </p>
+          <h3 className="text-lg font-semibold text-slate-900">Removendo processamento...</h3>
+          <p className="mt-2 text-sm text-slate-600">Por favor aguarde</p>
         </div>
       )}
 
       {/* Success State */}
-      {state === 'success' && (
+      {state === "success" && (
         <div className="py-4">
           <div className="mb-4 flex justify-center">
             <div className="flex size-16 items-center justify-center rounded-full bg-emerald-100">
@@ -132,43 +118,29 @@ export function DeleteProcessingModal({
           <p className="mb-6 text-center text-sm text-slate-600">
             O processamento foi removido da sua lista.
           </p>
-          <Button
-            variant="primary"
-            onClick={handleClose}
-            className="w-full"
-          >
+          <Button variant="primary" onClick={handleClose} className="w-full">
             Fechar
           </Button>
         </div>
       )}
 
       {/* Error State */}
-      {state === 'error' && (
+      {state === "error" && (
         <div className="py-4">
           <div className="mb-4 flex justify-center">
             <div className="flex size-16 items-center justify-center rounded-full bg-red-100">
               <AlertCircle className="size-8 text-red-600" />
             </div>
           </div>
-          <h3 className="mb-2 text-center text-lg font-semibold text-slate-900">
-            Erro ao remover
-          </h3>
+          <h3 className="mb-2 text-center text-lg font-semibold text-slate-900">Erro ao remover</h3>
           <p className="mb-6 text-center text-sm text-slate-600">
-            {error || 'Houve um problema ao remover o processamento. Tente novamente.'}
+            {error || "Houve um problema ao remover o processamento. Tente novamente."}
           </p>
           <div className="flex gap-3">
-            <Button
-              variant="outline"
-              onClick={onClose}
-              className="flex-1"
-            >
+            <Button variant="outline" onClick={onClose} className="flex-1">
               Fechar
             </Button>
-            <Button
-              variant="primary"
-              onClick={handleConfirm}
-              className="flex-1"
-            >
+            <Button variant="primary" onClick={handleConfirm} className="flex-1">
               Tentar novamente
             </Button>
           </div>

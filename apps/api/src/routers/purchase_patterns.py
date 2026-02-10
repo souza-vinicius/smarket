@@ -1,17 +1,19 @@
 import uuid
-from typing import List, Optional
 from datetime import datetime
+from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
-from sqlalchemy import select, and_, func
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database import get_db
 from src.dependencies import get_current_user
-from src.models.purchase_pattern import PurchasePattern, PatternType, TargetType, Frequency
+from src.models.purchase_pattern import (
+    PurchasePattern,
+)
 from src.models.user import User
-from src.schemas.analysis import AnalysisResponse
+
 
 router = APIRouter()
 
@@ -21,7 +23,7 @@ class AlertConfigRequest(BaseModel):
     alert_days_before: Optional[int] = None
 
 
-@router.get("/", response_model=List[dict])
+@router.get("/", response_model=list[dict])
 async def list_purchase_patterns(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
@@ -29,30 +31,32 @@ async def list_purchase_patterns(
     target_type: Optional[str] = None,
     alert_enabled: Optional[bool] = None,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """List all purchase patterns for current user."""
-    query = select(PurchasePattern).where(
-        PurchasePattern.user_id == current_user.id
-    )
-    
+    query = select(PurchasePattern).where(PurchasePattern.user_id == current_user.id)
+
     if pattern_type:
         query = query.where(PurchasePattern.pattern_type == pattern_type)
-    
+
     if target_type:
         query = query.where(PurchasePattern.target_type == target_type)
-    
+
     if alert_enabled is not None:
         query = query.where(PurchasePattern.alert_enabled == alert_enabled)
-    
-    query = query.order_by(
-        PurchasePattern.confidence_score.desc(),
-        PurchasePattern.last_occurrence.desc()
-    ).offset(skip).limit(limit)
-    
+
+    query = (
+        query.order_by(
+            PurchasePattern.confidence_score.desc(),
+            PurchasePattern.last_occurrence.desc(),
+        )
+        .offset(skip)
+        .limit(limit)
+    )
+
     result = await db.execute(query)
     patterns = result.scalars().all()
-    
+
     return [
         {
             "id": p.id,
@@ -68,7 +72,7 @@ async def list_purchase_patterns(
             "alert_enabled": p.alert_enabled,
             "alert_days_before": p.alert_days_before,
             "created_at": p.created_at,
-            "updated_at": p.updated_at
+            "updated_at": p.updated_at,
         }
         for p in patterns
     ]
@@ -78,25 +82,24 @@ async def list_purchase_patterns(
 async def get_purchase_pattern(
     pattern_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Get a specific purchase pattern by ID."""
     result = await db.execute(
         select(PurchasePattern).where(
             and_(
                 PurchasePattern.id == pattern_id,
-                PurchasePattern.user_id == current_user.id
+                PurchasePattern.user_id == current_user.id,
             )
         )
     )
     pattern = result.scalar_one_or_none()
-    
+
     if not pattern:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Purchase pattern not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Purchase pattern not found"
         )
-    
+
     return {
         "id": pattern.id,
         "pattern_type": pattern.pattern_type.value if pattern.pattern_type else None,
@@ -112,7 +115,7 @@ async def get_purchase_pattern(
         "alert_days_before": pattern.alert_days_before,
         "notes": pattern.notes,
         "created_at": pattern.created_at,
-        "updated_at": pattern.updated_at
+        "updated_at": pattern.updated_at,
     }
 
 
@@ -121,37 +124,36 @@ async def configure_alert(
     pattern_id: uuid.UUID,
     config: AlertConfigRequest,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Configure alert settings for a purchase pattern."""
     result = await db.execute(
         select(PurchasePattern).where(
             and_(
                 PurchasePattern.id == pattern_id,
-                PurchasePattern.user_id == current_user.id
+                PurchasePattern.user_id == current_user.id,
             )
         )
     )
     pattern = result.scalar_one_or_none()
-    
+
     if not pattern:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Purchase pattern not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Purchase pattern not found"
         )
-    
+
     pattern.alert_enabled = config.alert_enabled
     pattern.alert_days_before = config.alert_days_before
     pattern.updated_at = datetime.utcnow()
-    
+
     await db.commit()
     await db.refresh(pattern)
-    
+
     return {
         "id": pattern.id,
         "alert_enabled": pattern.alert_enabled,
         "alert_days_before": pattern.alert_days_before,
-        "updated_at": pattern.updated_at
+        "updated_at": pattern.updated_at,
     }
 
 
@@ -159,26 +161,23 @@ async def configure_alert(
 async def delete_purchase_pattern(
     pattern_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Delete a purchase pattern."""
     result = await db.execute(
         select(PurchasePattern).where(
             and_(
                 PurchasePattern.id == pattern_id,
-                PurchasePattern.user_id == current_user.id
+                PurchasePattern.user_id == current_user.id,
             )
         )
     )
     pattern = result.scalar_one_or_none()
-    
+
     if not pattern:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Purchase pattern not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Purchase pattern not found"
         )
-    
+
     await db.delete(pattern)
     await db.commit()
-    
-    return None

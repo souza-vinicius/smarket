@@ -14,7 +14,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U smarket"]
+      test: [ "CMD-SHELL", "pg_isready -U smarket" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -30,7 +30,7 @@ services:
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -44,6 +44,7 @@ services:
       dockerfile: Dockerfile
     container_name: smarket-api
     environment:
+      PYTHONUNBUFFERED: 1
       DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://smarket:smarket_password@postgres:5432/smarket}
       DB_ECHO: ${DB_ECHO:-false}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
@@ -58,6 +59,8 @@ services:
       ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-3-5-sonnet-20241022}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       OPENROUTER_MODEL: ${OPENROUTER_MODEL:-google/gemini-2.0-flash-001}
+      OPENROUTER_MODEL_LITE: ${OPENROUTER_MODEL_LITE:-google/gemini-2.0-flash-lite-preview-02-05}
+      OPENROUTER_MODEL_FULL: ${OPENROUTER_MODEL_FULL:-google/gemini-2.0-flash-thinking-exp-01-21}
       OPENROUTER_BASE_URL: ${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
       SEFAZ_API_URL: ${SEFAZ_API_URL:-https://www.nfce.fazenda.sp.gov.br/NFCeConsultaPublica}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:8000}
@@ -76,27 +79,29 @@ services:
     networks:
       - smarket-network
     restart: unless-stopped
-
   # Next.js Frontend
-  # web:
-  #   build:
-  #     context: ./apps/web
-  #     dockerfile: Dockerfile
-  #   container_name: smarket-web
-  #   environment:
-  #     NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
-  #     NODE_ENV: ${NODE_ENV:-production}
-  #   ports:
-  #     - "3000:3000"
-  #   depends_on:
-  #     - api
-  #   networks:
-  #     - smarket-network
-  #   restart: unless-stopped
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    container_name: smarket-web
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+      NODE_ENV: ${NODE_ENV:-production}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    networks:
+      - smarket-network
+    restart: unless-stopped
 
 volumes:
   postgres_data:
   redis_data:
+
 
 networks:
   smarket-network:

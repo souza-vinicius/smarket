@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect } from "react";
 
-import { Upload, QrCode, X, FileText, ImagePlus, Trash2, Camera, Loader2 } from 'lucide-react';
+import { Upload, QrCode, X, FileText, ImagePlus, Trash2, Camera, Loader2 } from "lucide-react";
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { FEATURE_FLAGS } from '@/lib/feature-flags';
-import { cn } from '@/lib/utils';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { FEATURE_FLAGS } from "@/lib/feature-flags";
+import { cn } from "@/lib/utils";
 
 interface UploadModalProps {
   isOpen: boolean;
@@ -19,9 +19,16 @@ interface UploadModalProps {
   initialTab?: UploadTab;
 }
 
-type UploadTab = 'images' | 'xml' | 'qrcode';
+type UploadTab = "images" | "xml" | "qrcode";
 
-const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif'];
+const ACCEPTED_IMAGE_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "image/heic",
+  "image/heif",
+];
 const MAX_IMAGES = 10;
 
 export function UploadModal({
@@ -31,17 +38,21 @@ export function UploadModal({
   onUploadImages,
   onProcessQRCode,
   isUploading,
-  initialTab = 'images',
+  initialTab = "images",
 }: UploadModalProps) {
   // Determine the effective initial tab based on flags
   const getEffectiveInitialTab = (): UploadTab => {
-    if (initialTab === 'xml' && !FEATURE_FLAGS.ENABLE_XML_UPLOAD) return 'images';
-    if (initialTab === 'qrcode' && !FEATURE_FLAGS.ENABLE_QR_CODE) return 'images';
+    if (initialTab === "xml" && !FEATURE_FLAGS.ENABLE_XML_UPLOAD) {
+      return "images";
+    }
+    if (initialTab === "qrcode" && !FEATURE_FLAGS.ENABLE_QR_CODE) {
+      return "images";
+    }
     return initialTab;
   };
 
   const [activeTab, setActiveTab] = useState<UploadTab>(getEffectiveInitialTab());
-  const [qrCodeUrl, setQrCodeUrl] = useState('');
+  const [qrCodeUrl, setQrCodeUrl] = useState("");
   const [dragActive, setDragActive] = useState(false);
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
@@ -57,9 +68,9 @@ export function UploadModal({
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') {
+    if (e.type === "dragenter" || e.type === "dragover") {
       setDragActive(true);
-    } else if (e.type === 'dragleave') {
+    } else if (e.type === "dragleave") {
       setDragActive(false);
     }
   }, []);
@@ -69,7 +80,9 @@ export function UploadModal({
       const remaining = MAX_IMAGES - selectedImages.length;
       const filesToAdd = newFiles.slice(0, remaining);
 
-      if (filesToAdd.length === 0) return;
+      if (filesToAdd.length === 0) {
+        return;
+      }
 
       setSelectedImages((prev) => [...prev, ...filesToAdd]);
 
@@ -90,14 +103,14 @@ export function UploadModal({
       e.stopPropagation();
       setDragActive(false);
 
-      if (activeTab === 'xml' && FEATURE_FLAGS.ENABLE_XML_UPLOAD) {
+      if (activeTab === "xml" && FEATURE_FLAGS.ENABLE_XML_UPLOAD) {
         if (e.dataTransfer.files?.[0]) {
           const file = e.dataTransfer.files[0];
-          if (file.name.endsWith('.xml')) {
+          if (file.name.endsWith(".xml")) {
             onUploadXML(file);
           }
         }
-      } else if (activeTab === 'images') {
+      } else if (activeTab === "images") {
         const files = Array.from(e.dataTransfer.files).filter((f) =>
           ACCEPTED_IMAGE_TYPES.includes(f.type)
         );
@@ -116,13 +129,11 @@ export function UploadModal({
 
   const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      const files = Array.from(e.target.files).filter((f) =>
-        ACCEPTED_IMAGE_TYPES.includes(f.type)
-      );
+      const files = Array.from(e.target.files).filter((f) => ACCEPTED_IMAGE_TYPES.includes(f.type));
       addImages(files);
     }
     if (imageInputRef.current) {
-      imageInputRef.current.value = '';
+      imageInputRef.current.value = "";
     }
   };
 
@@ -148,23 +159,22 @@ export function UploadModal({
   const handleClose = () => {
     setSelectedImages([]);
     setImagePreviews([]);
-    setQrCodeUrl('');
+    setQrCodeUrl("");
     onClose();
   };
 
-  if (!isOpen) { return null; }
+  if (!isOpen) {
+    return null;
+  }
 
   const showTabs = FEATURE_FLAGS.ENABLE_XML_UPLOAD || FEATURE_FLAGS.ENABLE_QR_CODE;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-lg rounded-lg bg-card p-6 shadow-lg max-h-[90vh] overflow-y-auto">
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg bg-card p-6 shadow-lg">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Adicionar Nota Fiscal</h2>
-          <button
-            onClick={handleClose}
-            className="rounded-full p-1 hover:bg-accent"
-          >
+          <button onClick={handleClose} className="rounded-full p-1 hover:bg-accent">
             <X className="size-5" />
           </button>
         </div>
@@ -173,12 +183,14 @@ export function UploadModal({
         {showTabs && (
           <div className="mb-4 flex gap-2">
             <button
-              onClick={() => { setActiveTab('images'); }}
+              onClick={() => {
+                setActiveTab("images");
+              }}
               className={cn(
-                'flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors',
-                activeTab === 'images'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground hover:bg-accent'
+                "flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+                activeTab === "images"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-accent"
               )}
             >
               <Camera className="size-4" />
@@ -186,12 +198,14 @@ export function UploadModal({
             </button>
             {FEATURE_FLAGS.ENABLE_XML_UPLOAD && (
               <button
-                onClick={() => { setActiveTab('xml'); }}
+                onClick={() => {
+                  setActiveTab("xml");
+                }}
                 className={cn(
-                  'flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors',
-                  activeTab === 'xml'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-muted-foreground hover:bg-accent'
+                  "flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+                  activeTab === "xml"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-accent"
                 )}
               >
                 <FileText className="size-4" />
@@ -200,12 +214,14 @@ export function UploadModal({
             )}
             {FEATURE_FLAGS.ENABLE_QR_CODE && (
               <button
-                onClick={() => { setActiveTab('qrcode'); }}
+                onClick={() => {
+                  setActiveTab("qrcode");
+                }}
                 className={cn(
-                  'flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors',
-                  activeTab === 'qrcode'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-muted-foreground hover:bg-accent'
+                  "flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+                  activeTab === "qrcode"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-accent"
                 )}
               >
                 <QrCode className="size-4" />
@@ -216,7 +232,7 @@ export function UploadModal({
         )}
 
         {/* Content */}
-        {activeTab === 'images' ? (
+        {activeTab === "images" ? (
           <div className="space-y-4">
             {/* Drop zone */}
             <div
@@ -225,12 +241,12 @@ export function UploadModal({
               onDragOver={!isUploading ? handleDrag : undefined}
               onDrop={!isUploading ? handleDrop : undefined}
               className={cn(
-                'rounded-lg border-2 border-dashed p-6 text-center transition-colors',
+                "rounded-lg border-2 border-dashed p-6 text-center transition-colors",
                 isUploading
-                  ? 'cursor-wait border-muted bg-muted/20'
+                  ? "cursor-wait border-muted bg-muted/20"
                   : dragActive
-                    ? 'border-primary bg-primary/5'
-                    : 'border-muted-foreground/25 hover:border-muted-foreground/50'
+                    ? "border-primary bg-primary/5"
+                    : "border-muted-foreground/25 hover:border-muted-foreground/50"
               )}
             >
               {isUploading ? (
@@ -257,7 +273,12 @@ export function UploadModal({
                       onChange={handleImageFileChange}
                       className="hidden"
                     />
-                    <Button variant="outline" type="button" size="sm" className="pointer-events-none">
+                    <Button
+                      variant="outline"
+                      type="button"
+                      size="sm"
+                      className="pointer-events-none"
+                    >
                       <Upload className="mr-2 size-4" />
                       Selecionar fotos
                     </Button>
@@ -271,7 +292,8 @@ export function UploadModal({
               <div>
                 <div className="mb-2 flex items-center justify-between">
                   <p className="text-sm font-medium text-muted-foreground">
-                    {selectedImages.length} {selectedImages.length === 1 ? 'foto selecionada' : 'fotos selecionadas'}
+                    {selectedImages.length}{" "}
+                    {selectedImages.length === 1 ? "foto selecionada" : "fotos selecionadas"}
                   </p>
                   {selectedImages.length < MAX_IMAGES && (
                     <label>
@@ -282,7 +304,12 @@ export function UploadModal({
                         onChange={handleImageFileChange}
                         className="hidden"
                       />
-                      <Button variant="ghost" type="button" size="sm" className="pointer-events-none">
+                      <Button
+                        variant="ghost"
+                        type="button"
+                        size="sm"
+                        className="pointer-events-none"
+                      >
                         <ImagePlus className="mr-1 size-3" />
                         Adicionar mais
                       </Button>
@@ -302,7 +329,9 @@ export function UploadModal({
                       />
                       <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/30" />
                       <button
-                        onClick={() => { removeImage(index); }}
+                        onClick={() => {
+                          removeImage(index);
+                        }}
                         className="absolute right-1 top-1 rounded-full bg-red-500 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
                       >
                         <Trash2 className="size-3" />
@@ -326,8 +355,8 @@ export function UploadModal({
             >
               <Upload className="mr-2 size-4" />
               {isUploading
-                ? 'Processando imagens...'
-                : `Enviar ${selectedImages.length > 0 ? String(selectedImages.length) + ' ' : ''}${selectedImages.length === 1 ? 'foto' : 'fotos'}`}
+                ? "Processando imagens..."
+                : `Enviar ${selectedImages.length > 0 ? `${String(selectedImages.length)} ` : ""}${selectedImages.length === 1 ? "foto" : "fotos"}`}
             </Button>
 
             {selectedImages.length > 1 && (
@@ -336,19 +365,19 @@ export function UploadModal({
               </p>
             )}
           </div>
-        ) : activeTab === 'xml' ? (
+        ) : activeTab === "xml" ? (
           <div
             onDragEnter={!isUploading ? handleDrag : undefined}
             onDragLeave={!isUploading ? handleDrag : undefined}
             onDragOver={!isUploading ? handleDrag : undefined}
             onDrop={!isUploading ? handleDrop : undefined}
             className={cn(
-              'rounded-lg border-2 border-dashed p-8 text-center transition-colors',
+              "rounded-lg border-2 border-dashed p-8 text-center transition-colors",
               isUploading
-                ? 'cursor-wait border-muted bg-muted/20'
+                ? "cursor-wait border-muted bg-muted/20"
                 : dragActive
-                  ? 'border-primary bg-primary/5'
-                  : 'border-muted-foreground/25 hover:border-muted-foreground/50'
+                  ? "border-primary bg-primary/5"
+                  : "border-muted-foreground/25 hover:border-muted-foreground/50"
             )}
           >
             {isUploading ? (
@@ -360,9 +389,7 @@ export function UploadModal({
             ) : (
               <>
                 <Upload className="mx-auto size-10 text-muted-foreground" />
-                <p className="mt-2 text-sm font-medium">
-                  Arraste e solte um arquivo XML
-                </p>
+                <p className="mt-2 text-sm font-medium">Arraste e solte um arquivo XML</p>
                 <p className="text-xs text-muted-foreground">ou</p>
                 <label className="mt-2 inline-block">
                   <input
@@ -385,8 +412,10 @@ export function UploadModal({
                 label="URL do QR Code"
                 placeholder="https://www.sefaz..."
                 value={qrCodeUrl}
-                onChange={(e) => { setQrCodeUrl(e.target.value); }}
-                helperText="Cole a URL do QR Code da nota fiscal"
+                onChange={(e) => {
+                  setQrCodeUrl(e.target.value);
+                }}
+                hint="Cole a URL do QR Code da nota fiscal"
               />
             </div>
             <Button

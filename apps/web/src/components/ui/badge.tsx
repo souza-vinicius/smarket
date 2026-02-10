@@ -1,41 +1,135 @@
-import * as React from 'react';
+import * as React from "react";
+import { cn } from "@/lib/utils";
 
-import { cn } from '@/lib/utils';
-
-interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?:
-    | 'default'
-    | 'secondary'
-    | 'destructive'
-    | 'outline'
-    | 'success'
-    | 'warning'
-    | 'info';
+interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
+  variant?: "default" | "primary" | "secondary" | "success" | "warning" | "destructive" | "outline";
+  size?: "sm" | "md";
+  dot?: boolean;
 }
 
-function Badge({ className, variant = 'default', ...props }: BadgeProps): React.JSX.Element {
-  const variants = {
-    default: 'bg-primary text-primary-foreground hover:bg-primary/80',
-    secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
-    destructive:
-      'bg-destructive text-destructive-foreground hover:bg-destructive/80',
-    outline: 'text-foreground border border-input hover:bg-accent',
-    success: 'bg-green-500 text-white hover:bg-green-500/80',
-    warning: 'bg-yellow-500 text-black hover:bg-yellow-500/80',
-    info: 'bg-blue-500 text-white hover:bg-blue-500/80',
-  };
+const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
+  ({ className, variant = "default", size = "sm", dot = false, children, ...props }, ref) => {
+    const variants = {
+      default: "bg-muted text-muted-foreground",
+      primary: "bg-primary-subtle text-primary border border-primary/20",
+      secondary: "bg-secondary text-secondary-foreground",
+      success: "bg-success-subtle text-success border border-success/20",
+      warning: "bg-warning-subtle text-warning border border-warning/20",
+      destructive: "bg-destructive-subtle text-destructive border border-destructive/20",
+      outline: "bg-transparent border border-border text-foreground",
+    };
 
-  return (
-    <div
-      className={cn(
-        'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors',
-        // eslint-disable-next-line security/detect-object-injection
-        variants[variant],
-        className
-      )}
-      {...props}
-    />
-  );
+    const sizes = {
+      sm: "px-2 py-0.5 text-xs",
+      md: "px-2.5 py-1 text-sm",
+    };
+
+    return (
+      <span
+        ref={ref}
+        className={cn(
+          "inline-flex items-center gap-1.5 rounded-full font-medium whitespace-nowrap",
+          variants[variant],
+          sizes[size],
+          className
+        )}
+        {...props}
+      >
+        {dot && (
+          <span className={cn(
+            "w-1.5 h-1.5 rounded-full",
+            variant === "default" && "bg-muted-foreground",
+            variant === "primary" && "bg-primary",
+            variant === "success" && "bg-success",
+            variant === "warning" && "bg-warning",
+            variant === "destructive" && "bg-destructive",
+            variant === "outline" && "bg-foreground",
+          )} />
+        )}
+        {children}
+      </span>
+    );
+  }
+);
+
+Badge.displayName = "Badge";
+
+// Status Badge - For showing status with dot
+interface StatusBadgeProps extends Omit<BadgeProps, "dot" | "variant"> {
+  status: "pending" | "processing" | "extracted" | "completed" | "error" | "cancelled";
 }
 
-export { Badge };
+const StatusBadge = React.forwardRef<HTMLSpanElement, StatusBadgeProps>(
+  ({ status, className, ...props }, ref) => {
+    const statusConfig = {
+      pending: { variant: "warning" as const, label: "Pendente" },
+      processing: { variant: "primary" as const, label: "Processando" },
+      extracted: { variant: "success" as const, label: "Extraído" },
+      completed: { variant: "success" as const, label: "Concluído" },
+      error: { variant: "destructive" as const, label: "Erro" },
+      cancelled: { variant: "outline" as const, label: "Cancelado" },
+    };
+
+    const config = statusConfig[status];
+
+    return (
+      <Badge
+        ref={ref}
+        variant={config.variant}
+        dot
+        className={className}
+        {...props}
+      >
+        {config.label}
+      </Badge>
+    );
+  }
+);
+
+StatusBadge.displayName = "StatusBadge";
+
+// Count Badge - For showing numbers (notifications, counts)
+interface CountBadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
+  count: number;
+  max?: number;
+  variant?: "default" | "primary" | "destructive";
+  size?: "sm" | "md";
+}
+
+const CountBadge = React.forwardRef<HTMLSpanElement, CountBadgeProps>(
+  ({ count, max = 99, variant = "primary", size = "sm", className, ...props }, ref) => {
+    const displayCount = count > max ? `${max}+` : count;
+
+    const variants = {
+      default: "bg-muted text-muted-foreground",
+      primary: "bg-primary text-primary-foreground",
+      destructive: "bg-destructive text-destructive-foreground",
+    };
+
+    const sizes = {
+      sm: "min-w-[1.25rem] h-5 text-xs",
+      md: "min-w-[1.5rem] h-6 text-sm",
+    };
+
+    if (count <= 0) return null;
+
+    return (
+      <span
+        ref={ref}
+        className={cn(
+          "inline-flex items-center justify-center px-1 rounded-full font-bold",
+          variants[variant],
+          sizes[size],
+          className
+        )}
+        {...props}
+      >
+        {displayCount}
+      </span>
+    );
+  }
+);
+
+CountBadge.displayName = "CountBadge";
+
+export { Badge, StatusBadge, CountBadge };

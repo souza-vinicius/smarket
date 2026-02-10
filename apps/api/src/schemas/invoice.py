@@ -1,7 +1,7 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
-from typing import Any, Optional, List, Dict
+from typing import Any, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field, field_validator
 class ProductBase(BaseModel):
     code: str
     description: str
+    normalized_name: Optional[str] = None
     quantity: Decimal
     unit: str
     unit_price: Decimal
@@ -31,7 +32,9 @@ class ProductInInvoice(ProductBase):
 
 
 class InvoiceBase(BaseModel):
-    access_key: str = Field(..., max_length=44)  # Removed min_length to allow shorter keys
+    access_key: str = Field(
+        ..., max_length=44
+    )  # Removed min_length to allow shorter keys
     number: str
     series: str
     issue_date: datetime
@@ -43,15 +46,15 @@ class InvoiceBase(BaseModel):
 
 
 class InvoiceCreate(InvoiceBase):
-    raw_data: Optional[Dict[str, Any]] = None
-    products: List[ProductCreate]
+    raw_data: Optional[dict[str, Any]] = None
+    products: list[ProductCreate]
 
 
 class InvoiceResponse(InvoiceBase):
     id: uuid.UUID
     user_id: uuid.UUID
     created_at: datetime
-    products: List[ProductInInvoice]
+    products: list[ProductInInvoice]
 
     class Config:
         from_attributes = True
@@ -76,9 +79,11 @@ class InvoiceItemUpdate(BaseModel):
     id: Optional[uuid.UUID] = None
     code: Optional[str] = None
     description: str
+    normalized_name: Optional[str] = None
     quantity: Decimal
     unit: str = "UN"
     unit_price: Decimal
+    discount: Decimal = Decimal("0")
     total_price: Decimal
     category_name: Optional[str] = None
     subcategory: Optional[str] = None
@@ -94,31 +99,42 @@ class InvoiceUpdate(BaseModel):
     issuer_cnpj: Optional[str] = None
     total_value: Optional[Decimal] = None
     access_key: Optional[str] = None
-    items: Optional[List[InvoiceItemUpdate]] = None
+    items: Optional[list[InvoiceItemUpdate]] = None
 
-    @field_validator('issue_date', mode='before')
+    @field_validator("issue_date", mode="before")
     @classmethod
     def parse_issue_date(cls, v: Any) -> Optional[datetime]:
         if v is None:
             return None
         if isinstance(v, datetime):
-            return v
-        if isinstance(v, str):
+            dt = v
+        elif isinstance(v, str):
             from dateutil import parser as dateutil_parser
+
             try:
-                # Use .parse() instead of .isoparse() to handle multiple formats:
-                # - ISO 8601: "2024-01-15T14:30:22"
-                # - Brazilian: "15/01/2024 14:30:22" or "15/01/2024"
-                # - US: "01/15/2024 14:30:22"
-                dt = dateutil_parser.parse(v, dayfirst=True)
+                # Detect format: if contains 'T' or '-', it's likely ISO format
+                # Use .parse() with appropriate dayfirst setting:
+                # - ISO 8601: "2024-01-15T14:30:22" → dayfirst=False
+                # - Brazilian format: "15/01/2024 14:30:22" → dayfirst=True
+                use_dayfirst = "/" in v  # Brazilian format uses slashes
+                dt = dateutil_parser.parse(v, dayfirst=use_dayfirst)
                 if dt.tzinfo is not None:
                     dt = dt.replace(tzinfo=None)
-                return dt
             except (ValueError, AttributeError, TypeError):
                 return None
-        return None
+        else:
+            return None
 
-    @field_validator('number', 'series', 'access_key', mode='before')
+        # Validate that date is not in the future (allow up to 1 hour tolerance for timezone differences)
+        now = datetime.utcnow()
+        tolerance = timedelta(hours=1)
+
+        if dt > (now + tolerance):
+            raise ValueError("A data da nota fiscal não pode ser futura")
+
+        return dt
+
+    @field_validator("number", "series", "access_key", mode="before")
     @classmethod
     def coerce_to_string(cls, v: Any) -> Optional[str]:
         if v is None:

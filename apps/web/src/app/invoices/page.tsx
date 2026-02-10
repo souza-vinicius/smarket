@@ -1,433 +1,467 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { useState } from "react";
+import * as React from "react";
+import { useRouter } from "next/navigation";
+import {
+  Plus,
+  Search,
+  FileText,
+  Calendar,
+  Store,
+  MoreVertical,
+  Filter,
+  ChevronRight,
+  Receipt,
+} from "lucide-react";
+import { InvoiceCard } from "@/components/invoices/invoice-card";
+import { PageLayout } from "@/components/layout/page-layout";
+import { Button } from "@/components/ui/button";
+import { Card, StatCard } from "@/components/ui/card";
+import { Badge, StatusBadge } from "@/components/ui/badge";
+import { SearchInput } from "@/components/ui/input";
+import { Modal, ConfirmModal } from "@/components/ui/modal";
+import { Skeleton, SkeletonListItem } from "@/components/ui/skeleton";
+import {
+  useInvoices,
+  useUploadXML,
+  useProcessQRCode,
+  useUploadPhotos,
+  usePendingProcessing,
+  useDeleteProcessing,
+} from "@/hooks/use-invoices";
+import { useInvoicesSummary } from "@/hooks/use-invoices-summary";
+import { formatCurrency, formatDate } from "@/lib/utils";
 
-import { useRouter } from 'next/navigation';
+// Upload Modal Component
+function UploadModal({
+  isOpen,
+  onClose,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+}) {
+  const [activeTab, setActiveTab] = useState<"photo" | "xml" | "qrcode">("photo");
+  const [qrCode, setQrCode] = useState("");
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
-import { Plus, Search, FileText, Calendar, Store, MoreVertical } from 'lucide-react';
+  const router = useRouter();
+  const uploadXMLMutation = useUploadXML();
+  const uploadPhotosMutation = useUploadPhotos();
+  const processQRCodeMutation = useProcessQRCode();
 
-import { UploadModal } from '@/components/invoices/upload-modal';
-import { Header } from '@/components/layout/header';
-import { Sidebar } from '@/components/layout/sidebar';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useInvoices, useUploadXML, useProcessQRCode, useUploadPhotos, usePendingProcessing, useDeleteInvoice, useDeleteProcessing } from '@/hooks/use-invoices';
-import { useInvoicesSummary } from '@/hooks/use-invoices-summary';
-import { PendingList } from '@/components/invoices/pending-list';
-import { DeleteProcessingModal } from '@/components/invoices/delete-processing-modal';
-import { formatCurrency, formatDate } from '@/lib/utils';
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setSelectedFiles(Array.from(e.target.files));
+    }
+  };
+
+  const handleSubmit = () => {
+    if (activeTab === "photo" && selectedFiles.length > 0) {
+      uploadPhotosMutation.mutate(selectedFiles, {
+        onSuccess: (data) => {
+          onClose();
+          router.push(`/invoices/review/${data.processing_id}`);
+        },
+      });
+    } else if (activeTab === "xml") {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = ".xml";
+      input.onchange = (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (file) {
+          uploadXMLMutation.mutate(file, {
+            onSuccess: () => {
+              onClose();
+              router.push("/invoices");
+            },
+          });
+        }
+      };
+      input.click();
+    } else if (activeTab === "qrcode" && qrCode) {
+      processQRCodeMutation.mutate(
+        { qrcode_url: qrCode },
+        {
+          onSuccess: () => {
+            onClose();
+            router.push("/invoices");
+          },
+        }
+      );
+    }
+  };
+
+  const isUploading =
+    uploadXMLMutation.isPending ||
+    uploadPhotosMutation.isPending ||
+    processQRCodeMutation.isPending;
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Adicionar Nota Fiscal"
+      size="md"
+      footer={
+        <>
+          <Button variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            isLoading={isUploading}
+            disabled={
+              (activeTab === "photo" && selectedFiles.length === 0) ||
+              (activeTab === "qrcode" && !qrCode)
+            }
+          >
+            Enviar
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        {/* Tabs */}
+        <div className="flex gap-2 p-1 bg-muted rounded-lg">
+          {[
+            { id: "photo", label: "Foto" },
+            { id: "xml", label: "XML" },
+            { id: "qrcode", label: "QR Code" },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as typeof activeTab)}
+              className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all ${activeTab === tab.id
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+                }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Content */}
+        {activeTab === "photo" && (
+          <div className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary/50 transition-colors">
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleFileSelect}
+              className="hidden"
+              id="photo-upload"
+            />
+            <label
+              htmlFor="photo-upload"
+              className="cursor-pointer flex flex-col items-center gap-3"
+            >
+              <div className="w-16 h-16 rounded-full bg-primary-subtle flex items-center justify-center">
+                <Receipt className="w-8 h-8 text-primary" />
+              </div>
+              <div>
+                <p className="font-medium text-foreground">
+                  Clique para selecionar fotos
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {selectedFiles.length > 0
+                    ? `${selectedFiles.length} arquivo(s) selecionado(s)`
+                    : "Suporte para múltiplas fotos"}
+                </p>
+              </div>
+            </label>
+          </div>
+        )}
+
+        {activeTab === "xml" && (
+          <div className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary/50 transition-colors">
+            <p className="text-muted-foreground">
+              Clique em "Enviar" para selecionar o arquivo XML
+            </p>
+          </div>
+        )}
+
+        {activeTab === "qrcode" && (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Cole a URL do QR Code:
+            </p>
+            <textarea
+              value={qrCode}
+              onChange={(e) => setQrCode(e.target.value)}
+              placeholder="https://www.sefaz..."
+              className="w-full h-32 p-4 rounded-lg border border-border bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/20"
+            />
+          </div>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
+
+// Pending Item - Mobile optimized
+function PendingItem({
+  item,
+  onDelete,
+  isDeleting,
+}: {
+  item: {
+    processing_id: string;
+    status: string;
+    extracted_issuer_name?: string;
+    extracted_total_value?: number;
+    image_count: number;
+  };
+  onDelete: () => void;
+  isDeleting: boolean;
+}) {
+  const router = useRouter();
+
+  return (
+    <div className="flex items-center gap-4 p-4 bg-warning-subtle/30 rounded-xl border border-warning/20">
+      <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-warning/20 flex items-center justify-center">
+        <Receipt className="w-6 h-6 text-warning" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-medium text-foreground truncate">
+          {item.extracted_issuer_name || "Processando..."}
+        </p>
+        <div className="flex items-center gap-2 mt-1">
+          <StatusBadge status={item.status} />
+          <span className="text-xs text-muted-foreground">
+            {item.image_count} foto(s)
+          </span>
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        {item.status === "extracted" && (
+          <Button
+            size="sm"
+            onClick={() => router.push(`/invoices/review/${item.processing_id}`)}
+          >
+            Revisar
+          </Button>
+        )}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onDelete}
+          isLoading={isDeleting}
+          className="text-destructive hover:bg-destructive-subtle"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 export default function InvoicesPage() {
   const router = useRouter();
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'nfce' | 'nfe'>('all');
-  const [view, setView] = useState<'all' | 'processed' | 'pending'>('all');
+  const [searchQuery, setSearchQuery] = useState("");
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [processingToDelete, setProcessingToDelete] = useState<{ id: string; issuerName?: string } | null>(null);
-  const { data: invoices, isLoading } = useInvoices();
+  const [processingToDelete, setProcessingToDelete] = useState<string | null>(null);
+
+  const { data: invoices, isLoading: isInvoicesLoading } = useInvoices();
   const { data: pendingProcessing, isLoading: isPendingLoading } = usePendingProcessing();
   const { data: summary, isLoading: isSummaryLoading } = useInvoicesSummary();
-  const uploadXMLMutation = useUploadXML();
-  const uploadPhotosMutation = useUploadPhotos();
-  const processQRCodeMutation = useProcessQRCode();
-  const deleteInvoiceMutation = useDeleteInvoice();
   const deleteProcessingMutation = useDeleteProcessing();
 
-  const handleUploadXML = (file: File) => {
-    uploadXMLMutation.mutate(file, {
-      onSuccess: () => {
-        setIsUploadModalOpen(false);
-      },
+  // Filter invoices
+  const filteredInvoices = React.useMemo(() => {
+    if (!invoices) return [];
+    if (!searchQuery.trim()) return invoices;
+
+    const query = searchQuery.toLowerCase().trim();
+
+    return invoices.filter((invoice) => {
+      const issuerName = invoice.issuer_name?.toLowerCase() || '';
+      const accessKey = invoice.access_key?.toLowerCase() || '';
+
+      return issuerName.includes(query) || accessKey.includes(query);
     });
+  }, [invoices, searchQuery]);
+
+  const handleDelete = () => {
+    if (processingToDelete) {
+      deleteProcessingMutation.mutate(processingToDelete, {
+        onSuccess: () => {
+          setDeleteModalOpen(false);
+          setProcessingToDelete(null);
+        },
+      });
+    }
   };
-
-  const handleUploadImages = (files: File[]) => {
-    uploadPhotosMutation.mutate(files, {
-      onSuccess: (data) => {
-        setIsUploadModalOpen(false);
-        // Redirect to review page with processing_id
-        router.push(`/invoices/review/${data.processing_id}`);
-      },
-    });
-  };
-
-  const handleProcessQRCode = (url: string) => {
-    processQRCodeMutation.mutate({ qrcode_url: url }, {
-      onSuccess: () => {
-        setIsUploadModalOpen(false);
-      },
-    });
-  };
-
-  const handleViewDetails = (id: string) => {
-    router.push(`/invoices/${id}`);
-  };
-
-  // Filter invoices based on search and type
-  const filteredInvoices = invoices?.filter((invoice) => {
-    const matchesSearch =
-      invoice.issuer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      invoice.access_key.includes(searchQuery);
-    const matchesType =
-      filterType === 'all' ||
-      (invoice.type && invoice.type.toLowerCase() === filterType);
-    return matchesSearch && matchesType;
-  }) || [];
-
-  // Determine what to display based on view
-  const showPending = view === 'all' || view === 'pending';
-  const showProcessed = view === 'all' || view === 'processed';
-  const pendingCount = pendingProcessing?.length || 0;
-  const processedCount = filteredInvoices.length || 0;
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
-      <Sidebar />
-
-      <div className="flex-1 pl-64">
-        <Header
-          title="Notas Fiscais"
-          subtitle="Gerencie suas notas fiscais NFC-e e NF-e"
-        />
-
-        <main className="p-6">
-          {/* Stats Cards */}
-          <div className="mb-6 grid gap-4 md:grid-cols-3">
-            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-slate-600">Total de Notas</p>
-                  <p className="mt-1 text-3xl font-bold text-slate-900">
-                    {invoices?.length || 0}
-                  </p>
-                </div>
-                <div className="flex size-12 items-center justify-center rounded-lg bg-emerald-100">
-                  <FileText className="size-6 text-emerald-600" />
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-slate-600">Total Gasto</p>
-                  {isSummaryLoading ? (
-                    <Skeleton className="mt-1 h-10 w-32" />
-                  ) : (
-                    <p className="mt-1 text-3xl font-bold text-slate-900">
-                      {formatCurrency(summary?.total_spent || 0)}
-                    </p>
-                  )}
-                </div>
-                <div className="flex size-12 items-center justify-center rounded-lg bg-blue-100">
-                  <Store className="size-6 text-blue-600" />
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-slate-600">Este Mês</p>
-                  <p className="mt-1 text-3xl font-bold text-slate-900">
-                    {
-                      invoices?.filter(inv => {
-                        const invoiceDate = new Date(inv.issue_date);
-                        const now = new Date();
-                        return invoiceDate.getMonth() === now.getMonth() &&
-                               invoiceDate.getFullYear() === now.getFullYear();
-                      }).length || 0
-                    }
-                  </p>
-                </div>
-                <div className="flex size-12 items-center justify-center rounded-lg bg-purple-100">
-                  <Calendar className="size-6 text-purple-600" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Actions and Filters */}
-          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-1 gap-3">
-              <div className="relative max-w-md flex-1">
-                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-                <Input
-                  type="text"
-                  placeholder="Buscar por estabelecimento ou chave de acesso..."
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                  }}
-                  className="h-11 pl-10"
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <Button
-                  variant={filterType === 'all' ? 'primary' : 'outline'}
-                  size="md"
-                  onClick={() => {
-                    setFilterType('all');
-                  }}
-                >
-                  Todas
-                </Button>
-                <Button
-                  variant={filterType === 'nfce' ? 'primary' : 'outline'}
-                  size="md"
-                  onClick={() => {
-                    setFilterType('nfce');
-                  }}
-                >
-                  NFC-e
-                </Button>
-                <Button
-                  variant={filterType === 'nfe' ? 'primary' : 'outline'}
-                  size="md"
-                  onClick={() => {
-                    setFilterType('nfe');
-                  }}
-                >
-                  NF-e
-                </Button>
-              </div>
-            </div>
-
-            <Button
-              variant="primary"
-              size="lg"
-              leftIcon={<Plus className="size-4" />}
-              onClick={() => {
-                setIsUploadModalOpen(true);
-              }}
-              className="shadow-md"
-            >
-              Adicionar Nota Fiscal
-            </Button>
-          </div>
-
-          {/* View Filter Tabs */}
-          <div className="mb-6 flex gap-2 border-b border-slate-200">
-            <Button
-              variant={view === 'all' ? 'primary' : 'ghost'}
-              size="sm"
-              onClick={() => {
-                setView('all');
-              }}
-              className="border-b-2 rounded-none"
-            >
-              Todas
-            </Button>
-            <Button
-              variant={view === 'pending' ? 'primary' : 'ghost'}
-              size="sm"
-              onClick={() => {
-                setView('pending');
-              }}
-              className="border-b-2 rounded-none"
-            >
-              Aguardando
-              {pendingCount > 0 && (
-                <Badge className="ml-2 bg-amber-100 text-amber-700">{pendingCount}</Badge>
-              )}
-            </Button>
-            <Button
-              variant={view === 'processed' ? 'primary' : 'ghost'}
-              size="sm"
-              onClick={() => {
-                setView('processed');
-              }}
-              className="border-b-2 rounded-none"
-            >
-              Processadas
-              {processedCount > 0 && (
-                <Badge className="ml-2 bg-emerald-100 text-emerald-700">{processedCount}</Badge>
-              )}
-            </Button>
-          </div>
-
-          {/* Pending Invoices Section */}
-          {showPending && (
-            <div className="mb-8">
-              <div className="mb-4">
-                <h2 className="text-lg font-semibold text-slate-900">
-                  Notas Aguardando Processamento/Revisão
-                </h2>
-                <p className="text-sm text-slate-600">
-                  Você tem {pendingCount} nota{pendingCount !== 1 ? 's' : ''} aguardando processamento ou revisão
-                </p>
-              </div>
-              <PendingList
-                items={pendingProcessing || []}
-                isLoading={isPendingLoading}
-                onDelete={(processingId) => {
-                  const item = pendingProcessing?.find(p => p.processing_id === processingId);
-                  setProcessingToDelete({
-                    id: processingId,
-                    issuerName: item?.extracted_issuer_name || 'Processamento',
-                  });
-                  setDeleteModalOpen(true);
-                }}
-                isDeleting={deleteProcessingMutation.isPending}
-              />
-            </div>
-          )}
-
-          {/* Divider for visual separation */}
-          {showPending && showProcessed && pendingCount > 0 && (
-            <div className="mb-8 border-t border-slate-200" />
-          )}
-
-          {/* Processed Invoices Section */}
-          {showProcessed && (
-            <div>
-              <div className="mb-4">
-                <h2 className="text-lg font-semibold text-slate-900">
-                  Notas Processadas
-                </h2>
-              </div>
-
-              {/* Invoice List */}
-              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-                {isLoading ? (
-                  <div className="space-y-4 p-8">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <div key={`skeleton-${String(i)}`} className="flex items-center gap-4 border-b border-slate-100 p-4">
-                        <Skeleton className="size-12 rounded-lg" />
-                        <div className="flex-1 space-y-2">
-                          <Skeleton className="h-4 w-1/3" />
-                          <Skeleton className="h-3 w-1/4" />
-                        </div>
-                        <Skeleton className="h-8 w-24" />
-                      </div>
-                    ))}
-                  </div>
-                ) : filteredInvoices.length > 0 ? (
-                  <div className="divide-y divide-slate-100">
-                    {filteredInvoices.map((invoice) => (
-                      <div
-                        key={invoice.id}
-                        className="flex items-center gap-4 p-4 transition-colors hover:bg-slate-50"
-                      >
-                        <div className="flex size-12 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-100">
-                          <FileText className="size-6 text-emerald-600" />
-                        </div>
-
-                        <div className="min-w-0 flex-1">
-                          <div className="mb-1 flex items-center gap-2">
-                            <h3 className="truncate font-semibold text-slate-900">
-                              {invoice.issuer_name}
-                            </h3>
-                            <Badge variant="outline" className="text-xs">
-                              {invoice.type}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center gap-4 text-sm text-slate-600">
-                            <span className="flex items-center gap-1">
-                              <Calendar className="size-3" />
-                              {formatDate(invoice.issue_date)}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <FileText className="size-3" />
-                              {invoice.product_count} itens
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex-shrink-0 text-right">
-                          <p className="text-lg font-bold text-slate-900">
-                            {formatCurrency(invoice.total_value)}
-                          </p>
-                          <p className="text-xs text-slate-500">
-                            {formatDate(invoice.created_at)}
-                          </p>
-                        </div>
-
-                        <div className="flex flex-shrink-0 items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              handleViewDetails(invoice.id);
-                            }}
-                          >
-                            Ver Detalhes
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="p-2"
-                          >
-                            <MoreVertical className="size-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="p-12 text-center">
-                    <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-slate-100">
-                      <FileText className="size-8 text-slate-400" />
-                    </div>
-                    <h3 className="mb-2 text-lg font-semibold text-slate-900">
-                      {searchQuery || filterType !== 'all'
-                        ? 'Nenhuma nota fiscal encontrada'
-                        : 'Nenhuma nota fiscal registrada'}
-                    </h3>
-                    <p className="mb-4 text-slate-600">
-                      {searchQuery || filterType !== 'all'
-                        ? 'Tente ajustar os filtros de busca'
-                        : 'Adicione sua primeira nota fiscal para começar'}
-                    </p>
-                    {!searchQuery && filterType === 'all' && (
-                      <Button
-                        variant="primary"
-                        leftIcon={<Plus className="size-4" />}
-                        onClick={() => {
-                          setIsUploadModalOpen(true);
-                        }}
-                      >
-                        Adicionar Primeira Nota
-                      </Button>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </main>
+    <PageLayout
+      title="Notas Fiscais"
+      subtitle="Gerencie suas notas NFC-e e NF-e"
+      showFloatingAction
+      onFloatingActionClick={() => setIsUploadModalOpen(true)}
+      floatingActionLabel="Nota"
+    >
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        {isSummaryLoading ? (
+          <>
+            <Skeleton className="h-24" />
+            <Skeleton className="h-24" />
+            <Skeleton className="h-24" />
+          </>
+        ) : (
+          <>
+            <StatCard
+              title="Total de Notas"
+              value={invoices?.length || 0}
+              icon={<FileText className="w-5 h-5" />}
+            />
+            <StatCard
+              title="Total Gasto"
+              value={formatCurrency(summary?.total_spent || 0)}
+              icon={<Store className="w-5 h-5" />}
+            />
+            <StatCard
+              title="Este Mês"
+              value={
+                invoices?.filter((inv) => {
+                  const date = new Date(inv.issue_date);
+                  const now = new Date();
+                  return (
+                    date.getMonth() === now.getMonth() &&
+                    date.getFullYear() === now.getFullYear()
+                  );
+                }).length || 0
+              }
+              icon={<Calendar className="w-5 h-5" />}
+            />
+          </>
+        )}
       </div>
 
-      {/* Delete Processing Modal */}
-      <DeleteProcessingModal
+      {/* Search and Filters */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        <div className="flex-1">
+          <SearchInput
+            placeholder="Buscar por estabelecimento..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onClear={() => setSearchQuery("")}
+          />
+        </div>
+        <Button
+          variant="outline"
+          leftIcon={<Filter className="w-4 h-4" />}
+          className="sm:hidden"
+        >
+          Filtros
+        </Button>
+      </div>
+
+      {/* Pending Section */}
+      {pendingProcessing && pendingProcessing.length > 0 && (
+        <section className="mb-6">
+          <h2 className="text-lg font-semibold text-foreground mb-3">
+            Aguardando Revisão
+          </h2>
+          <div className="space-y-3">
+            {isPendingLoading ? (
+              <SkeletonListItem />
+            ) : (
+              pendingProcessing.map((item) => (
+                <PendingItem
+                  key={item.processing_id}
+                  item={item}
+                  onDelete={() => {
+                    setProcessingToDelete(item.processing_id);
+                    setDeleteModalOpen(true);
+                  }}
+                  isDeleting={deleteProcessingMutation.isPending}
+                />
+              ))
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* Invoices List */}
+      <section>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold text-foreground">
+            Notas Processadas
+          </h2>
+          {searchQuery && (
+            <span className="text-sm text-muted-foreground">
+              {filteredInvoices.length} resultado{filteredInvoices.length !== 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
+
+        {isInvoicesLoading ? (
+          <div className="space-y-3">
+            <SkeletonListItem />
+            <SkeletonListItem />
+            <SkeletonListItem />
+          </div>
+        ) : filteredInvoices.length > 0 ? (
+          <div className="space-y-3">
+            {filteredInvoices.map((invoice) => (
+              <InvoiceCard
+                key={invoice.id}
+                invoice={invoice}
+                onClick={() => router.push(`/invoices/${invoice.id}`)}
+              />
+            ))}
+          </div>
+        ) : (
+          <Card className="text-center py-12">
+            <div className="w-16 h-16 rounded-full bg-muted mx-auto mb-4 flex items-center justify-center">
+              <FileText className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-semibold text-foreground mb-2">
+              {searchQuery ? "Nenhuma nota encontrada" : "Nenhuma nota registrada"}
+            </h3>
+            <p className="text-muted-foreground mb-4">
+              {searchQuery
+                ? "Tente ajustar sua busca"
+                : "Adicione sua primeira nota fiscal para começar"}
+            </p>
+            {!searchQuery && (
+              <Button onClick={() => setIsUploadModalOpen(true)}>
+                Adicionar Nota
+              </Button>
+            )}
+          </Card>
+        )}
+      </section>
+
+      {/* Upload Modal */}
+      <UploadModal
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+      />
+
+      {/* Delete Confirmation */}
+      <ConfirmModal
         isOpen={deleteModalOpen}
         onClose={() => {
           setDeleteModalOpen(false);
           setProcessingToDelete(null);
         }}
-        onConfirm={() => {
-          if (processingToDelete) {
-            deleteProcessingMutation.mutate(processingToDelete.id);
-          }
-        }}
-        isDeleting={deleteProcessingMutation.isPending}
-        issuerName={processingToDelete?.issuerName}
-        error={deleteProcessingMutation.error?.message || null}
+        onConfirm={handleDelete}
+        isConfirming={deleteProcessingMutation.isPending}
+        variant="danger"
+        title="Excluir processamento"
+        message="Tem certeza que deseja excluir este processamento? Esta ação não pode ser desfeita."
+        confirmLabel="Excluir"
+        cancelLabel="Cancelar"
       />
-
-      {/* Upload Modal */}
-      <UploadModal
-        isOpen={isUploadModalOpen}
-        onClose={() => { setIsUploadModalOpen(false); }}
-        onUploadXML={handleUploadXML}
-        onUploadImages={handleUploadImages}
-        onProcessQRCode={handleProcessQRCode}
-        isUploading={uploadXMLMutation.isPending || processQRCodeMutation.isPending || uploadPhotosMutation.isPending}
-      />
-    </div>
+    </PageLayout>
   );
 }

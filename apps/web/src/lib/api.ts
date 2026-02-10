@@ -1,8 +1,15 @@
-import axios, { type AxiosError, type AxiosInstance, type InternalAxiosRequestConfig } from 'axios';
+import axios, { type AxiosError, type AxiosInstance, type InternalAxiosRequestConfig } from "axios";
 
-import { type Token, type LoginRequest, type RegisterRequest, type User, type UserProfile, type UserProfileUpdate } from '@/types';
+import {
+  type Token,
+  type LoginRequest,
+  type RegisterRequest,
+  type User,
+  type UserProfile,
+  type UserProfileUpdate,
+} from "@/types";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/api/v1';
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "").replace(/\/api\/v1$/, "") + "/api/v1";
 
 interface RetryableRequest extends InternalAxiosRequestConfig {
   _retry?: boolean;
@@ -16,7 +23,7 @@ class ApiClient {
     this.client = axios.create({
       baseURL: API_BASE_URL,
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     });
 
@@ -56,8 +63,10 @@ class ApiClient {
             return this.client(originalRequest);
           } catch (refreshError) {
             this.logout();
-            window.location.href = '/login';
-            return Promise.reject(refreshError instanceof Error ? refreshError : new Error(String(refreshError)));
+            window.location.href = "/login";
+            return Promise.reject(
+              refreshError instanceof Error ? refreshError : new Error(String(refreshError))
+            );
           }
         }
 
@@ -67,15 +76,15 @@ class ApiClient {
   }
 
   private getAccessToken(): string | null {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('access_token');
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("access_token");
     }
     return null;
   }
 
   private getRefreshToken(): string | null {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('refresh_token');
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("refresh_token");
     }
     return null;
   }
@@ -90,18 +99,22 @@ class ApiClient {
       try {
         const refreshToken = this.getRefreshToken();
         if (!refreshToken) {
-          throw new Error('No refresh token available');
+          throw new Error("No refresh token available");
         }
 
-        const response = await axios.post<Token>(`${API_BASE_URL}/auth/refresh`, {}, {
-          headers: {
-            Authorization: `Bearer ${refreshToken}`,
-          },
-        });
+        const response = await axios.post<Token>(
+          `${API_BASE_URL}/auth/refresh`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${refreshToken}`,
+            },
+          }
+        );
 
         const { access_token, refresh_token } = response.data;
-        localStorage.setItem('access_token', access_token);
-        localStorage.setItem('refresh_token', refresh_token);
+        localStorage.setItem("access_token", access_token);
+        localStorage.setItem("refresh_token", refresh_token);
 
         return access_token;
       } finally {
@@ -114,22 +127,22 @@ class ApiClient {
 
   // Auth methods
   async login(data: LoginRequest): Promise<Token> {
-    const response = await this.client.post<Token>('/auth/login', data);
+    const response = await this.client.post<Token>("/auth/login", data);
     const { access_token, refresh_token } = response.data;
-    localStorage.setItem('access_token', access_token);
-    localStorage.setItem('refresh_token', refresh_token);
+    localStorage.setItem("access_token", access_token);
+    localStorage.setItem("refresh_token", refresh_token);
     return response.data;
   }
 
   async register(data: RegisterRequest): Promise<User> {
-    const response = await this.client.post<User>('/auth/register', data);
+    const response = await this.client.post<User>("/auth/register", data);
     return response.data;
   }
 
   logout(): void {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
     }
   }
 
@@ -138,18 +151,18 @@ class ApiClient {
   }
 
   async getMe(): Promise<User> {
-    const response = await this.client.get<User>('/auth/me');
+    const response = await this.client.get<User>("/auth/me");
     return response.data;
   }
 
   // Profile methods
   async getProfile(): Promise<UserProfile> {
-    const response = await this.client.get<UserProfile>('/users/profile');
+    const response = await this.client.get<UserProfile>("/users/profile");
     return response.data;
   }
 
   async updateProfile(data: UserProfileUpdate): Promise<UserProfile> {
-    const response = await this.client.patch<UserProfile>('/users/profile', data);
+    const response = await this.client.patch<UserProfile>("/users/profile", data);
     return response.data;
   }
 
@@ -180,20 +193,20 @@ class ApiClient {
   }
 
   // File upload method
-  async uploadFile<T>(url: string, file: File, fieldName = 'file'): Promise<T> {
+  async uploadFile<T>(url: string, file: File, fieldName = "file"): Promise<T> {
     const formData = new FormData();
     formData.append(fieldName, file);
 
     const response = await this.client.post<T>(url, formData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
+        "Content-Type": "multipart/form-data",
       },
     });
     return response.data;
   }
 
   // Multiple files upload method
-  async uploadFiles<T>(url: string, files: File[], fieldName = 'files'): Promise<T> {
+  async uploadFiles<T>(url: string, files: File[], fieldName = "files"): Promise<T> {
     const formData = new FormData();
     files.forEach((file) => {
       formData.append(fieldName, file);
@@ -201,7 +214,7 @@ class ApiClient {
 
     const response = await this.client.post<T>(url, formData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
+        "Content-Type": "multipart/form-data",
       },
     });
     return response.data;

@@ -62,3 +62,9 @@ factory-boy==3.3.3
 
 # Debug
 debugpy==1.8.0
+
+# Linting and formatting
+ruff==0.9.0
+mypy==1.14.0
+types-python-dateutil
+types-pytz

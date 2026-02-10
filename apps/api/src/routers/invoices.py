@@ -1,48 +1,69 @@
-import uuid
-import os
 import logging
-import aiofiles
+import os
+import uuid
 from datetime import datetime
-from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, BackgroundTasks
-from sqlalchemy import select, func
+import aiofiles
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    HTTPException,
+    UploadFile,
+    status,
+)
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.config import settings
 from src.database import get_db
 from src.dependencies import get_current_user
 from src.models.invoice import Invoice
 from src.models.invoice_item import InvoiceItem
 from src.models.invoice_processing import InvoiceProcessing
 from src.models.user import User
-from src.schemas.invoice import InvoiceResponse, InvoiceList, QRCodeRequest, InvoiceUpdate
+from src.parsers.qrcode_parser import extract_access_key, fetch_invoice_from_sefaz
+from src.parsers.xml_parser import parse_xml_invoice
+from src.schemas.invoice import (
+    InvoiceList,
+    InvoiceResponse,
+    InvoiceUpdate,
+    QRCodeRequest,
+)
 from src.schemas.invoice_processing import (
+    InvoiceProcessingList,
+    ProcessingConfirmRequest,
     ProcessingResponse,
     ProcessingStatus,
-    ProcessingConfirmRequest,
-    InvoiceProcessingList
 )
-from src.parsers.qrcode_parser import (
-    extract_access_key,
-    fetch_invoice_from_sefaz
-)
-from src.parsers.xml_parser import parse_xml_invoice
-from src.services.ai_analyzer import analyzer
 from src.services.cnpj_enrichment import enrich_cnpj_data
+from src.services.merchant_service import merchant_service
+from src.services.name_normalizer import normalize_product_dict
+from src.tasks.ai_analysis import run_ai_analysis
 from src.tasks.process_invoice_photos import process_invoice_photos
-from src.utils.cnpj_validator import validate_cnpj, clean_cnpj, format_cnpj
-from src.config import settings
+from src.utils.cnpj_validator import clean_cnpj, format_cnpj, validate_cnpj
+from src.utils.logger import logger
+
+from src.exceptions import (
+    AIServiceError,
+    ExternalServiceError,
+    InvalidInvoiceFormatError,
+    InvoiceAlreadyExistsError,
+    InvoiceProcessingError,
+)
+
 
 router = APIRouter()
-logger = logging.getLogger(__name__)
+logger_stdlib = logging.getLogger(__name__)
 
 
-@router.get("/", response_model=List[InvoiceList])
+@router.get("/", response_model=list[InvoiceList])
 async def list_invoices(
     skip: int = 0,
     limit: int = 100,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """List all invoices for current user."""
     result = await db.execute(
@@ -53,7 +74,7 @@ async def list_invoices(
             Invoice.total_value,
             Invoice.issue_date,
             Invoice.created_at,
-            func.count(InvoiceItem.id).label("product_count")
+            func.count(InvoiceItem.id).label("product_count"),
         )
         .outerjoin(InvoiceItem, InvoiceItem.invoice_id == Invoice.id)
         .where(Invoice.user_id == current_user.id)
@@ -72,18 +93,18 @@ async def list_invoices(
             total_value=inv.total_value,
             issue_date=inv.issue_date,
             product_count=inv.product_count,
-            created_at=inv.created_at
+            created_at=inv.created_at,
         )
         for inv in invoices
     ]
 
 
-@router.get("/processing", response_model=List[InvoiceProcessingList])
+@router.get("/processing", response_model=list[InvoiceProcessingList])
 async def list_pending_processing(
     skip: int = 0,
     limit: int = 100,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """List pending and awaiting review invoice processing records for current user."""
     result = await db.execute(
@@ -126,7 +147,7 @@ async def list_pending_processing(
                 extracted_issue_date=extracted_issue_date,
                 errors=errors,
                 created_at=record.created_at,
-                updated_at=record.updated_at
+                updated_at=record.updated_at,
             )
         )
 
@@ -137,7 +158,7 @@ async def list_pending_processing(
 async def delete_processing(
     processing_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Delete a pending invoice processing record."""
     result = await db.execute(
@@ -149,21 +170,18 @@ async def delete_processing(
 
     if not processing:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Processing record not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Processing record not found"
         )
 
     await db.delete(processing)
     await db.commit()
-
-    return None
 
 
 @router.get("/{invoice_id}", response_model=InvoiceResponse)
 async def get_invoice(
     invoice_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Get a specific invoice by ID."""
     result = await db.execute(
@@ -175,22 +193,18 @@ async def get_invoice(
 
     if not invoice:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Invoice not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Invoice not found"
         )
 
     return invoice
 
 
-@router.put(
-    "/{invoice_id}",
-    response_model=InvoiceResponse
-)
+@router.put("/{invoice_id}", response_model=InvoiceResponse)
 async def update_invoice(
     invoice_id: uuid.UUID,
     request: InvoiceUpdate,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Update an existing invoice and its items."""
     try:
@@ -206,8 +220,7 @@ async def update_invoice(
 
         if not invoice:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Invoice not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Invoice not found"
             )
 
         # Update header fields (only non-None values)
@@ -224,16 +237,14 @@ async def update_invoice(
 
         # Clean and update access_key
         if request.access_key is not None:
-            access_key = "".join(
-                c for c in request.access_key if c.isalnum()
-            )[:44]
+            access_key = "".join(c for c in request.access_key if c.isalnum())[:44]
             # Check for duplicate access_key (excluding self)
             if access_key:
                 dup_result = await db.execute(
                     select(Invoice).where(
                         Invoice.access_key == access_key,
                         Invoice.user_id == current_user.id,
-                        Invoice.id != invoice_id
+                        Invoice.id != invoice_id,
                     )
                 )
                 if dup_result.scalar_one_or_none():
@@ -241,7 +252,7 @@ async def update_invoice(
                         status_code=status.HTTP_409_CONFLICT,
                         detail={
                             "message": "Já existe outra nota com esta chave de acesso",
-                        }
+                        },
                     )
             invoice.access_key = access_key
 
@@ -257,7 +268,7 @@ async def update_invoice(
                             "error": "invalid_cnpj",
                             "message": "CNPJ deve ter 14 dígitos",
                             "field": "issuer_cnpj",
-                        }
+                        },
                     )
                 if not validate_cnpj(issuer_cnpj):
                     raise HTTPException(
@@ -267,7 +278,7 @@ async def update_invoice(
                             "message": "CNPJ inválido. Verifique os dígitos verificadores.",
                             "field": "issuer_cnpj",
                             "value": format_cnpj(issuer_cnpj),
-                        }
+                        },
                     )
 
             invoice.issuer_cnpj = issuer_cnpj
@@ -276,9 +287,7 @@ async def update_invoice(
         if request.items is not None:
             # Delete existing items
             existing_items_result = await db.execute(
-                select(InvoiceItem).where(
-                    InvoiceItem.invoice_id == invoice_id
-                )
+                select(InvoiceItem).where(InvoiceItem.invoice_id == invoice_id)
             )
             for old_item in existing_items_result.scalars().all():
                 await db.delete(old_item)
@@ -290,9 +299,11 @@ async def update_invoice(
                     invoice_id=invoice_id,
                     code=item_data.code or "",
                     description=item_data.description or "",
+                    normalized_name=item_data.normalized_name,
                     quantity=item_data.quantity,
                     unit=item_data.unit or "UN",
                     unit_price=item_data.unit_price,
+                    discount=item_data.discount or 0,
                     total_price=item_data.total_price,
                     category_name=item_data.category_name,
                     subcategory=item_data.subcategory,
@@ -310,21 +321,19 @@ async def update_invoice(
     except Exception as e:
         logger.error(f"Error updating invoice: {e}", exc_info=True)
         await db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to update invoice: {str(e)}"
+        raise InvoiceProcessingError(
+            message=f"Failed to update invoice: {e!s}"
         )
 
 
 @router.post(
-    "/qrcode",
-    response_model=InvoiceResponse,
-    status_code=status.HTTP_201_CREATED
+    "/qrcode", response_model=InvoiceResponse, status_code=status.HTTP_201_CREATED
 )
 async def process_qrcode(
     request: QRCodeRequest,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Process invoice from QR Code URL."""
     # Extract access key from QR Code URL
@@ -332,30 +341,26 @@ async def process_qrcode(
 
     if not access_key:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid QR Code URL"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid QR Code URL"
         )
 
     # Check if invoice already exists
     result = await db.execute(
         select(Invoice).where(
-            Invoice.access_key == access_key,
-            Invoice.user_id == current_user.id
+            Invoice.access_key == access_key, Invoice.user_id == current_user.id
         )
     )
     if result.scalar_one_or_none():
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Invoice already registered"
+            status_code=status.HTTP_409_CONFLICT, detail="Invoice already registered"
         )
 
     # Fetch invoice data from Sefaz
     try:
         invoice_data = await fetch_invoice_from_sefaz(access_key)
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Failed to fetch invoice from Sefaz: {str(e)}"
+        raise ExternalServiceError(
+            message=f"Failed to fetch invoice from Sefaz: {e!s}"
         )
 
     # Create invoice
@@ -370,11 +375,21 @@ async def process_qrcode(
         total_value=invoice_data["total_value"],
         type=invoice_data["type"],
         source="qrcode",
-        raw_data=invoice_data.get("raw_data")
+        raw_data=invoice_data.get("raw_data"),
     )
 
     db.add(invoice)
     await db.flush()  # Get invoice.id
+
+    # Link to merchant
+    try:
+        await merchant_service.link_invoice_to_merchant(db, invoice)
+    except Exception as me:
+        logger.warning(f"Failed to link invoice {invoice.id} to merchant: {me}")
+
+    # Normalizar nomes dos itens (expande abreviações de NF-e)
+    for item_data in invoice_data["products"]:
+        normalize_product_dict(item_data)
 
     # Create invoice items
     for item_data in invoice_data["products"]:
@@ -382,47 +397,37 @@ async def process_qrcode(
             invoice_id=invoice.id,
             code=item_data["code"],
             description=item_data["description"],
+            normalized_name=item_data.get("normalized_name"),
             quantity=item_data["quantity"],
             unit=item_data["unit"],
             unit_price=item_data["unit_price"],
-            total_price=item_data["total_price"]
+            discount=item_data.get("discount", 0),
+            total_price=item_data["total_price"],
         )
         db.add(item)
 
     await db.commit()
     await db.refresh(invoice)
 
-    # Generate AI analyses (background task)
-    try:
-        user_history = await _get_user_history(current_user.id, db)
-        analyses = await analyzer.analyze_invoice(
-            invoice, user_history, db
-        )
-        for analysis in analyses:
-            db.add(analysis)
-        await db.commit()
-    except Exception as e:
-        # Log error but don't fail the invoice creation
-        print(f"Error generating AI analyses: {e}")
+    # Generate AI analyses in background
+    background_tasks.add_task(run_ai_analysis, str(invoice.id), str(current_user.id))
 
     return invoice
 
 
 @router.post(
-    "/upload/xml",
-    response_model=InvoiceResponse,
-    status_code=status.HTTP_201_CREATED
+    "/upload/xml", response_model=InvoiceResponse, status_code=status.HTTP_201_CREATED
 )
 async def upload_xml(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Upload and process XML invoice file."""
     if not file.filename.endswith(".xml"):
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File must be an XML file"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="File must be an XML file"
         )
 
     content = await file.read()
@@ -430,22 +435,20 @@ async def upload_xml(
     try:
         invoice_data = parse_xml_invoice(content)
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to parse XML: {str(e)}"
+        raise InvalidInvoiceFormatError(
+            message=f"Failed to parse XML: {e!s}"
         )
 
     # Check if invoice already exists
     result = await db.execute(
         select(Invoice).where(
             Invoice.access_key == invoice_data["access_key"],
-            Invoice.user_id == current_user.id
+            Invoice.user_id == current_user.id,
         )
     )
     if result.scalar_one_or_none():
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Invoice already registered"
+            status_code=status.HTTP_409_CONFLICT, detail="Invoice already registered"
         )
 
     # Create invoice
@@ -460,11 +463,21 @@ async def upload_xml(
         total_value=invoice_data["total_value"],
         type=invoice_data["type"],
         source="xml",
-        raw_data=invoice_data.get("raw_data")
+        raw_data=invoice_data.get("raw_data"),
     )
 
     db.add(invoice)
     await db.flush()
+
+    # Link to merchant
+    try:
+        await merchant_service.link_invoice_to_merchant(db, invoice)
+    except Exception as me:
+        logger.warning(f"Failed to link invoice {invoice.id} to merchant: {me}")
+
+    # Normalizar nomes dos itens (expande abreviações de NF-e)
+    for item_data in invoice_data["products"]:
+        normalize_product_dict(item_data)
 
     # Create invoice items
     for item_data in invoice_data["products"]:
@@ -472,28 +485,20 @@ async def upload_xml(
             invoice_id=invoice.id,
             code=item_data["code"],
             description=item_data["description"],
+            normalized_name=item_data.get("normalized_name"),
             quantity=item_data["quantity"],
             unit=item_data["unit"],
             unit_price=item_data["unit_price"],
-            total_price=item_data["total_price"]
+            discount=item_data.get("discount", 0),
+            total_price=item_data["total_price"],
         )
         db.add(item)
 
     await db.commit()
     await db.refresh(invoice)
 
-    # Generate AI analyses (background task)
-    try:
-        user_history = await _get_user_history(current_user.id, db)
-        analyses = await analyzer.analyze_invoice(
-            invoice, user_history, db
-        )
-        for analysis in analyses:
-            db.add(analysis)
-        await db.commit()
-    except Exception as e:
-        # Log error but don't fail the invoice creation
-        print(f"Error generating AI analyses: {e}")
+    # Generate AI analyses in background
+    background_tasks.add_task(run_ai_analysis, str(invoice.id), str(current_user.id))
 
     return invoice
 
@@ -501,39 +506,47 @@ async def upload_xml(
 @router.post(
     "/upload/photos",
     response_model=ProcessingResponse,
-    status_code=status.HTTP_202_ACCEPTED
+    status_code=status.HTTP_202_ACCEPTED,
 )
 async def upload_invoice_photos(
     background_tasks: BackgroundTasks,
     files: list[UploadFile] = File(...),
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Upload photos of invoices for LLM processing.
 
     Supports multiple images for long receipts that don't fit
     in a single photo.
     """
-    print(f"DEBUG: upload_invoice_photos called with {len(files)} files")
+    logger.info(
+        "upload_invoice_photos_called", file_count=len(files), user_id=current_user.id
+    )
     if not files:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="At least one file is required"
+            detail="At least one file is required",
         )
 
     if len(files) > 10:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Maximum 10 files allowed"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Maximum 10 files allowed"
         )
 
     # Validar tipos de arquivo
-    allowed_types = {"image/jpeg", "image/png", "image/heic", "image/webp", "image/gif", "image/heif"}
+    allowed_types = {
+        "image/jpeg",
+        "image/png",
+        "image/heic",
+        "image/webp",
+        "image/gif",
+        "image/heif",
+    }
     for file in files:
         if file.content_type not in allowed_types:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"File type {file.content_type} not allowed"
+                detail=f"File type {file.content_type} not allowed",
             )
 
     # Save files and get paths
@@ -546,7 +559,7 @@ async def upload_invoice_photos(
         filename = f"{uuid.uuid4()}.{ext}"
         filepath = os.path.join(settings.UPLOAD_DIR, filename)
 
-        async with aiofiles.open(filepath, 'wb') as out_file:
+        async with aiofiles.open(filepath, "wb") as out_file:
             content = await file.read()
             await out_file.write(content)
 
@@ -556,8 +569,8 @@ async def upload_invoice_photos(
     processing = InvoiceProcessing(
         user_id=current_user.id,
         status="pending",
-        image_ids=image_paths, # Saving file paths as image_ids
-        image_count=len(files)
+        image_ids=image_paths,  # Saving file paths as image_ids
+        image_count=len(files),
     )
 
     db.add(processing)
@@ -571,32 +584,28 @@ async def upload_invoice_photos(
         processing_id=processing.id,
         status="pending",
         message="Images uploaded for processing",
-        estimated_seconds=30
+        estimated_seconds=30,
     )
 
 
-@router.get(
-    "/processing/{processing_id}",
-    response_model=ProcessingStatus
-)
+@router.get("/processing/{processing_id}", response_model=ProcessingStatus)
 async def get_processing_status(
     processing_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Get status of photo processing."""
     result = await db.execute(
         select(InvoiceProcessing).where(
             InvoiceProcessing.id == processing_id,
-            InvoiceProcessing.user_id == current_user.id
+            InvoiceProcessing.user_id == current_user.id,
         )
     )
     processing = result.scalar_one_or_none()
 
     if not processing:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Processing not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Processing not found"
         )
 
     return ProcessingStatus(
@@ -608,20 +617,21 @@ async def get_processing_status(
         confidence_score=processing.confidence_score,
         created_at=processing.created_at,
         updated_at=processing.updated_at,
-        completed_at=processing.completed_at
+        completed_at=processing.completed_at,
     )
 
 
 @router.post(
     "/processing/{processing_id}/confirm",
     response_model=InvoiceResponse,
-    status_code=status.HTTP_201_CREATED
+    status_code=status.HTTP_201_CREATED,
 )
 async def confirm_extracted_invoice(
     processing_id: uuid.UUID,
     request: ProcessingConfirmRequest,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Confirm and save extracted invoice data."""
     try:
@@ -629,40 +639,44 @@ async def confirm_extracted_invoice(
         result = await db.execute(
             select(InvoiceProcessing).where(
                 InvoiceProcessing.id == processing_id,
-                InvoiceProcessing.user_id == current_user.id
+                InvoiceProcessing.user_id == current_user.id,
             )
         )
         processing = result.scalar_one_or_none()
 
         if not processing:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Processing not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Processing not found"
             )
 
         if processing.status != "extracted":
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Cannot confirm processing in {processing.status} status"
+                detail=f"Cannot confirm processing in {processing.status} status",
             )
 
         if not processing.extracted_data:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No extracted data available"
+                detail="No extracted data available",
             )
 
         # Usar dados editados do request (já validados pelo Pydantic)
         # Criar Invoice
-        raw_data = request.model_dump(mode='json')
+        raw_data = request.model_dump(mode="json")
         # Ensure datetime is serialized to string for JSON storage
-        if 'issue_date' in raw_data and raw_data['issue_date'] is not None:
-            if isinstance(raw_data['issue_date'], datetime):
-                raw_data['issue_date'] = raw_data['issue_date'].isoformat()
+        if "issue_date" in raw_data and raw_data["issue_date"] is not None:
+            if isinstance(raw_data["issue_date"], datetime):
+                raw_data["issue_date"] = raw_data["issue_date"].isoformat()
 
         # Clean access_key: remove spaces, hyphens, and keep only first 44 chars
         access_key = request.access_key or ""
         access_key = "".join(c for c in access_key if c.isalnum())[:44]
+
+        # Generate unique placeholder if access_key is empty or invalid
+        if len(access_key) < 44:
+            access_key = uuid.uuid4().hex.ljust(44, "0")[:44]
+            logger.info(f"Generated placeholder access_key: {access_key}")
 
         # Clean CNPJ: remove dots, hyphens, slashes
         issuer_cnpj = request.issuer_cnpj or ""
@@ -676,7 +690,9 @@ async def confirm_extracted_invoice(
         if settings.cnpj_validation_enabled and issuer_cnpj:
             # Check CNPJ length
             if len(issuer_cnpj) != 14:
-                logger.warning(f"Invalid CNPJ length: {issuer_cnpj} (length: {len(issuer_cnpj)})")
+                logger.warning(
+                    f"Invalid CNPJ length: {issuer_cnpj} (length: {len(issuer_cnpj)})"
+                )
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail={
@@ -685,8 +701,8 @@ async def confirm_extracted_invoice(
                         "field": "issuer_cnpj",
                         "value": issuer_cnpj,
                         "expected_length": 14,
-                        "actual_length": len(issuer_cnpj)
-                    }
+                        "actual_length": len(issuer_cnpj),
+                    },
                 )
 
             # Validate CNPJ checksum
@@ -701,8 +717,8 @@ async def confirm_extracted_invoice(
                         "message": "CNPJ inválido. Verifique os dígitos verificadores.",
                         "field": "issuer_cnpj",
                         "value": format_cnpj(issuer_cnpj),
-                        "hint": "O CNPJ informado não passa na validação dos dígitos verificadores."
-                    }
+                        "hint": "O CNPJ informado não passa na validação dos dígitos verificadores.",
+                    },
                 )
 
             logger.info(f"✓ CNPJ validated successfully: {issuer_cnpj}")
@@ -711,32 +727,41 @@ async def confirm_extracted_invoice(
             if settings.cnpj_enrichment_enabled:
                 try:
                     enriched = await enrich_cnpj_data(
-                        issuer_cnpj,
-                        timeout=settings.CNPJ_API_TIMEOUT
+                        issuer_cnpj, timeout=settings.CNPJ_API_TIMEOUT
                     )
 
                     if enriched:
-                        logger.info(f"✓ CNPJ enriched from {enriched.get('source')}: {issuer_cnpj}")
+                        logger.info(
+                            f"✓ CNPJ enriched from {enriched.get('source')}: {issuer_cnpj}"
+                        )
 
                         # Use razao_social (legal name) as default, fallback to nome_fantasia
-                        enriched_name = enriched.get('razao_social') or enriched.get('nome_fantasia')
+                        enriched_name = enriched.get("razao_social") or enriched.get(
+                            "nome_fantasia"
+                        )
 
                         # Update issuer_name if:
                         # - It's empty OR
                         # - Enriched name is significantly longer (likely more complete)
-                        if enriched_name and (not issuer_name or len(enriched_name) > len(issuer_name) + 5):
+                        if enriched_name and (
+                            not issuer_name or len(enriched_name) > len(issuer_name) + 5
+                        ):
                             old_name = issuer_name
                             issuer_name = enriched_name
-                            logger.info(f"✓ Updated issuer_name: '{old_name}' -> '{enriched_name}'")
+                            logger.info(
+                                f"✓ Updated issuer_name: '{old_name}' -> '{enriched_name}'"
+                            )
 
                         # Save complete enriched data in raw_data for reference
-                        raw_data['cnpj_enrichment'] = {
-                            'source': enriched.get('source', 'unknown'),
-                            'enriched_at': datetime.utcnow().isoformat(),
-                            'data': enriched
+                        raw_data["cnpj_enrichment"] = {
+                            "source": enriched.get("source", "unknown"),
+                            "enriched_at": datetime.utcnow().isoformat(),
+                            "data": enriched,
                         }
                     else:
-                        logger.warning(f"CNPJ enrichment returned no data for: {issuer_cnpj}")
+                        logger.warning(
+                            f"CNPJ enrichment returned no data for: {issuer_cnpj}"
+                        )
 
                 except Exception as e:
                     # Don't fail if enrichment fails - continue with original data
@@ -746,8 +771,7 @@ async def confirm_extracted_invoice(
         # Check if invoice with this access_key already exists
         existing_invoice_result = await db.execute(
             select(Invoice).where(
-                Invoice.access_key == access_key,
-                Invoice.user_id == current_user.id
+                Invoice.access_key == access_key, Invoice.user_id == current_user.id
             )
         )
         existing_invoice = existing_invoice_result.scalar_one_or_none()
@@ -762,25 +786,37 @@ async def confirm_extracted_invoice(
                     "existing_invoice_number": existing_invoice.number,
                     "existing_invoice_date": existing_invoice.issue_date.isoformat(),
                     "existing_invoice_total": float(existing_invoice.total_value),
-                }
+                },
             )
+
+        # Fallback para issue_date se vier null
+        issue_date = request.issue_date
+        if issue_date is None:
+            logger.warning("issue_date is null, using current datetime as fallback")
+            issue_date = datetime.utcnow()
 
         invoice = Invoice(
             user_id=current_user.id,
             access_key=access_key,
             number=request.number or "",
             series=request.series or "",
-            issue_date=request.issue_date,
+            issue_date=issue_date,
             issuer_cnpj=issuer_cnpj,
             issuer_name=issuer_name,  # Use potentially enriched name
             total_value=float(request.total_value) if request.total_value else 0,
             invoice_type="NFC-e",  # Default
             source="photo",
-            raw_data=raw_data
+            raw_data=raw_data,
         )
 
         db.add(invoice)
         await db.flush()
+
+        # Link to merchant
+        try:
+            await merchant_service.link_invoice_to_merchant(db, invoice)
+        except Exception as me:
+            logger.warning(f"Failed to link invoice {invoice.id} to merchant: {me}")
 
         # Criar items
         for item_data in request.items:
@@ -788,9 +824,11 @@ async def confirm_extracted_invoice(
                 invoice_id=invoice.id,
                 code=item_data.code or "",
                 description=item_data.description or "",
+                normalized_name=item_data.normalized_name,
                 quantity=item_data.quantity,
                 unit=item_data.unit or "UN",
                 unit_price=item_data.unit_price,
+                discount=item_data.discount or 0,
                 total_price=item_data.total_price,
                 category_name=item_data.category_name,
                 subcategory=item_data.subcategory,
@@ -805,6 +843,11 @@ async def confirm_extracted_invoice(
         await db.commit()
         await db.refresh(invoice)
 
+        # Generate AI analyses in background
+        background_tasks.add_task(
+            run_ai_analysis, str(invoice.id), str(current_user.id)
+        )
+
         # Limpar arquivos de upload após confirmação
         if processing.image_ids:
             deleted = 0
@@ -814,13 +857,10 @@ async def confirm_extracted_invoice(
                         os.remove(image_path)
                         deleted += 1
                 except Exception as del_err:
-                    logger.warning(
-                        f"Failed to delete upload {image_path}: {del_err}"
-                    )
+                    logger.warning(f"Failed to delete upload {image_path}: {del_err}")
             if deleted:
                 logger.info(
-                    f"Cleaned up {deleted} upload(s) for "
-                    f"processing {processing_id}"
+                    f"Cleaned up {deleted} upload(s) for " f"processing {processing_id}"
                 )
 
         logger.info(f"✓ Invoice confirmed successfully: {invoice.id}")
@@ -835,19 +875,14 @@ async def confirm_extracted_invoice(
 
         # Check if it's a duplicate key error
         error_str = str(e).lower()
-        if 'unique constraint' in error_str or 'duplicate key' in error_str:
-            if 'access_key' in error_str:
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail={
-                        "message": "Esta nota fiscal já foi cadastrada anteriormente",
-                        "error": "duplicate_invoice",
-                    }
+        if "unique constraint" in error_str or "duplicate key" in error_str:
+            if "access_key" in error_str:
+                raise InvoiceAlreadyExistsError(
+                    message="Esta nota fiscal já foi cadastrada anteriormente"
                 )
 
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to confirm invoice: {str(e)}"
+        raise InvoiceProcessingError(
+            message=f"Failed to confirm invoice: {e!s}"
         )
 
 
@@ -890,7 +925,7 @@ async def upload_images():
 async def delete_invoice(
     invoice_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Delete an invoice."""
     result = await db.execute(
@@ -902,71 +937,15 @@ async def delete_invoice(
 
     if not invoice:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Invoice not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Invoice not found"
         )
 
     await db.delete(invoice)
     await db.commit()
 
-    return None
-
-
-async def _get_user_history(
-    user_id: uuid.UUID,
-    db: AsyncSession
-) -> dict:
-    """
-    Get user's purchase history for AI analysis.
-    """
-    # Get total invoices count
-    result = await db.execute(
-        select(func.count(Invoice.id)).where(
-            Invoice.user_id == user_id
-        )
-    )
-    total_invoices = result.scalar() or 0
-
-    # Get total spent
-    result = await db.execute(
-        select(func.sum(Invoice.total_value)).where(
-            Invoice.user_id == user_id
-        )
-    )
-    total_spent = result.scalar() or 0
-
-    # Get top categories
-    result = await db.execute(
-        select(
-            InvoiceItem.category,
-            func.sum(InvoiceItem.total_price).label('total')
-        ).join(
-            Invoice, Invoice.id == InvoiceItem.invoice_id
-        ).where(
-            Invoice.user_id == user_id
-        ).group_by(
-            InvoiceItem.category
-        ).order_by(
-            func.sum(InvoiceItem.total_price).desc()
-        ).limit(5)
-    )
-    top_categories = result.all()
-
-    return {
-        "total_invoices": total_invoices,
-        "total_spent": float(total_spent),
-        "top_categories": [
-            {"category": cat[0], "total": float(cat[1])}
-            for cat in top_categories
-        ]
-    }
-
 
 @router.get("/cnpj/{cnpj}/enrich")
-async def enrich_cnpj(
-    cnpj: str,
-    current_user: User = Depends(get_current_user)
-):
+async def enrich_cnpj(cnpj: str, current_user: User = Depends(get_current_user)):
     """
     Enrich CNPJ data using public Brazilian APIs (BrasilAPI/ReceitaWS).
 
@@ -986,8 +965,8 @@ async def enrich_cnpj(
                 "error": "invalid_cnpj",
                 "message": "CNPJ deve ter 14 dígitos",
                 "cnpj": cnpj,
-                "length": len(cnpj_clean)
-            }
+                "length": len(cnpj_clean),
+            },
         )
 
     # Validate CNPJ checksum (if validation is enabled)
@@ -998,8 +977,8 @@ async def enrich_cnpj(
                 detail={
                     "error": "invalid_cnpj",
                     "message": "CNPJ inválido. Verifique os dígitos verificadores.",
-                    "cnpj": format_cnpj(cnpj_clean)
-                }
+                    "cnpj": format_cnpj(cnpj_clean),
+                },
             )
 
     # Enrich CNPJ (if enrichment is enabled)
@@ -1008,14 +987,13 @@ async def enrich_cnpj(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail={
                 "error": "service_disabled",
-                "message": "Serviço de enriquecimento de CNPJ está desabilitado"
-            }
+                "message": "Serviço de enriquecimento de CNPJ está desabilitado",
+            },
         )
 
     try:
         enriched_data = await enrich_cnpj_data(
-            cnpj_clean,
-            timeout=settings.CNPJ_API_TIMEOUT
+            cnpj_clean, timeout=settings.CNPJ_API_TIMEOUT
         )
 
         if not enriched_data:
@@ -1025,37 +1003,34 @@ async def enrich_cnpj(
                     "error": "cnpj_not_found",
                     "message": "CNPJ não encontrado nas bases de dados públicas",
                     "cnpj": format_cnpj(cnpj_clean),
-                    "hint": "Verifique se o CNPJ está correto e ativo"
-                }
+                    "hint": "Verifique se o CNPJ está correto e ativo",
+                },
             )
 
-        logger.info(f"✓ CNPJ enriched successfully from {enriched_data.get('source')}: {cnpj_clean}")
+        logger.info(
+            f"✓ CNPJ enriched successfully from {enriched_data.get('source')}: {cnpj_clean}"
+        )
 
         return {
             "success": True,
             "cnpj": format_cnpj(cnpj_clean),
             "data": enriched_data,
-            "suggested_name": enriched_data.get('razao_social') or enriched_data.get('nome_fantasia')
+            "suggested_name": enriched_data.get("razao_social")
+            or enriched_data.get("nome_fantasia"),
         }
 
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error enriching CNPJ {cnpj_clean}: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={
-                "error": "enrichment_failed",
-                "message": "Falha ao consultar dados do CNPJ. Tente novamente.",
-                "hint": "As APIs públicas podem estar temporariamente indisponíveis"
-            }
+        raise ExternalServiceError(
+            message="Falha ao consultar dados do CNPJ. Tente novamente."
         )
 
 
 @router.get("/stats/summary")
 async def get_invoices_summary(
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
 ):
     """
     Get summary statistics for user's invoices.
@@ -1069,34 +1044,27 @@ async def get_invoices_summary(
 
     # Get total invoices count
     result = await db.execute(
-        select(func.count(Invoice.id)).where(
-            Invoice.user_id == current_user.id
-        )
+        select(func.count(Invoice.id)).where(Invoice.user_id == current_user.id)
     )
     total_invoices = result.scalar() or 0
 
     # Get total spent
     result = await db.execute(
-        select(func.sum(Invoice.total_value)).where(
-            Invoice.user_id == current_user.id
-        )
+        select(func.sum(Invoice.total_value)).where(Invoice.user_id == current_user.id)
     )
     total_spent = result.scalar() or 0
 
     # Get top categories
     result = await db.execute(
         select(
-            InvoiceItem.category,
-            func.sum(InvoiceItem.total_price).label('total')
-        ).join(
-            Invoice, Invoice.id == InvoiceItem.invoice_id
-        ).where(
-            Invoice.user_id == current_user.id
-        ).group_by(
-            InvoiceItem.category
-        ).order_by(
-            func.sum(InvoiceItem.total_price).desc()
-        ).limit(5)
+            InvoiceItem.category_name,
+            func.sum(InvoiceItem.total_price).label("total"),
+        )
+        .join(Invoice, Invoice.id == InvoiceItem.invoice_id)
+        .where(Invoice.user_id == current_user.id)
+        .group_by(InvoiceItem.category_name)
+        .order_by(func.sum(InvoiceItem.total_price).desc())
+        .limit(5)
     )
     top_categories = result.all()
 
@@ -1106,5 +1074,5 @@ async def get_invoices_summary(
         "top_categories": [
             {"category": cat[0] or "Sem categoria", "total": float(cat[1])}
             for cat in top_categories
-        ]
+        ],
     }
