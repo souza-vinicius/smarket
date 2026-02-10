@@ -59,7 +59,7 @@ export function DeleteProcessingModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} closeButton={state !== "deleting"} size="sm">
+    <Modal isOpen={isOpen} onClose={handleClose} showCloseButton={state !== "deleting"} size="sm">
       {/* Confirming State */}
       {state === "confirming" && (
         <div className="py-4">
@@ -80,7 +80,7 @@ export function DeleteProcessingModal({
               Cancelar
             </Button>
             <Button
-              variant="destructive"
+              variant="danger"
               onClick={handleConfirm}
               disabled={isDeleting}
               className="flex-1"

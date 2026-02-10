@@ -32,9 +32,11 @@ interface InvoiceWithItems extends Invoice {
     id?: string;
     code?: string;
     description: string;
+    normalized_name?: string;
     quantity: number;
     unit: string;
     unit_price: number;
+    discount?: number;
     total_price: number;
     category_name?: string;
     subcategory?: string;
@@ -49,6 +51,7 @@ export interface InvoiceItemData {
   unit: string;
   unit_price: number;
   total_price: number;
+  discount?: number;
   category_name?: string;
   subcategory?: string;
 }

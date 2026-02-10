@@ -1,16 +1,10 @@
 "use client";
 
-import { useQuery, type UseQueryResult } from "@tanstack/react-query";
-
+import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
 
-const ANALYTICS_KEYS = {
-  spendingTrends: (months: number) => ["analytics", "spending-trends", months] as const,
-  categorySpending: (months: number) => ["analytics", "category-spending", months] as const,
-  merchantInsights: (limit: number) => ["analytics", "merchant-insights", limit] as const,
-};
-
-interface MonthlyTrend {
+// Spending Trends
+interface Trend {
   month: string;
   total: number;
   invoice_count: number;
@@ -18,32 +12,25 @@ interface MonthlyTrend {
 
 interface SpendingTrendsResponse {
   period_months: number;
-  trends: MonthlyTrend[];
+  trends: Trend[];
 }
 
-interface CategorySpending {
-  id: string;
-  name: string;
-  color: string;
-  icon: string | null;
-  total_spent: number;
+export function useSpendingTrends(months: number = 6) {
+  return useQuery({
+    queryKey: ["analytics", "spending-trends", months],
+    queryFn: async () => {
+      return apiClient.get<SpendingTrendsResponse>(
+        `/analysis/spending-trends/data?months=${months}`
+      );
+    },
+  });
 }
 
-interface SubcategorySpending extends CategorySpending {
-  parent_id: string | null;
-  parent_name: string;
-}
-
-interface CategorySpendingResponse {
-  period_months: number;
-  categories: CategorySpending[];
-  subcategories: SubcategorySpending[];
-}
-
+// Merchant Insights
 interface MerchantInsight {
   id: string;
   name: string;
-  category: string | null;
+  category?: string;
   total_spent: number;
   visit_count: number;
   average_ticket: number;
@@ -53,35 +40,49 @@ interface MerchantInsightsResponse {
   merchants: MerchantInsight[];
 }
 
-export function useSpendingTrends(months = 6): UseQueryResult<SpendingTrendsResponse> {
+export function useMerchantInsights(limit: number = 10) {
   return useQuery({
-    queryKey: ANALYTICS_KEYS.spendingTrends(months),
+    queryKey: ["analytics", "merchant-insights", limit],
     queryFn: async () => {
-      return apiClient.get<SpendingTrendsResponse>("/analysis/spending-trends/data", {
-        months: String(months),
-      });
+      return apiClient.get<MerchantInsightsResponse>(
+        `/analysis/merchant-insights/data?limit=${limit}`
+      );
     },
   });
 }
 
-export function useCategorySpending(months = 6): UseQueryResult<CategorySpendingResponse> {
-  return useQuery({
-    queryKey: ANALYTICS_KEYS.categorySpending(months),
-    queryFn: async () => {
-      return apiClient.get<CategorySpendingResponse>("/analysis/category-spending/data", {
-        months: String(months),
-      });
-    },
-  });
+// Category Spending
+interface Category {
+  id: string;
+  name: string;
+  color: string;
+  icon: string | null;
+  total_spent: number;
 }
 
-export function useMerchantInsights(limit = 10): UseQueryResult<MerchantInsightsResponse> {
+interface Subcategory {
+  id: string;
+  name: string;
+  color: string;
+  icon: string | null;
+  parent_id: string | null;
+  parent_name: string;
+  total_spent: number;
+}
+
+interface CategorySpendingResponse {
+  period_months: number;
+  categories: Category[];
+  subcategories: Subcategory[];
+}
+
+export function useCategorySpending(months: number = 6) {
   return useQuery({
-    queryKey: ANALYTICS_KEYS.merchantInsights(limit),
+    queryKey: ["analytics", "category-spending", months],
     queryFn: async () => {
-      return apiClient.get<MerchantInsightsResponse>("/analysis/merchant-insights/data", {
-        limit: String(limit),
-      });
+      return apiClient.get<CategorySpendingResponse>(
+        `/analysis/category-spending/data?months=${months}`
+      );
     },
   });
 }

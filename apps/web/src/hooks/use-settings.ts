@@ -1,38 +1,47 @@
 "use client";
 
-import {
-  useQuery,
-  useMutation,
-  useQueryClient,
-  type UseQueryResult,
-  type UseMutationResult,
-} from "@tanstack/react-query";
-
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
-import { type UserProfile, type UserProfileUpdate } from "@/types";
 
-const SETTINGS_KEYS = {
-  profile: ["settings", "profile"] as const,
-};
+interface Settings {
+  id: string;
+  email: string;
+  full_name: string;
+  household_income?: number;
+  adults_count?: number;
+  children_count?: number;
+  created_at: string;
+  updated_at: string;
+}
 
-export function useProfile(): UseQueryResult<UserProfile> {
+interface SettingsUpdate {
+  full_name?: string;
+  household_income?: number;
+  adults_count?: number;
+  children_count?: number;
+}
+
+export function useSettings() {
   return useQuery({
-    queryKey: SETTINGS_KEYS.profile,
-    queryFn: async (): Promise<UserProfile> => {
-      return apiClient.getProfile();
+    queryKey: ["settings"],
+    queryFn: async () => {
+      const response = await apiClient.get<Settings>("/users/profile");
+      return response;
     },
   });
 }
 
-export function useUpdateProfile(): UseMutationResult<UserProfile, Error, UserProfileUpdate> {
+export function useUpdateSettings() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: UserProfileUpdate): Promise<UserProfile> => {
-      return apiClient.updateProfile(data);
+    mutationFn: async (data: SettingsUpdate) => {
+      const response = await apiClient.patch<Settings>("/users/profile", data);
+      return response;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: SETTINGS_KEYS.profile });
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
+      queryClient.invalidateQueries({ queryKey: ["user"] });
     },
   });
 }

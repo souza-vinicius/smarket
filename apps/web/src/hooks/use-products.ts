@@ -1,46 +1,56 @@
 "use client";
 
-import { useState, useEffect } from "react";
-
-import { useQuery, type UseQueryResult } from "@tanstack/react-query";
-
+import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
-import { type ProductPurchaseResult } from "@/types";
 
-const PRODUCT_KEYS = {
-  all: ["products"] as const,
-  searchPurchases: (q: string) => [...PRODUCT_KEYS.all, "search-purchases", q] as const,
-};
-
-export function useDebouncedValue<T>(value: T, delay: number): T {
-  const [debounced, setDebounced] = useState(value);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebounced(value);
-    }, delay);
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [value, delay]);
-
-  return debounced;
+export interface Product {
+  id: string;
+  description: string;
+  normalized_name?: string;
+  quantity: number;
+  unit: string;
+  unit_price: number;
+  total_price: number;
+  issue_date: string;
+  issuer_name: string;
+  merchant_name?: string;
+  invoice_id: string;
 }
 
-export function useProductSearch(
-  query: string
-): UseQueryResult<ProductPurchaseResult[]> & { debouncedQuery: string } {
-  const debouncedQuery = useDebouncedValue(query.trim(), 300);
+interface ProductsResponse {
+  items: Product[];
+  total: number;
+}
 
-  const result = useQuery({
-    queryKey: PRODUCT_KEYS.searchPurchases(debouncedQuery),
+// Get all invoice items (product purchases) for the current user
+export function useProducts(search?: string) {
+  return useQuery({
+    queryKey: ["products", search],
     queryFn: async () => {
-      return apiClient.get<ProductPurchaseResult[]>(
-        `/products/search-purchases?q=${encodeURIComponent(debouncedQuery)}`
-      );
+      // Use search-purchases endpoint which returns individual purchase records
+      // If no search query, get all purchases with empty search
+      const url = search && search.length >= 2
+        ? `/products/search-purchases?q=${encodeURIComponent(search)}`
+        : `/products/search-purchases?q=`;
+      
+      const response = await apiClient.get<Product[]>(url);
+      return response;
     },
-    enabled: debouncedQuery.length >= 2,
   });
+}
 
-  return { ...result, debouncedQuery };
+// Search products with a query
+export function useSearchProducts(query: string) {
+  return useQuery({
+    queryKey: ["products", "search", query],
+    queryFn: async () => {
+      if (!query || query.length < 2) return [];
+      
+      const response = await apiClient.get<Product[]>(
+        `/products/search-purchases?q=${encodeURIComponent(query)}`
+      );
+      return response;
+    },
+    enabled: query.length >= 2,
+  });
 }

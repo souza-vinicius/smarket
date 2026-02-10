@@ -415,7 +415,7 @@ export function UploadModal({
                 onChange={(e) => {
                   setQrCodeUrl(e.target.value);
                 }}
-                helperText="Cole a URL do QR Code da nota fiscal"
+                hint="Cole a URL do QR Code da nota fiscal"
               />
             </div>
             <Button

@@ -1,13 +1,13 @@
 import * as React from "react";
-
 import { cn } from "@/lib/utils";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "outline" | "ghost" | "danger";
-  size?: "sm" | "md" | "lg";
+  variant?: "primary" | "secondary" | "outline" | "ghost" | "danger" | "success";
+  size?: "sm" | "md" | "lg" | "icon";
   isLoading?: boolean;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
+  fullWidth?: boolean;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -19,40 +19,56 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       isLoading = false,
       leftIcon,
       rightIcon,
+      fullWidth = false,
       children,
       disabled,
       ...props
     },
     ref
   ) => {
+    // Base styles - mobile-first with minimum touch targets
+    const baseStyles = "inline-flex items-center justify-center font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]";
+    
+    // Variant styles
     const variants = {
-      primary: "bg-primary text-primary-foreground hover:bg-primary/90 focus:ring-primary",
-      secondary:
-        "bg-secondary text-secondary-foreground hover:bg-secondary/90 focus:ring-secondary",
-      outline:
-        "border border-input bg-background hover:bg-accent hover:text-accent-foreground focus:ring-ring",
-      ghost: "hover:bg-accent hover:text-accent-foreground focus:ring-ring",
-      danger:
-        "bg-destructive text-destructive-foreground hover:bg-destructive/90 focus:ring-destructive",
+      primary: 
+        "bg-primary text-primary-foreground hover:bg-primary-hover shadow-sm hover:shadow-md",
+      secondary: 
+        "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+      outline: 
+        "border-2 border-border bg-transparent hover:bg-secondary hover:border-border-strong",
+      ghost: 
+        "hover:bg-secondary hover:text-secondary-foreground",
+      danger: 
+        "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm",
+      success: 
+        "bg-success text-success-foreground hover:bg-success/90 shadow-sm",
     };
-
+    
+    // Size styles - all meeting minimum touch target (44px)
     const sizes = {
-      sm: "h-8 px-3 text-xs",
-      md: "h-10 px-4 py-2",
-      lg: "h-12 px-6 text-lg",
+      sm: "h-10 px-3 text-sm rounded-lg gap-1.5", // 40px height - slightly smaller but still good
+      md: "h-11 px-4 text-base rounded-lg gap-2", // 44px height - minimum touch target
+      lg: "h-12 px-6 text-base rounded-xl gap-2", // 48px height - recommended touch target
+      icon: "h-11 w-11 rounded-lg", // Square button for icons
+    };
+    
+    // Icon sizing
+    const iconSizes = {
+      sm: "w-4 h-4",
+      md: "w-5 h-5",
+      lg: "w-5 h-5",
+      icon: "w-5 h-5",
     };
 
     return (
       <button
         ref={ref}
         className={cn(
-          "inline-flex items-center justify-center rounded-lg font-medium transition-colors",
-          "focus:outline-none focus:ring-2 focus:ring-offset-2",
-          "disabled:pointer-events-none disabled:opacity-50",
-          // eslint-disable-next-line security/detect-object-injection
+          baseStyles,
           variants[variant],
-          // eslint-disable-next-line security/detect-object-injection
           sizes[size],
+          fullWidth && "w-full",
           className
         )}
         disabled={disabled || isLoading}
@@ -60,7 +76,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       >
         {isLoading && (
           <svg
-            className="mr-2 size-4 animate-spin"
+            className={cn("animate-spin", iconSizes[size])}
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -80,9 +96,13 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             />
           </svg>
         )}
-        {!isLoading && leftIcon && <span className="mr-2">{leftIcon}</span>}
-        {children}
-        {!isLoading && rightIcon && <span className="ml-2">{rightIcon}</span>}
+        {!isLoading && leftIcon && (
+          <span className={iconSizes[size]}>{leftIcon}</span>
+        )}
+        {children && <span>{children}</span>}
+        {!isLoading && rightIcon && (
+          <span className={iconSizes[size]}>{rightIcon}</span>
+        )}
       </button>
     );
   }
@@ -90,5 +110,48 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
 Button.displayName = "Button";
 
-export { Button };
-export type { ButtonProps };
+// Icon Button variant - for actions with icons only
+interface IconButtonProps extends Omit<ButtonProps, "leftIcon" | "rightIcon" | "size"> {
+  icon: React.ReactNode;
+  size?: "sm" | "md" | "lg";
+  label: string; // For accessibility
+}
+
+const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
+  ({ icon, size = "md", label, className, ...props }, ref) => {
+    const sizes = {
+      sm: "h-10 w-10",
+      md: "h-11 w-11",
+      lg: "h-12 w-12",
+    };
+    
+    const iconSizes = {
+      sm: "w-4 h-4",
+      md: "w-5 h-5",
+      lg: "w-6 h-6",
+    };
+
+    return (
+      <button
+        ref={ref}
+        aria-label={label}
+        className={cn(
+          "inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+          "disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]",
+          "bg-transparent hover:bg-secondary text-foreground",
+          sizes[size],
+          className
+        )}
+        {...props}
+      >
+        <span className={iconSizes[size]}>{icon}</span>
+      </button>
+    );
+  }
+);
+
+IconButton.displayName = "IconButton";
+
+export { Button, IconButton };
+export type { ButtonProps, IconButtonProps };
