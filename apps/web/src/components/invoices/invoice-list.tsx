@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { Receipt, Calendar, Package } from 'lucide-react';
+import { Receipt, Calendar, Package } from "lucide-react";
 
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { formatCurrency, formatDate } from '@/lib/utils';
-import { type InvoiceList as InvoiceListType } from '@/types';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { formatCurrency, formatDate } from "@/lib/utils";
+import { type InvoiceList as InvoiceListType } from "@/types";
 
 interface InvoiceListProps {
   invoices: InvoiceListType[];
@@ -14,11 +14,7 @@ interface InvoiceListProps {
   onViewDetails: (id: string) => void;
 }
 
-export function InvoiceList({
-  invoices,
-  isLoading,
-  onViewDetails,
-}: InvoiceListProps) {
+export function InvoiceList({ invoices, isLoading, onViewDetails }: InvoiceListProps) {
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -76,13 +72,13 @@ export function InvoiceList({
                 </div>
               </div>
               <div className="flex items-center gap-4">
-                <span className="text-lg font-bold">
-                  {formatCurrency(invoice.total_value)}
-                </span>
+                <span className="text-lg font-bold">{formatCurrency(invoice.total_value)}</span>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => { onViewDetails(invoice.id); }}
+                  onClick={() => {
+                    onViewDetails(invoice.id);
+                  }}
                 >
                   Ver detalhes
                 </Button>

@@ -21,11 +21,12 @@ import re
 import uuid
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
-from typing import Any, Dict, List
+from typing import Any
 
 from openai import AsyncOpenAI
 
 from src.config import settings
+
 
 EXTRACTION_SYSTEM_PROMPT = """Você é um especialista em extrair dados estruturados de imagens de notas fiscais brasileiras (NFC-e e NF-e).
 
@@ -65,7 +66,7 @@ Regras importantes:
 - Retorne APENAS o JSON, sem nenhum texto adicional ou formatação markdown"""
 
 
-async def parse_invoice_images(image_contents: List[bytes]) -> Dict[str, Any]:
+async def parse_invoice_images(image_contents: list[bytes]) -> dict[str, Any]:
     """
     Extrai dados de nota fiscal a partir de múltiplas imagens usando
     OpenAI Vision API.
@@ -86,7 +87,7 @@ async def parse_invoice_images(image_contents: List[bytes]) -> Dict[str, Any]:
     client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
 
     # Build message content with all images
-    content: List[Dict[str, Any]] = [
+    content: list[dict[str, Any]] = [
         {
             "type": "text",
             "text": (
@@ -135,7 +136,7 @@ async def parse_invoice_images(image_contents: List[bytes]) -> Dict[str, Any]:
     return _normalize_invoice_data(data)
 
 
-def _normalize_invoice_data(data: Dict[str, Any]) -> Dict[str, Any]:
+def _normalize_invoice_data(data: dict[str, Any]) -> dict[str, Any]:
     """
     Normaliza os dados extraídos pela IA para o formato esperado
     pelo sistema.

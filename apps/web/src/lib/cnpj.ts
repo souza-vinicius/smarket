@@ -6,7 +6,7 @@
  * Remove all non-digit characters from CNPJ.
  */
 export function cleanCNPJ(cnpj: string): string {
-  return cnpj.replace(/\D/g, '');
+  return cnpj.replace(/\D/g, "");
 }
 
 /**
@@ -19,10 +19,7 @@ export function formatCNPJ(cnpj: string): string {
     return cnpj; // Return as-is if invalid length
   }
 
-  return cleaned.replace(
-    /^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,
-    '$1.$2.$3/$4-$5'
-  );
+  return cleaned.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
 }
 
 /**
@@ -82,15 +79,15 @@ export function getCNPJErrorMessage(cnpj: string): string | null {
   }
 
   if (cleaned.length !== 14) {
-    return `CNPJ deve ter 14 dígitos (${cleaned.length} informado${cleaned.length !== 1 ? 's' : ''})`;
+    return `CNPJ deve ter 14 dígitos (${cleaned.length} informado${cleaned.length !== 1 ? "s" : ""})`;
   }
 
   if (/^(\d)\1{13}$/.test(cleaned)) {
-    return 'CNPJ inválido (dígitos repetidos)';
+    return "CNPJ inválido (dígitos repetidos)";
   }
 
   if (!validateCNPJ(cnpj)) {
-    return 'CNPJ inválido (dígitos verificadores incorretos)';
+    return "CNPJ inválido (dígitos verificadores incorretos)";
   }
 
   return null; // Valid

@@ -48,9 +48,21 @@ def event_loop():
     loop.close()
 
 
+def pytest_configure(config):
+    """Register custom markers."""
+    config.addinivalue_line(
+        "markers", "no_db: mark test as not requiring database setup"
+    )
+
+
 @pytest_asyncio.fixture(scope="session", autouse=True)
-async def setup_database():
+async def setup_database(request):
     """Create and drop test database tables."""
+    # Skip database setup for tests marked with no_db
+    if "no_db" in request.keywords:
+        yield
+        return
+
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield

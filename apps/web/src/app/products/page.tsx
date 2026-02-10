@@ -1,160 +1,186 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { useState, useMemo } from "react";
+import { Package, Store, Calendar, Search } from "lucide-react";
+import { PageLayout } from "@/components/layout/page-layout";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useProducts, type Product } from "@/hooks/use-products";
+import { formatCurrency, formatDate } from "@/lib/utils";
 
-import { useRouter } from 'next/navigation';
+function ProductCard({ product }: { product: Product }) {
+  return (
+    <Card isInteractive className="flex items-start gap-4">
+      <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-primary-subtle flex items-center justify-center">
+        <Package className="w-6 h-6 text-primary" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <h3 className="font-semibold text-foreground line-clamp-1">
+          {product.normalized_name || product.description}
+        </h3>
+        <div className="flex flex-wrap items-center gap-2 mt-2 text-sm text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <Store className="w-3.5 h-3.5" />
+            {product.merchant_name || product.issuer_name || "Desconhecido"}
+          </span>
+          <span>•</span>
+          <span className="flex items-center gap-1">
+            <Calendar className="w-3.5 h-3.5" />
+            {formatDate(product.issue_date)}
+          </span>
+        </div>
+      </div>
+      <div className="text-right">
+        <p className="font-bold text-foreground">
+          {formatCurrency(product.unit_price)}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          {product.quantity} {product.unit}
+        </p>
+      </div>
+    </Card>
+  );
+}
 
-import { Search, ShoppingCart, Store, Calendar, Package } from 'lucide-react';
-
-import { Header } from '@/components/layout/header';
-import { Sidebar } from '@/components/layout/sidebar';
-import { Input } from '@/components/ui/input';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
-import { useProductSearch } from '@/hooks/use-products';
-import { formatCurrency, formatDate } from '@/lib/utils';
+function ProductSkeleton() {
+  return (
+    <Card className="flex items-start gap-4">
+      <Skeleton variant="avatar" className="w-12 h-12" />
+      <div className="flex-1 space-y-2">
+        <Skeleton className="h-5 w-3/4" />
+        <Skeleton className="h-4 w-1/2" />
+      </div>
+      <Skeleton className="h-8 w-20" />
+    </Card>
+  );
+}
 
 export default function ProductsPage() {
-  const router = useRouter();
-  const [query, setQuery] = useState('');
-  const { data: results, isLoading, debouncedQuery } = useProductSearch(query);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  
+  const { data: products, isLoading } = useProducts(debouncedSearch);
 
-  const isSearching = debouncedQuery.length >= 2;
+  // Debounce search
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    
+    // Debounce - only update API search after 300ms
+    setTimeout(() => {
+      setDebouncedSearch(value);
+    }, 300);
+  };
+
+  const handleClear = () => {
+    setSearchQuery("");
+    setDebouncedSearch("");
+  };
+
+  // Group by category for summary (from product data)
+  const categorySummary = useMemo(() => {
+    if (!products) return {};
+    
+    return products.reduce((acc, product) => {
+      // Use merchant name as a proxy for category since the API doesn't return category
+      const category = product.merchant_name || product.issuer_name || "Sem categoria";
+      acc[category] = (acc[category] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+  }, [products]);
+
+  const displayProducts = products || [];
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
-      <Sidebar />
-
-      <div className="flex-1 pl-64">
-        <Header
-          title="Buscar Produtos"
-          subtitle="Pesquise produtos e veja o histórico de preços"
-        />
-
-        <main className="p-6">
-          {/* Search Input */}
-          <div className="mb-8">
-            <div className="relative mx-auto max-w-2xl">
-              <Search className="absolute left-4 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
-              <Input
-                type="text"
-                placeholder="Digite o nome do produto (ex: arroz, leite, café...)"
-                value={query}
-                onChange={(e) => { setQuery(e.target.value); }}
-                className="h-14 rounded-xl border-slate-300 pl-12 text-lg shadow-sm focus-visible:ring-emerald-500"
-              />
-              {query.length > 0 && query.length < 2 && (
-                <p className="mt-2 text-center text-sm text-slate-500">
-                  Digite pelo menos 2 caracteres para buscar
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* Results */}
-          {!isSearching && (
-            <div className="py-16 text-center">
-              <div className="mx-auto mb-4 flex size-20 items-center justify-center rounded-full bg-slate-100">
-                <ShoppingCart className="size-10 text-slate-400" />
-              </div>
-              <h3 className="mb-2 text-lg font-semibold text-slate-900">
-                Busque por um produto
-              </h3>
-              <p className="mx-auto max-w-md text-slate-600">
-                Digite o nome de um produto para ver todas as vezes que ele foi comprado e o valor pago em cada compra.
-              </p>
-            </div>
+    <PageLayout
+      title="Produtos"
+      subtitle="Busque seus produtos nas notas fiscais"
+    >
+      {/* Search */}
+      <div className="mb-6">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="Buscar produtos (mínimo 2 caracteres)..."
+            value={searchQuery}
+            onChange={handleSearchChange}
+            className="pl-10 pr-10"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={handleClear}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-muted transition-colors"
+            >
+              <svg className="w-4 h-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           )}
+        </div>
+        <p className="text-xs text-muted-foreground mt-2">
+          Digite pelo menos 2 caracteres para buscar
+        </p>
+      </div>
 
-          {isSearching && isLoading && (
-            <div className="space-y-3">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={`skeleton-${String(i)}`} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <div className="flex items-center gap-4">
-                    <Skeleton className="size-10 rounded-lg" />
-                    <div className="flex-1 space-y-2">
-                      <Skeleton className="h-4 w-2/3" />
-                      <Skeleton className="h-3 w-1/3" />
-                    </div>
-                    <Skeleton className="h-6 w-20" />
-                  </div>
+      {/* Category Summary - Horizontal scroll on mobile */}
+      {!isLoading && Object.keys(categorySummary).length > 0 && (
+        <div className="mb-6 overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+          <div className="flex gap-3 sm:flex-wrap">
+            {Object.entries(categorySummary)
+              .sort(([, a], [, b]) => b - a)
+              .slice(0, 6)
+              .map(([category, count]) => (
+                <div
+                  key={category}
+                  className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-full bg-muted border border-border"
+                >
+                  <span className="text-sm font-medium text-foreground whitespace-nowrap">
+                    {category}
+                  </span>
+                  <Badge variant="secondary" size="sm">
+                    {count}
+                  </Badge>
                 </div>
               ))}
-            </div>
-          )}
+          </div>
+        </div>
+      )}
 
-          {isSearching && !isLoading && results && results.length > 0 && (
-            <div>
-              <div className="mb-4 flex items-center justify-between">
-                <p className="text-sm text-slate-600">
-                  <span className="font-semibold text-slate-900">{results.length}</span>{' '}
-                  {results.length === 1 ? 'resultado encontrado' : 'resultados encontrados'} para{' '}
-                  <span className="font-semibold text-emerald-700">&quot;{debouncedQuery}&quot;</span>
-                </p>
-              </div>
-
-              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-                <div className="divide-y divide-slate-100">
-                  {results.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      className="flex w-full items-center gap-4 p-4 text-left transition-colors hover:bg-slate-50"
-                      onClick={() => { router.push(`/invoices/${item.invoice_id}`); }}
-                    >
-                      <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-100">
-                        <Package className="size-5 text-emerald-600" />
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium text-slate-900">
-                          {item.description}
-                        </p>
-                        <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-slate-500">
-                          <span className="flex items-center gap-1">
-                            <Store className="size-3" />
-                            {item.merchant_name || item.issuer_name}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Calendar className="size-3" />
-                            {formatDate(item.issue_date)}
-                          </span>
-                          <Badge variant="outline" className="text-xs">
-                            {Number(item.quantity)} {item.unit}
-                          </Badge>
-                        </div>
-                      </div>
-
-                      <div className="flex-shrink-0 text-right">
-                        <p className="text-lg font-bold text-slate-900">
-                          {formatCurrency(item.unit_price)}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          Total: {formatCurrency(item.total_price)}
-                        </p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {isSearching && !isLoading && results && results.length === 0 && (
-            <div className="py-16 text-center">
-              <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-slate-100">
-                <Search className="size-8 text-slate-400" />
-              </div>
-              <h3 className="mb-2 text-lg font-semibold text-slate-900">
-                Nenhum resultado encontrado
-              </h3>
-              <p className="text-slate-600">
-                Nenhuma compra encontrada para &quot;{debouncedQuery}&quot;. Tente outro termo.
-              </p>
-            </div>
-          )}
-        </main>
-      </div>
-    </div>
+      {/* Products List */}
+      {isLoading ? (
+        <div className="space-y-3">
+          <ProductSkeleton />
+          <ProductSkeleton />
+          <ProductSkeleton />
+          <ProductSkeleton />
+          <ProductSkeleton />
+        </div>
+      ) : displayProducts.length > 0 ? (
+        <div className="space-y-3">
+          {displayProducts.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </div>
+      ) : (
+        <Card className="text-center py-12">
+          <div className="w-16 h-16 rounded-full bg-muted mx-auto mb-4 flex items-center justify-center">
+            <Package className="w-8 h-8 text-muted-foreground" />
+          </div>
+          <h3 className="text-lg font-semibold text-foreground mb-2">
+            {searchQuery ? "Nenhum produto encontrado" : "Digite para buscar produtos"}
+          </h3>
+          <p className="text-muted-foreground max-w-md mx-auto">
+            {searchQuery
+              ? `Nenhum resultado para "${searchQuery}". Tente outro termo.`
+              : "Digite pelo menos 2 caracteres para buscar seus produtos"}
+          </p>
+        </Card>
+      )}
+    </PageLayout>
   );
 }

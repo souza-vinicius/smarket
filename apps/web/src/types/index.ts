@@ -48,6 +48,7 @@ export interface InvoiceItem {
   quantity: number;
   unit: string;
   unit_price: number;
+  discount?: number;
   total_price: number;
   category_name?: string;
   subcategory?: string;
@@ -57,6 +58,7 @@ export interface Product {
   id: string;
   code: string;
   description: string;
+  normalized_name?: string;
   quantity: number;
   unit: string;
   unit_price: number;
@@ -76,8 +78,8 @@ export interface Invoice {
   issuer_cnpj: string;
   issuer_name: string;
   total_value: number;
-  type: 'NFC-e' | 'NF-e';
-  source: 'qrcode' | 'xml' | 'pdf' | 'manual' | 'image';
+  type: "NFC-e" | "NF-e";
+  source: "qrcode" | "xml" | "pdf" | "manual" | "image";
   user_id: string;
   created_at: string;
   products: Product[];
@@ -91,7 +93,7 @@ export interface InvoiceList {
   issue_date: string;
   product_count: number;
   created_at: string;
-  type?: 'NFC-e' | 'NF-e';
+  type?: "NFC-e" | "NF-e";
 }
 
 export interface QRCodeRequest {
@@ -106,6 +108,7 @@ export interface InvoiceItemUpdate {
   quantity: number;
   unit: string;
   unit_price: number;
+  discount?: number;
   total_price: number;
   category_name?: string;
   subcategory?: string;
@@ -131,7 +134,7 @@ export interface ProcessingResponse {
 
 export interface InvoiceProcessingList {
   processing_id: string;
-  status: 'pending' | 'processing' | 'extracted' | 'error';
+  status: "pending" | "processing" | "extracted" | "error";
   image_count: number;
   confidence_score?: number;
   extracted_issuer_name?: string;
@@ -164,7 +167,7 @@ export interface Analysis {
   type: string;
   title: string;
   description: string;
-  priority: 'critical' | 'high' | 'medium' | 'low';
+  priority: "critical" | "high" | "medium" | "low";
   details: Record<string, unknown>;
   reference_period_start?: string;
   reference_period_end?: string;

@@ -1,26 +1,30 @@
+import logging
 import uuid
-from typing import List, Optional
 from datetime import date, datetime
 from decimal import Decimal
+from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy import case, select, and_, or_, func
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import and_, case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database import get_db
 from src.dependencies import get_current_user
 from src.models.analysis import Analysis
-from src.models.category import Category
 from src.models.invoice import Invoice
 from src.models.invoice_item import InvoiceItem
 from src.models.merchant import Merchant
 from src.models.user import User
 from src.schemas.analysis import AnalysisResponse
+from src.services.ai_analyzer import analyzer
+from src.services.merchant_service import merchant_service
+
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
-@router.get("/", response_model=List[AnalysisResponse])
+@router.get("/", response_model=list[AnalysisResponse])
 async def list_analysis(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
@@ -29,22 +33,20 @@ async def list_analysis(
     is_read: Optional[bool] = None,
     is_dismissed: Optional[bool] = None,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """List all analysis/insights for current user."""
-    query = select(Analysis).where(
-        Analysis.user_id == current_user.id
-    )
-    
+    query = select(Analysis).where(Analysis.user_id == current_user.id)
+
     if type:
         query = query.where(Analysis.type == type)
-    
+
     if priority:
         query = query.where(Analysis.priority == priority)
-    
+
     if is_read is not None:
         query = query.where(Analysis.is_read == is_read)
-    
+
     if is_dismissed is not None:
         if is_dismissed:
             query = query.where(Analysis.dismissed_at.isnot(None))
@@ -53,21 +55,25 @@ async def list_analysis(
     else:
         # By default, exclude dismissed items
         query = query.where(Analysis.dismissed_at.is_(None))
-    
-    query = query.order_by(
-        case(
-            (Analysis.priority == "critical", 1),
-            (Analysis.priority == "high", 2),
-            (Analysis.priority == "medium", 3),
-            (Analysis.priority == "low", 4),
-            else_=5
-        ),
-        Analysis.created_at.desc()
-    ).offset(skip).limit(limit)
-    
+
+    query = (
+        query.order_by(
+            case(
+                (Analysis.priority == "critical", 1),
+                (Analysis.priority == "high", 2),
+                (Analysis.priority == "medium", 3),
+                (Analysis.priority == "low", 4),
+                else_=5,
+            ),
+            Analysis.created_at.desc(),
+        )
+        .offset(skip)
+        .limit(limit)
+    )
+
     result = await db.execute(query)
     analyses = result.scalars().all()
-    
+
     return list(analyses)
 
 
@@ -75,113 +81,129 @@ async def list_analysis(
 async def get_analysis(
     analysis_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Get a specific analysis by ID."""
     result = await db.execute(
         select(Analysis).where(
-            and_(
-                Analysis.id == analysis_id,
-                Analysis.user_id == current_user.id
-            )
+            and_(Analysis.id == analysis_id, Analysis.user_id == current_user.id)
         )
     )
     analysis = result.scalar_one_or_none()
-    
+
     if not analysis:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Analysis not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Analysis not found"
         )
-    
+
     return analysis
 
 
 @router.get("/dashboard/summary", response_model=dict)
 async def get_dashboard_summary(
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
 ):
     """Get dashboard summary with key metrics."""
     # Total spent this month
     today = date.today()
     first_day_of_month = today.replace(day=1)
-    
+
     month_result = await db.execute(
         select(func.sum(Invoice.total_value)).where(
             and_(
                 Invoice.user_id == current_user.id,
-                func.date(Invoice.issue_date) >= first_day_of_month
+                func.date(Invoice.issue_date) >= first_day_of_month,
             )
         )
     )
     total_month = month_result.scalar() or Decimal("0.00")
-    
+
     # Total spent last month for comparison
     from dateutil.relativedelta import relativedelta
+
     last_month = today - relativedelta(months=1)
     first_day_last_month = last_month.replace(day=1)
     last_day_last_month = (today.replace(day=1)) - relativedelta(days=1)
-    
+
     last_month_result = await db.execute(
         select(func.sum(Invoice.total_value)).where(
             and_(
                 Invoice.user_id == current_user.id,
                 func.date(Invoice.issue_date) >= first_day_last_month,
-                func.date(Invoice.issue_date) <= last_day_last_month
+                func.date(Invoice.issue_date) <= last_day_last_month,
             )
         )
     )
     total_last_month = last_month_result.scalar() or Decimal("0.00")
-    
+
     # Invoice count this month
     invoice_count_result = await db.execute(
         select(func.count(Invoice.id)).where(
             and_(
                 Invoice.user_id == current_user.id,
-                func.date(Invoice.issue_date) >= first_day_of_month
+                func.date(Invoice.issue_date) >= first_day_of_month,
             )
         )
     )
     invoice_count = invoice_count_result.scalar() or 0
-    
+
     # Unread insights count
     unread_result = await db.execute(
         select(func.count(Analysis.id)).where(
             and_(
                 Analysis.user_id == current_user.id,
                 Analysis.is_read == False,
-                Analysis.dismissed_at.is_(None)
+                Analysis.dismissed_at.is_(None),
             )
         )
     )
     unread_count = unread_result.scalar() or 0
-    
+
     # Top merchant this month
     top_merchant_result = await db.execute(
-        select(
-            Merchant.name,
-            func.sum(Invoice.total_value).label("total")
-        ).join(
-            Invoice, Invoice.merchant_id == Merchant.id
-        ).where(
+        select(Merchant.name, func.sum(Invoice.total_value).label("total"))
+        .join(Invoice, Invoice.merchant_id == Merchant.id)
+        .where(
             and_(
                 Invoice.user_id == current_user.id,
-                func.date(Invoice.issue_date) >= first_day_of_month
+                func.date(Invoice.issue_date) >= first_day_of_month,
             )
-        ).group_by(
-            Merchant.id
-        ).order_by(
-            func.sum(Invoice.total_value).desc()
-        ).limit(1)
+        )
+        .group_by(Merchant.id)
+        .order_by(func.sum(Invoice.total_value).desc())
+        .limit(1)
     )
     top_merchant = top_merchant_result.first()
-    
+
+    # Self-healing: If no top merchant but we have invoices, try to backfill
+    if not top_merchant and invoice_count > 0:
+        try:
+            logger.info(f"Self-healing: Triggering merchant backfill for user {current_user.id}")
+            backfilled_count = await merchant_service.link_all_unlinked_invoices(db, current_user.id)
+            if backfilled_count > 0:
+                # Re-run query if backfilled
+                top_merchant_result = await db.execute(
+                    select(Merchant.name, func.sum(Invoice.total_value).label("total"))
+                    .join(Invoice, Invoice.merchant_id == Merchant.id)
+                    .where(
+                        and_(
+                            Invoice.user_id == current_user.id,
+                            func.date(Invoice.issue_date) >= first_day_of_month,
+                        )
+                    )
+                    .group_by(Merchant.id)
+                    .order_by(func.sum(Invoice.total_value).desc())
+                    .limit(1)
+                )
+                top_merchant = top_merchant_result.first()
+        except Exception as e:
+            logger.error(f"Error during self-healing merchant backfill: {e}")
+
     # Calculate month-over-month change
     month_change = Decimal("0.00")
     if total_last_month > 0:
         month_change = ((total_month - total_last_month) / total_last_month) * 100
-    
+
     return {
         "total_spent_this_month": total_month,
         "total_spent_last_month": total_last_month,
@@ -190,8 +212,10 @@ async def get_dashboard_summary(
         "unread_insights_count": unread_count,
         "top_merchant_this_month": {
             "name": top_merchant.name if top_merchant else None,
-            "total": top_merchant.total if top_merchant else Decimal("0.00")
-        } if top_merchant else None
+            "total": top_merchant.total if top_merchant else Decimal("0.00"),
+        }
+        if top_merchant
+        else None,
     }
 
 
@@ -199,29 +223,25 @@ async def get_dashboard_summary(
 async def mark_as_read(
     analysis_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Mark an analysis as read."""
     result = await db.execute(
         select(Analysis).where(
-            and_(
-                Analysis.id == analysis_id,
-                Analysis.user_id == current_user.id
-            )
+            and_(Analysis.id == analysis_id, Analysis.user_id == current_user.id)
         )
     )
     analysis = result.scalar_one_or_none()
-    
+
     if not analysis:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Analysis not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Analysis not found"
         )
-    
+
     analysis.is_read = True
     await db.commit()
     await db.refresh(analysis)
-    
+
     return analysis
 
 
@@ -229,29 +249,25 @@ async def mark_as_read(
 async def dismiss_analysis(
     analysis_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Dismiss an analysis."""
     result = await db.execute(
         select(Analysis).where(
-            and_(
-                Analysis.id == analysis_id,
-                Analysis.user_id == current_user.id
-            )
+            and_(Analysis.id == analysis_id, Analysis.user_id == current_user.id)
         )
     )
     analysis = result.scalar_one_or_none()
-    
+
     if not analysis:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Analysis not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Analysis not found"
         )
-    
+
     analysis.dismissed_at = datetime.utcnow()
     await db.commit()
     await db.refresh(analysis)
-    
+
     return analysis
 
 
@@ -259,7 +275,7 @@ async def dismiss_analysis(
 async def get_spending_trends(
     months: int = Query(6, ge=1, le=24),
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Get spending trends over time."""
     from dateutil.relativedelta import relativedelta
@@ -270,24 +286,18 @@ async def get_spending_trends(
     # Convert issue_date to date first, then truncate to month
     # This ensures correct grouping regardless of time component
     issue_date_only = func.date(Invoice.issue_date)
-    month_trunc = func.date_trunc('month', issue_date_only)
+    month_trunc = func.date_trunc("month", issue_date_only)
 
     # Get monthly totals
     result = await db.execute(
         select(
             month_trunc.label("month"),
             func.sum(Invoice.total_value).label("total"),
-            func.count(Invoice.id).label("invoice_count")
-        ).where(
-            and_(
-                Invoice.user_id == current_user.id,
-                issue_date_only >= start_date
-            )
-        ).group_by(
-            month_trunc
-        ).order_by(
-            month_trunc
+            func.count(Invoice.id).label("invoice_count"),
         )
+        .where(and_(Invoice.user_id == current_user.id, issue_date_only >= start_date))
+        .group_by(month_trunc)
+        .order_by(month_trunc)
     )
 
     trends = result.all()
@@ -298,10 +308,10 @@ async def get_spending_trends(
             {
                 "month": t.month.strftime("%Y-%m-%d"),  # Full date for consistency
                 "total": t.total or Decimal("0.00"),
-                "invoice_count": t.invoice_count
+                "invoice_count": t.invoice_count,
             }
             for t in trends
-        ]
+        ],
     }
 
 
@@ -309,7 +319,7 @@ async def get_spending_trends(
 async def get_merchant_insights(
     limit: int = Query(10, ge=1, le=50),
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Get insights by merchant."""
     result = await db.execute(
@@ -319,16 +329,13 @@ async def get_merchant_insights(
             Merchant.category,
             func.sum(Invoice.total_value).label("total_spent"),
             func.count(Invoice.id).label("visit_count"),
-            func.avg(Invoice.total_value).label("average_ticket")
-        ).join(
-            Invoice, Invoice.merchant_id == Merchant.id
-        ).where(
-            Invoice.user_id == current_user.id
-        ).group_by(
-            Merchant.id
-        ).order_by(
-            func.sum(Invoice.total_value).desc()
-        ).limit(limit)
+            func.avg(Invoice.total_value).label("average_ticket"),
+        )
+        .join(Invoice, Invoice.merchant_id == Merchant.id)
+        .where(Invoice.user_id == current_user.id)
+        .group_by(Merchant.id)
+        .order_by(func.sum(Invoice.total_value).desc())
+        .limit(limit)
     )
 
     merchants = result.all()
@@ -341,7 +348,7 @@ async def get_merchant_insights(
                 "category": m.category,
                 "total_spent": m.total_spent or Decimal("0.00"),
                 "visit_count": m.visit_count,
-                "average_ticket": round(m.average_ticket or Decimal("0.00"), 2)
+                "average_ticket": round(m.average_ticket or Decimal("0.00"), 2),
             }
             for m in merchants
         ]
@@ -352,7 +359,7 @@ async def get_merchant_insights(
 async def get_category_spending(
     months: int = Query(6, ge=1, le=24),
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Get spending by category and subcategory.
 
@@ -366,30 +373,35 @@ async def get_category_spending(
     start_date = today - relativedelta(months=months)
 
     palette = [
-        "#3b82f6", "#10b981", "#f59e0b", "#ef4444",
-        "#8b5cf6", "#ec4899", "#14b8a6", "#f97316",
-        "#6366f1", "#84cc16",
+        "#3b82f6",
+        "#10b981",
+        "#f59e0b",
+        "#ef4444",
+        "#8b5cf6",
+        "#ec4899",
+        "#14b8a6",
+        "#f97316",
+        "#6366f1",
+        "#84cc16",
     ]
 
     # Get spending grouped by category_name string field
     category_result = await db.execute(
         select(
             InvoiceItem.category_name,
-            func.sum(InvoiceItem.total_price).label("total_spent")
-        ).join(
-            Invoice, InvoiceItem.invoice_id == Invoice.id
-        ).where(
+            func.sum(InvoiceItem.total_price).label("total_spent"),
+        )
+        .join(Invoice, InvoiceItem.invoice_id == Invoice.id)
+        .where(
             and_(
                 Invoice.user_id == current_user.id,
                 Invoice.issue_date >= start_date,
                 InvoiceItem.category_name.isnot(None),
                 InvoiceItem.category_name != "",
             )
-        ).group_by(
-            InvoiceItem.category_name
-        ).order_by(
-            func.sum(InvoiceItem.total_price).desc()
         )
+        .group_by(InvoiceItem.category_name)
+        .order_by(func.sum(InvoiceItem.total_price).desc())
     )
 
     categories = category_result.all()
@@ -399,22 +411,22 @@ async def get_category_spending(
         select(
             InvoiceItem.subcategory,
             InvoiceItem.category_name,
-            func.sum(InvoiceItem.total_price).label("total_spent")
-        ).join(
-            Invoice, InvoiceItem.invoice_id == Invoice.id
-        ).where(
+            func.sum(InvoiceItem.total_price).label("total_spent"),
+        )
+        .join(Invoice, InvoiceItem.invoice_id == Invoice.id)
+        .where(
             and_(
                 Invoice.user_id == current_user.id,
                 Invoice.issue_date >= start_date,
                 InvoiceItem.subcategory.isnot(None),
                 InvoiceItem.subcategory != "",
             )
-        ).group_by(
+        )
+        .group_by(
             InvoiceItem.subcategory,
             InvoiceItem.category_name,
-        ).order_by(
-            func.sum(InvoiceItem.total_price).desc()
         )
+        .order_by(func.sum(InvoiceItem.total_price).desc())
     )
 
     subcategories = subcategory_result.all()
@@ -427,7 +439,7 @@ async def get_category_spending(
                 "name": c.category_name,
                 "color": palette[i % len(palette)],
                 "icon": None,
-                "total_spent": float(c.total_spent or Decimal("0.00"))
+                "total_spent": float(c.total_spent or Decimal("0.00")),
             }
             for i, c in enumerate(categories)
         ],
@@ -439,8 +451,29 @@ async def get_category_spending(
                 "icon": None,
                 "parent_id": None,
                 "parent_name": s.category_name or "Sem Categoria",
-                "total_spent": float(s.total_spent or Decimal("0.00"))
+                "total_spent": float(s.total_spent or Decimal("0.00")),
             }
             for i, s in enumerate(subcategories)
-        ]
+        ],
     }
+
+
+@router.get("/report", response_model=dict)
+async def get_insights_report(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate a global executive summary of recent insights."""
+    query = (
+        select(Analysis)
+        .where(and_(Analysis.user_id == current_user.id, Analysis.dismissed_at.is_(None)))
+        .order_by(Analysis.created_at.desc())
+        .limit(20)
+    )
+
+    result = await db.execute(query)
+    analyses = result.scalars().all()
+
+    summary = await analyzer.generate_global_summary(list(analyses))
+
+    return {"summary": summary}

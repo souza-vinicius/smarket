@@ -9,9 +9,9 @@ mais completos e consiga classificar melhor.
 
 import logging
 import re
-from typing import Dict, List, Optional, Tuple
 
 from src.schemas.invoice_processing import ExtractedItem
+
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 # Tamanho / Volume / Peso
-ABBREVIATIONS_SIZE: Dict[str, str] = {
+ABBREVIATIONS_SIZE: dict[str, str] = {
     "GDE": "Grande",
     "GD": "Grande",
     "PEQ": "Pequeno",
@@ -34,7 +34,7 @@ ABBREVIATIONS_SIZE: Dict[str, str] = {
 }
 
 # Embalagem / Formato
-ABBREVIATIONS_PACKAGING: Dict[str, str] = {
+ABBREVIATIONS_PACKAGING: dict[str, str] = {
     "PET": "PET",
     "EMB": "Embalagem",
     "TP": "Tetra Pak",
@@ -64,7 +64,8 @@ ABBREVIATIONS_PACKAGING: Dict[str, str] = {
 }
 
 # Estado / Processamento do produto
-ABBREVIATIONS_STATE: Dict[str, str] = {
+ABBREVIATIONS_STATE: dict[str, str] = {
+    "ANTIAD": "Antiaderente",
     "CONG": "Congelado",
     "RESF": "Resfriado",
     "DEF": "Defumado",
@@ -81,6 +82,7 @@ ABBREVIATIONS_STATE: Dict[str, str] = {
     "INST": "Instantâneo",
     "TORR": "Torrado",
     "MOI": "Moído",
+    "REFINAD": "Refinado",
     "REF": "Refinado",
     "CRIST": "Cristal",
     "PAST": "Pasteurizado",
@@ -94,6 +96,7 @@ ABBREVIATIONS_STATE: Dict[str, str] = {
     "LIGHT": "Light",
     "LT": "Light",
     "ZERO": "Zero",
+    "ZER": "Zero",
     "DIET": "Diet",
     "SEM LACT": "Sem Lactose",
     "S/LACT": "Sem Lactose",
@@ -101,7 +104,8 @@ ABBREVIATIONS_STATE: Dict[str, str] = {
 }
 
 # Cortes de carne e formas de preparo
-ABBREVIATIONS_CUTS: Dict[str, str] = {
+ABBREVIATIONS_CUTS: dict[str, str] = {
+    "CARN": "Carne",
     "FIL": "Filé",
     "FILE": "Filé",
     "PJ": "Peça",
@@ -138,7 +142,7 @@ ABBREVIATIONS_CUTS: Dict[str, str] = {
 }
 
 # Tipos de produto (nome genérico)
-ABBREVIATIONS_PRODUCTS: Dict[str, str] = {
+ABBREVIATIONS_PRODUCTS: dict[str, str] = {
     "BISC": "Biscoito",
     "BOLACHA": "Bolacha",
     "BOL": "Bolacha",
@@ -151,6 +155,11 @@ ABBREVIATIONS_PRODUCTS: Dict[str, str] = {
     "QJO": "Queijo",
     "QUEIJ": "Queijo",
     "PROT": "Proteica",
+    "DESENGO": "Desengordurante",
+    "DESENG": "Desengordurante",
+    "RISTRET": "Ristretto",
+    "RISTRETO": "Ristretto",
+    "PENN": "Penne",
     "DENT": "Dental",
     "DENTAL": "Dental",
     "SH": "Shampoo",
@@ -378,7 +387,7 @@ ABBREVIATIONS_PRODUCTS: Dict[str, str] = {
 }
 
 # Marcas comuns encontradas como abreviações em notas fiscais
-ABBREVIATIONS_BRANDS: Dict[str, str] = {
+ABBREVIATIONS_BRANDS: dict[str, str] = {
     "POL": "Polenghi",
     "POLENG": "Polenghi",
     "PRM": "Parmalat",
@@ -480,9 +489,10 @@ ABBREVIATIONS_BRANDS: Dict[str, str] = {
 # parciais incorretas.
 # ---------------------------------------------------------------------------
 
-def _build_unified_dict() -> Dict[str, str]:
+
+def _build_unified_dict() -> dict[str, str]:
     """Combina todos os dicionários parciais num único mapeamento."""
-    unified: Dict[str, str] = {}
+    unified: dict[str, str] = {}
     for d in [
         ABBREVIATIONS_SIZE,
         ABBREVIATIONS_PACKAGING,
@@ -495,19 +505,32 @@ def _build_unified_dict() -> Dict[str, str]:
     return unified
 
 
-ABBREVIATIONS: Dict[str, str] = _build_unified_dict()
+ABBREVIATIONS: dict[str, str] = _build_unified_dict()
 
 # Pré-compilar padrão para tokens que parecem medidas (ex: 1KG, 500ML, 2L, 1,5L)
 _MEASURE_RE = re.compile(
-    r'\b(\d+[.,]?\d*)\s*'
-    r'(KG|GR|G|ML|LT|L|UN|PC|PCT|CX|FD|DZ|M|CM|MM)\b',
+    r"\b(\d+[.,]?\d*)\s*" r"(KG|GR|G|ML|LT|L|UN|PC|PCT|CX|FD|DZ|M|CM|MM)\b",
     re.IGNORECASE,
 )
 
 # Unidades de medida que devem ser preservadas como estão
 _UNITS = {
-    "KG", "GR", "G", "ML", "LT", "L", "UN",
-    "PC", "PCT", "CX", "FD", "DZ", "M", "CM", "MM",
+    "KG",
+    "GR",
+    "G",
+    "ML",
+    "LT",
+    "L",
+    "UN",
+    "UND",
+    "PC",
+    "PCT",
+    "CX",
+    "FD",
+    "DZ",
+    "M",
+    "CM",
+    "MM",
 }
 
 # Palavras muito curtas e ambíguas que NÃO devem ser expandidas isoladamente.
@@ -519,206 +542,210 @@ _AMBIGUOUS_TOKENS = {"F", "P", "C", "S", "A", "E", "M", "R", "T", "N", "D"}
 # Cada tupla: (regex compilado, substituição)
 # ---------------------------------------------------------------------------
 
-_COMPOUND_PATTERNS: List[Tuple[re.Pattern, str]] = [
+_COMPOUND_PATTERNS: list[tuple[re.Pattern, str]] = [
     # "OVO GDE" / "OVOS GDE" → "Ovos Grandes"
-    (re.compile(r'\bOVOS?\s+GDE\b', re.IGNORECASE), "Ovos Grandes"),
-    (re.compile(r'\bOVOS?\s+GD\b', re.IGNORECASE), "Ovos Grandes"),
-    (re.compile(r'\bOVOS?\s+JB\b', re.IGNORECASE), "Ovos Jumbo"),
-    (re.compile(r'\bOVOS?\s+PEQ\b', re.IGNORECASE), "Ovos Pequenos"),
-    (re.compile(r'\bOVOS?\s+MED\b', re.IGNORECASE), "Ovos Médios"),
-    (re.compile(r'\bOVOS?\s+BR\b', re.IGNORECASE), "Ovos Brancos"),
-    (re.compile(r'\bOVOS?\s+VM\b', re.IGNORECASE), "Ovos Vermelhos"),
-
+    (re.compile(r"\bOVOS?\s+GDE\b", re.IGNORECASE), "Ovos Grandes"),
+    (re.compile(r"\bOVOS?\s+GD\b", re.IGNORECASE), "Ovos Grandes"),
+    (re.compile(r"\bOVOS?\s+JB\b", re.IGNORECASE), "Ovos Jumbo"),
+    (re.compile(r"\bOVOS?\s+PEQ\b", re.IGNORECASE), "Ovos Pequenos"),
+    (re.compile(r"\bOVOS?\s+MED\b", re.IGNORECASE), "Ovos Médios"),
+    (re.compile(r"\bOVOS?\s+BR\b", re.IGNORECASE), "Ovos Brancos"),
+    (re.compile(r"\bOVOS?\s+VM\b", re.IGNORECASE), "Ovos Vermelhos"),
     # "BISC CH" → "Biscoito Champagne"
-    (re.compile(r'\bBISC\s+CH\b', re.IGNORECASE), "Biscoito Champagne"),
-    (re.compile(r'\bBISC\s+CHAMP\b', re.IGNORECASE), "Biscoito Champagne"),
-
+    (re.compile(r"\bBISC\s+CH\b", re.IGNORECASE), "Biscoito Champagne"),
+    (re.compile(r"\bBISC\s+CHAMP\b", re.IGNORECASE), "Biscoito Champagne"),
     # "SAB LIO" / "SAB LIQ" → "Sabonete Líquido"
-    (re.compile(r'\bSAB\s+LIO\b', re.IGNORECASE), "Sabonete Líquido"),
-    (re.compile(r'\bSAB\s+LIQ\b', re.IGNORECASE), "Sabonete Líquido"),
-    (re.compile(r'\bSAB\s+BARRA\b', re.IGNORECASE), "Sabonete em Barra"),
-
+    (re.compile(r"\bSAB\s+LIO\b", re.IGNORECASE), "Sabonete Líquido"),
+    (re.compile(r"\bSAB\s+LIQ\b", re.IGNORECASE), "Sabonete Líquido"),
+    (re.compile(r"\bSAB\s+BARRA\b", re.IGNORECASE), "Sabonete em Barra"),
     # "CREM DENT" / "CR DENTAL" / "3CR DENTAL" → "Creme Dental"
-    (re.compile(r'\bCREM\s+DENT(?:AL)?\b', re.IGNORECASE), "Creme Dental"),
-    (re.compile(r'\bCR\s+DENT(?:AL)?\b', re.IGNORECASE), "Creme Dental"),
-
+    (re.compile(r"\bCREM\s+DENT(?:AL)?\b", re.IGNORECASE), "Creme Dental"),
+    (re.compile(r"\bCR\s+DENT(?:AL)?\b", re.IGNORECASE), "Creme Dental"),
     # "QJ POL" / "QJO POL" → "Queijo Polenghi"
-    (re.compile(r'\bQJ(?:O)?\s+POL\b', re.IGNORECASE), "Queijo Polenghi"),
-
+    (re.compile(r"\bQJ(?:O)?\s+POL\b", re.IGNORECASE), "Queijo Polenghi"),
     # "LEITE COND" → "Leite Condensado"
-    (re.compile(r'\bLEITE\s+COND\b', re.IGNORECASE), "Leite Condensado"),
-
+    (re.compile(r"\bLEITE\s+COND\b", re.IGNORECASE), "Leite Condensado"),
     # "LEITE INT" / "LT INT" → "Leite Integral"
-    (re.compile(r'\bLEITE\s+INT(?:EG)?\b', re.IGNORECASE), "Leite Integral"),
-    (re.compile(r'\bLT\s+INT(?:EG)?\b', re.IGNORECASE), "Leite Integral"),
-
+    (re.compile(r"\bLEITE\s+INT(?:EG)?\b", re.IGNORECASE), "Leite Integral"),
+    (re.compile(r"\bLT\s+INT(?:EG)?\b", re.IGNORECASE), "Leite Integral"),
     # "LEITE DESN" → "Leite Desnatado"
-    (re.compile(r'\bLEITE\s+DESN\b', re.IGNORECASE), "Leite Desnatado"),
-
+    (re.compile(r"\bLEITE\s+DESN\b", re.IGNORECASE), "Leite Desnatado"),
     # "LEITE SEMIDESN" / "LEITE SEMI" → "Leite Semidesnatado"
-    (re.compile(r'\bLEITE\s+SEMIDESN\b', re.IGNORECASE), "Leite Semidesnatado"),
-    (re.compile(r'\bLEITE\s+SEMI\b', re.IGNORECASE), "Leite Semidesnatado"),
-
+    (re.compile(r"\bLEITE\s+SEMIDESN\b", re.IGNORECASE), "Leite Semidesnatado"),
+    (re.compile(r"\bLEITE\s+SEMI\b", re.IGNORECASE), "Leite Semidesnatado"),
     # "PAP HIG" → "Papel Higiênico"
-    (re.compile(r'\bPAP\s+HIG\b', re.IGNORECASE), "Papel Higiênico"),
-
+    (re.compile(r"\bPAP\s+HIG\b", re.IGNORECASE), "Papel Higiênico"),
     # "PAP TOA" → "Papel Toalha"
-    (re.compile(r'\bPAP\s+TOA\b', re.IGNORECASE), "Papel Toalha"),
-
+    (re.compile(r"\bPAP\s+TOA\b", re.IGNORECASE), "Papel Toalha"),
     # "DET LIQ" / "DET PO" → "Detergente Líquido" / "Detergente em Pó"
-    (re.compile(r'\bDET\s+LIQ\b', re.IGNORECASE), "Detergente Líquido"),
-    (re.compile(r'\bDET\s+PO\b', re.IGNORECASE), "Detergente em Pó"),
-    (re.compile(r'\bDET\s+LIO\b', re.IGNORECASE), "Detergente Líquido"),
-
+    (re.compile(r"\bDET\s+LIQ\b", re.IGNORECASE), "Detergente Líquido"),
+    (re.compile(r"\bDET\s+PO\b", re.IGNORECASE), "Detergente em Pó"),
+    (re.compile(r"\bDET\s+LIO\b", re.IGNORECASE), "Detergente Líquido"),
     # "SAB PO" → "Sabão em Pó"
-    (re.compile(r'\bSAB(?:AO)?\s+PO\b', re.IGNORECASE), "Sabão em Pó"),
-    (re.compile(r'\bSABAO\s+PO\b', re.IGNORECASE), "Sabão em Pó"),
-    (re.compile(r'\bSAB\s+EM\s+PO\b', re.IGNORECASE), "Sabão em Pó"),
-    (re.compile(r'\bSABAO\s+EM\s+PO\b', re.IGNORECASE), "Sabão em Pó"),
-    (re.compile(r'\bSAB\s+LIQ\b', re.IGNORECASE), "Sabonete Líquido"),
-
+    (re.compile(r"\bSAB(?:AO)?\s+PO\b", re.IGNORECASE), "Sabão em Pó"),
+    (re.compile(r"\bSABAO\s+PO\b", re.IGNORECASE), "Sabão em Pó"),
+    (re.compile(r"\bSAB\s+EM\s+PO\b", re.IGNORECASE), "Sabão em Pó"),
+    (re.compile(r"\bSABAO\s+EM\s+PO\b", re.IGNORECASE), "Sabão em Pó"),
+    (re.compile(r"\bSAB\s+LIQ\b", re.IGNORECASE), "Sabonete Líquido"),
     # "CAFE TORR MOI" → "Café Torrado e Moído"
-    (re.compile(r'\bCAFE?\s+TORR(?:ADO)?\s+(?:E\s+)?MOI(?:DO)?\b', re.IGNORECASE),
-     "Café Torrado e Moído"),
-    (re.compile(r'\bCF\s+TORR\s+MOI\b', re.IGNORECASE),
-     "Café Torrado e Moído"),
-
+    (
+        re.compile(r"\bCAFE?\s+TORR(?:ADO)?\s+(?:E\s+)?MOI(?:DO)?\b", re.IGNORECASE),
+        "Café Torrado e Moído",
+    ),
+    (re.compile(r"\bCF\s+TORR\s+MOI\b", re.IGNORECASE), "Café Torrado e Moído"),
     # "ACR REF" → "Açúcar Refinado"
-    (re.compile(r'\bACR\s+REF\b', re.IGNORECASE), "Açúcar Refinado"),
-    (re.compile(r'\bACUC?\s+REF\b', re.IGNORECASE), "Açúcar Refinado"),
-    (re.compile(r'\bACR\s+CRIST\b', re.IGNORECASE), "Açúcar Cristal"),
-    (re.compile(r'\bACUC?\s+CRIST\b', re.IGNORECASE), "Açúcar Cristal"),
-
+    (re.compile(r"\bACR\s+REF\b", re.IGNORECASE), "Açúcar Refinado"),
+    (re.compile(r"\bACUC?\s+REF\b", re.IGNORECASE), "Açúcar Refinado"),
+    (re.compile(r"\bACR\s+CRIST\b", re.IGNORECASE), "Açúcar Cristal"),
+    (re.compile(r"\bACUC?\s+CRIST\b", re.IGNORECASE), "Açúcar Cristal"),
     # "FJ PT" / "FEIJ PT" → "Feijão Preto"
-    (re.compile(r'\b(?:FEIJ|FJ|FEI)\s+PT(?:O)?\b', re.IGNORECASE), "Feijão Preto"),
-    (re.compile(r'\b(?:FEIJ|FJ|FEI)\s+CD\b', re.IGNORECASE), "Feijão Carioca"),
-    (re.compile(r'\b(?:FEIJ|FJ|FEI)\s+CAR(?:IOCA)?\b', re.IGNORECASE), "Feijão Carioca"),
-
+    (re.compile(r"\b(?:FEIJ|FJ|FEI)\s+PT(?:O)?\b", re.IGNORECASE), "Feijão Preto"),
+    (re.compile(r"\b(?:FEIJ|FJ|FEI)\s+CD\b", re.IGNORECASE), "Feijão Carioca"),
+    (
+        re.compile(r"\b(?:FEIJ|FJ|FEI)\s+CAR(?:IOCA)?\b", re.IGNORECASE),
+        "Feijão Carioca",
+    ),
     # "OL SOJ" / "OLEO SOJ" → "Óleo de Soja"
-    (re.compile(r'\bOL(?:EO)?\s+SOJ(?:A)?\b', re.IGNORECASE), "Óleo de Soja"),
-    (re.compile(r'\bOL(?:EO)?\s+GIR(?:ASSOL)?\b', re.IGNORECASE),
-     "Óleo de Girassol"),
-    (re.compile(r'\bOL(?:EO)?\s+CANOLA\b', re.IGNORECASE), "Óleo de Canola"),
-    (re.compile(r'\bOL(?:EO)?\s+MILHO\b', re.IGNORECASE), "Óleo de Milho"),
-
+    (re.compile(r"\bOL(?:EO)?\s+SOJ(?:A)?\b", re.IGNORECASE), "Óleo de Soja"),
+    (re.compile(r"\bOL(?:EO)?\s+GIR(?:ASSOL)?\b", re.IGNORECASE), "Óleo de Girassol"),
+    (re.compile(r"\bOL(?:EO)?\s+CANOLA\b", re.IGNORECASE), "Óleo de Canola"),
+    (re.compile(r"\bOL(?:EO)?\s+MILHO\b", re.IGNORECASE), "Óleo de Milho"),
     # "AG MIN" / "AGUA MIN" → "Água Mineral"
-    (re.compile(r'\bAG(?:UA)?\s+MIN(?:ERAL)?\b', re.IGNORECASE), "Água Mineral"),
-    (re.compile(r'\bAG(?:UA)?\s+MIN\s+GAS\b', re.IGNORECASE),
-     "Água Mineral com Gás"),
-    (re.compile(r'\bAG(?:UA)?\s+MIN\s+S/?GAS\b', re.IGNORECASE),
-     "Água Mineral sem Gás"),
-
+    (re.compile(r"\bAG(?:UA)?\s+MIN(?:ERAL)?\b", re.IGNORECASE), "Água Mineral"),
+    (re.compile(r"\bAG(?:UA)?\s+MIN\s+GAS\b", re.IGNORECASE), "Água Mineral com Gás"),
+    (
+        re.compile(r"\bAG(?:UA)?\s+MIN\s+S/?GAS\b", re.IGNORECASE),
+        "Água Mineral sem Gás",
+    ),
     # "LAVA ROUP" / "LAVA LCA" → "Lava-Roupas" / "Lava-Louças"
-    (re.compile(r'\bLAVA\s*ROUP(?:A|AS)?\b', re.IGNORECASE), "Lava-Roupas"),
-    (re.compile(r'\bLAVA\s*L(?:OUC|CA)(?:A|AS)?\b', re.IGNORECASE),
-     "Lava-Louças"),
-
+    (re.compile(r"\bLAVA\s*ROUP(?:A|AS)?\b", re.IGNORECASE), "Lava-Roupas"),
+    (re.compile(r"\bLAVA\s*L(?:OUC|CA)(?:A|AS)?\b", re.IGNORECASE), "Lava-Louças"),
     # "MARG S/SAL" / "MARG C/SAL" → "Margarina sem Sal" / "Margarina com Sal"
-    (re.compile(r'\bMARG\s+S/?SAL\b', re.IGNORECASE), "Margarina sem Sal"),
-    (re.compile(r'\bMARG\s+C/?SAL\b', re.IGNORECASE), "Margarina com Sal"),
-
+    (re.compile(r"\bMARG\s+S/?SAL\b", re.IGNORECASE), "Margarina sem Sal"),
+    (re.compile(r"\bMARG\s+C/?SAL\b", re.IGNORECASE), "Margarina com Sal"),
     # "FILE PEITO FRANGO" → "Filé de Peito de Frango"
-    (re.compile(r'\bFIL(?:E|É)?\s+(?:DE\s+)?PEITO?\s+(?:DE\s+)?FRANG(?:O)?\b',
-                re.IGNORECASE), "Filé de Peito de Frango"),
-    (re.compile(r'\bFIL(?:E|É)?\s+FRANG(?:O)?\b', re.IGNORECASE),
-     "Filé de Frango"),
-
+    (
+        re.compile(
+            r"\bFIL(?:E|É)?\s+(?:DE\s+)?PEITO?\s+(?:DE\s+)?FRANG(?:O)?\b", re.IGNORECASE
+        ),
+        "Filé de Peito de Frango",
+    ),
+    (re.compile(r"\bFIL(?:E|É)?\s+FRANG(?:O)?\b", re.IGNORECASE), "Filé de Frango"),
     # "COX SOBREC" → "Coxa e Sobrecoxa"
-    (re.compile(r'\bCOX(?:A)?\s+(?:E\s+)?SOBREC(?:OXA)?\b', re.IGNORECASE),
-     "Coxa e Sobrecoxa"),
-
+    (
+        re.compile(r"\bCOX(?:A)?\s+(?:E\s+)?SOBREC(?:OXA)?\b", re.IGNORECASE),
+        "Coxa e Sobrecoxa",
+    ),
     # "PRES PERU" / "PRES SUINO" → "Presunto de Peru" / "Presunto Suíno"
-    (re.compile(r'\bPRES\s+PERU\b', re.IGNORECASE), "Presunto de Peru"),
-    (re.compile(r'\bPRES\s+SUIN(?:O)?\b', re.IGNORECASE), "Presunto Suíno"),
-
+    (re.compile(r"\bPRES\s+PERU\b", re.IGNORECASE), "Presunto de Peru"),
+    (re.compile(r"\bPRES\s+SUIN(?:O)?\b", re.IGNORECASE), "Presunto Suíno"),
     # "LING TOSC" / "LING CALIF" → "Linguiça Toscana" / "Linguiça Calabresa"
-    (re.compile(r'\bLING\s+TOSC(?:ANA)?\b', re.IGNORECASE), "Linguiça Toscana"),
-    (re.compile(r'\bLING\s+CALIF(?:ORNIA)?\b', re.IGNORECASE),
-     "Linguiça Califórnia"),
-    (re.compile(r'\bLING\s+CALAB(?:RESA)?\b', re.IGNORECASE),
-     "Linguiça Calabresa"),
-
+    (re.compile(r"\bLING\s+TOSC(?:ANA)?\b", re.IGNORECASE), "Linguiça Toscana"),
+    (re.compile(r"\bLING\s+CALIF(?:ORNIA)?\b", re.IGNORECASE), "Linguiça Califórnia"),
+    (re.compile(r"\bLING\s+CALAB(?:RESA)?\b", re.IGNORECASE), "Linguiça Calabresa"),
     # "LUMINOUS C" → "Luminous Complete"
-    (re.compile(r'\bLUMINOUS\s+C\b', re.IGNORECASE), "Luminous Complete"),
-
+    (re.compile(r"\bLUMINOUS\s+C\b", re.IGNORECASE), "Luminous Complete"),
     # "PETIT BEURRE" is already legible, keep it
-    (re.compile(r'\bPETIT\s+BEURRE\b', re.IGNORECASE), "Petit Beurre"),
-
+    (re.compile(r"\bPETIT\s+BEURRE\b", re.IGNORECASE), "Petit Beurre"),
     # "MAC INST" → "Macarrão Instantâneo"
-    (re.compile(r'\bMAC(?:AR)?\s+INST\b', re.IGNORECASE),
-     "Macarrão Instantâneo"),
-    (re.compile(r'\bMAC\s+PARAFUSO\b', re.IGNORECASE), "Macarrão Parafuso"),
-    (re.compile(r'\bMAC\s+ESPAG\b', re.IGNORECASE), "Macarrão Espaguete"),
-    (re.compile(r'\bMAC\s+PENNE\b', re.IGNORECASE), "Macarrão Penne"),
-
+    (re.compile(r"\bMAC(?:AR)?\s+INST\b", re.IGNORECASE), "Macarrão Instantâneo"),
+    (re.compile(r"\bMAC\s+PARAFUSO\b", re.IGNORECASE), "Macarrão Parafuso"),
+    (re.compile(r"\bMAC\s+ESPAG\b", re.IGNORECASE), "Macarrão Espaguete"),
+    (re.compile(r"\bMAC\s+PENNE\b", re.IGNORECASE), "Macarrão Penne"),
     # "IOG NAT" → "Iogurte Natural"
-    (re.compile(r'\bIOG(?:URT)?\s+NAT\b', re.IGNORECASE), "Iogurte Natural"),
-    (re.compile(r'\bIOG(?:URT)?\s+MOR\b', re.IGNORECASE), "Iogurte de Morango"),
-    (re.compile(r'\bIOG(?:URT)?\s+GREGO\b', re.IGNORECASE), "Iogurte Grego"),
-
+    (re.compile(r"\bIOG(?:URT)?\s+NAT\b", re.IGNORECASE), "Iogurte Natural"),
+    (re.compile(r"\bIOG(?:URT)?\s+MOR\b", re.IGNORECASE), "Iogurte de Morango"),
+    (re.compile(r"\bIOG(?:URT)?\s+GREGO\b", re.IGNORECASE), "Iogurte Grego"),
     # "F" = Fatiado em contexto de frios/carnes
-    (re.compile(r'\bQJ(?:O)?\s+(?:\w+\s+)?F\b', re.IGNORECASE),
-     None),  # Marcador especial: tratado em código
-
+    (
+        re.compile(r"\bQJ(?:O)?\s+(?:\w+\s+)?F\b", re.IGNORECASE),
+        None,
+    ),  # Marcador especial: tratado em código
     # "ARZ TP1" / "ARROZ T1" → "Arroz Tipo 1"
-    (re.compile(r'\bARR?O?Z?\s+T(?:IPO\s*)?1\b', re.IGNORECASE), "Arroz Tipo 1"),
-    (re.compile(r'\bARR?O?Z?\s+T(?:IPO\s*)?2\b', re.IGNORECASE), "Arroz Tipo 2"),
-    (re.compile(r'\bARR?O?Z?\s+TP1\b', re.IGNORECASE), "Arroz Tipo 1"),
-    (re.compile(r'\bARR?O?Z?\s+TP2\b', re.IGNORECASE), "Arroz Tipo 2"),
-
+    (re.compile(r"\bARR?O?Z?\s+T(?:IPO\s*)?1\b", re.IGNORECASE), "Arroz Tipo 1"),
+    (re.compile(r"\bARR?O?Z?\s+T(?:IPO\s*)?2\b", re.IGNORECASE), "Arroz Tipo 2"),
+    (re.compile(r"\bARR?O?Z?\s+TP1\b", re.IGNORECASE), "Arroz Tipo 1"),
+    (re.compile(r"\bARR?O?Z?\s+TP2\b", re.IGNORECASE), "Arroz Tipo 2"),
     # "FAR TRIG" → "Farinha de Trigo"
-    (re.compile(r'\bFAR(?:INHA)?\s+(?:DE\s+)?TRIG(?:O)?\b', re.IGNORECASE),
-     "Farinha de Trigo"),
-    (re.compile(r'\bFAR(?:INHA)?\s+(?:DE\s+)?MAND(?:IOCA)?\b', re.IGNORECASE),
-     "Farinha de Mandioca"),
-    (re.compile(r'\bFAR(?:INHA)?\s+(?:DE\s+)?MILHO\b', re.IGNORECASE),
-     "Farinha de Milho"),
-
+    (
+        re.compile(r"\bFAR(?:INHA)?\s+(?:DE\s+)?TRIG(?:O)?\b", re.IGNORECASE),
+        "Farinha de Trigo",
+    ),
+    (
+        re.compile(r"\bFAR(?:INHA)?\s+(?:DE\s+)?MAND(?:IOCA)?\b", re.IGNORECASE),
+        "Farinha de Mandioca",
+    ),
+    (
+        re.compile(r"\bFAR(?:INHA)?\s+(?:DE\s+)?MILHO\b", re.IGNORECASE),
+        "Farinha de Milho",
+    ),
     # "EXTR TOM" → "Extrato de Tomate"
-    (re.compile(r'\bEXTR(?:ATO)?\s+(?:DE\s+)?TOM(?:ATE)?\b', re.IGNORECASE),
-     "Extrato de Tomate"),
-
+    (
+        re.compile(r"\bEXTR(?:ATO)?\s+(?:DE\s+)?TOM(?:ATE)?\b", re.IGNORECASE),
+        "Extrato de Tomate",
+    ),
     # "MOLHO TOM" → "Molho de Tomate"
-    (re.compile(r'\bMOLHO\s+(?:DE\s+)?TOM(?:ATE)?\b', re.IGNORECASE),
-     "Molho de Tomate"),
-
+    (
+        re.compile(r"\bMOLHO\s+(?:DE\s+)?TOM(?:ATE)?\b", re.IGNORECASE),
+        "Molho de Tomate",
+    ),
     # "PAO FORM" / "PAO FR" → "Pão de Forma" / "Pão Francês"
-    (re.compile(r'\bPAO\s+FORM(?:A)?\b', re.IGNORECASE), "Pão de Forma"),
-    (re.compile(r'\bPAO\s+FR(?:ANC(?:ES|ÊS))?\b', re.IGNORECASE), "Pão Francês"),
-    (re.compile(r'\bPAO\s+INT(?:EG(?:RAL)?)?\b', re.IGNORECASE), "Pão Integral"),
-
+    (re.compile(r"\bPAO\s+FORM(?:A)?\b", re.IGNORECASE), "Pão de Forma"),
+    (re.compile(r"\bPAO\s+FR(?:ANC(?:ES|ÊS))?\b", re.IGNORECASE), "Pão Francês"),
+    (re.compile(r"\bPAO\s+INT(?:EG(?:RAL)?)?\b", re.IGNORECASE), "Pão Integral"),
     # "HAMB BOV" → "Hambúrguer Bovino"
-    (re.compile(r'\bHAMB(?:URG(?:UER)?)?\s+BOV(?:INO)?\b', re.IGNORECASE),
-     "Hambúrguer Bovino"),
-    (re.compile(r'\bHAMB(?:URG(?:UER)?)?\s+FRANG(?:O)?\b', re.IGNORECASE),
-     "Hambúrguer de Frango"),
-
+    (
+        re.compile(r"\bHAMB(?:URG(?:UER)?)?\s+BOV(?:INO)?\b", re.IGNORECASE),
+        "Hambúrguer Bovino",
+    ),
+    (
+        re.compile(r"\bHAMB(?:URG(?:UER)?)?\s+FRANG(?:O)?\b", re.IGNORECASE),
+        "Hambúrguer de Frango",
+    ),
     # "DESOD AER" / "DESOD ROLL" → "Desodorante Aerosol" / "Desodorante Roll-On"
-    (re.compile(r'\bDESOD\s+AER(?:OSOL)?\b', re.IGNORECASE),
-     "Desodorante Aerosol"),
-    (re.compile(r'\bDESOD\s+ROLL\b', re.IGNORECASE), "Desodorante Roll-On"),
-    (re.compile(r'\bDESOD\s+SPRAY\b', re.IGNORECASE), "Desodorante Spray"),
-    (re.compile(r'\bDESOD\s+BAST(?:AO)?\b', re.IGNORECASE),
-     "Desodorante Bastão"),
-
+    (re.compile(r"\bDESOD\s+AER(?:OSOL)?\b", re.IGNORECASE), "Desodorante Aerosol"),
+    (re.compile(r"\bDESOD\s+ROLL\b", re.IGNORECASE), "Desodorante Roll-On"),
+    (re.compile(r"\bDESOD\s+SPRAY\b", re.IGNORECASE), "Desodorante Spray"),
+    (re.compile(r"\bDESOD\s+BAST(?:AO)?\b", re.IGNORECASE), "Desodorante Bastão"),
     # "ENXAG BUCAL" → "Enxaguante Bucal"
-    (re.compile(r'\bENXAG\s+BUCAL\b', re.IGNORECASE), "Enxaguante Bucal"),
+    (re.compile(r"\bENXAG\s+BUCAL\b", re.IGNORECASE), "Enxaguante Bucal"),
 ]
 
 # Padrão para "F" = Fatiado no final (em contexto de frios)
-_FATIADO_SUFFIX_RE = re.compile(r'\s+F$', re.IGNORECASE)
+_FATIADO_SUFFIX_RE = re.compile(r"\s+F$", re.IGNORECASE)
 _FRIOS_CONTEXT = {
-    "QUEIJO", "QJ", "QJO", "PRES", "PRESUNTO", "MORT", "MORTADELA",
-    "PEITO", "PERU", "LOMBO", "LOMB", "COPA", "SALAME",
-    "MUSSARELA", "MUSSR", "MUSS", "PROVOLONE", "PROV",
-    "EMMENTAL", "EDAM", "GRUYERE", "PRATO", "GOUDA",
-    "CHESTER", "BLANQUET",
+    "QUEIJO",
+    "QJ",
+    "QJO",
+    "PRES",
+    "PRESUNTO",
+    "MORT",
+    "MORTADELA",
+    "PEITO",
+    "PERU",
+    "LOMBO",
+    "LOMB",
+    "COPA",
+    "SALAME",
+    "MUSSARELA",
+    "MUSSR",
+    "MUSS",
+    "PROVOLONE",
+    "PROV",
+    "EMMENTAL",
+    "EDAM",
+    "GRUYERE",
+    "PRATO",
+    "GOUDA",
+    "CHESTER",
+    "BLANQUET",
 }
 
 
 # ---------------------------------------------------------------------------
 # Funções principais
 # ---------------------------------------------------------------------------
+
 
 def normalize_product_name(description: str) -> str:
     """Expande abreviações em uma descrição de produto de nota fiscal.
@@ -741,7 +768,7 @@ def normalize_product_name(description: str) -> str:
     text = description.strip()
 
     # Preservar medidas antes de processar (para não expandir "L" → "Lata" etc.)
-    measures: List[Tuple[str, str]] = []
+    measures: list[tuple[str, str]] = []
     for match in _MEASURE_RE.finditer(text):
         placeholder = f"__MEASURE_{len(measures)}__"
         measures.append((placeholder, match.group(0)))
@@ -764,7 +791,7 @@ def normalize_product_name(description: str) -> str:
 
     # 3. Expandir tokens individuais remanescentes
     tokens = text.split()
-    result_tokens: List[str] = []
+    result_tokens: list[str] = []
 
     for token in tokens:
         # Não modificar placeholders de medidas
@@ -785,8 +812,8 @@ def normalize_product_name(description: str) -> str:
             continue
 
         # Verificar se o token (sem pontuação final) casa com uma abreviação
-        clean_token = re.sub(r'[.,;:!?]+$', '', upper_token)
-        trailing = upper_token[len(clean_token):]
+        clean_token = re.sub(r"[.,;:!?]+$", "", upper_token)
+        trailing = upper_token[len(clean_token) :]
 
         if clean_token in ABBREVIATIONS:
             expanded = ABBREVIATIONS[clean_token]
@@ -805,14 +832,14 @@ def normalize_product_name(description: str) -> str:
         text = text.replace(placeholder, original)
 
     # 5. Limpar espaços duplicados
-    text = re.sub(r'\s+', ' ', text).strip()
+    text = re.sub(r"\s+", " ", text).strip()
 
     return text
 
 
 def normalize_items(
-    items: List[ExtractedItem],
-) -> List[ExtractedItem]:
+    items: list[ExtractedItem],
+) -> list[ExtractedItem]:
     """Normaliza nomes de todos os itens extraídos.
 
     Para cada item, gera um `normalized_name` a partir do `description`.
@@ -879,7 +906,7 @@ def _title_case_preserve(text: str) -> str:
     Ex: "ARROZ TIPO 1 5KG" → "Arroz Tipo 1 5KG"
     """
     tokens = text.split()
-    result: List[str] = []
+    result: list[str] = []
 
     for token in tokens:
         # Preservar medidas (ex: "5KG", "500ML", "1,5L")

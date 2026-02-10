@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import { useRouter } from 'next/navigation';
+import { useRouter } from "next/navigation";
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { apiClient } from '@/lib/api';
-import { type LoginRequest, type RegisterRequest, type User } from '@/types';
+import { apiClient } from "@/lib/api";
+import { type LoginRequest, type RegisterRequest, type User } from "@/types";
 
 const AUTH_KEYS = {
-  user: ['user'] as const,
+  user: ["user"] as const,
 };
 
 interface UseAuthReturn {
@@ -48,21 +48,21 @@ export function useAuth(): UseAuthReturn {
     mutationFn: (data: LoginRequest) => apiClient.login(data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: AUTH_KEYS.user });
-      router.push('/dashboard');
+      router.push("/dashboard");
     },
   });
 
   const registerMutation = useMutation({
     mutationFn: (data: RegisterRequest) => apiClient.register(data),
     onSuccess: () => {
-      router.push('/login');
+      router.push("/login");
     },
   });
 
   const logout = (): void => {
     apiClient.logout();
     queryClient.clear();
-    router.push('/login');
+    router.push("/login");
   };
 
   return {

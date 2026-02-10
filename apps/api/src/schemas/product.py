@@ -1,7 +1,7 @@
 import uuid
+from datetime import datetime
 from decimal import Decimal
 from typing import Optional
-from datetime import datetime
 
 from pydantic import BaseModel, Field, field_serializer
 

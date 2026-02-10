@@ -1,28 +1,34 @@
 import uuid
-from typing import List, Optional
 from decimal import Decimal
+from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy import select, func, and_, or_
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database import get_db
 from src.dependencies import get_current_user
 from src.models.merchant import Merchant
 from src.models.user import User
-from src.schemas.merchant import MerchantCreate, MerchantUpdate, MerchantResponse, MerchantList
+from src.schemas.merchant import (
+    MerchantCreate,
+    MerchantList,
+    MerchantResponse,
+    MerchantUpdate,
+)
+
 
 router = APIRouter()
 
 
-@router.get("/", response_model=List[MerchantList])
+@router.get("/", response_model=list[MerchantList])
 async def list_merchants(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
     search: Optional[str] = None,
     is_favorite: Optional[bool] = None,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """List all merchants for current user."""
     query = select(
@@ -33,25 +39,25 @@ async def list_merchants(
         Merchant.is_favorite,
         Merchant.visit_count,
         Merchant.total_spent,
-        Merchant.last_visit
+        Merchant.last_visit,
     ).where(Merchant.user_id == current_user.id)
-    
+
     if search:
         search_filter = or_(
             Merchant.name.ilike(f"%{search}%"),
             Merchant.cnpj.ilike(f"%{search}%"),
-            Merchant.category.ilike(f"%{search}%")
+            Merchant.category.ilike(f"%{search}%"),
         )
         query = query.where(search_filter)
-    
+
     if is_favorite is not None:
         query = query.where(Merchant.is_favorite == is_favorite)
-    
+
     query = query.order_by(Merchant.name).offset(skip).limit(limit)
-    
+
     result = await db.execute(query)
     merchants = result.all()
-    
+
     return [
         MerchantList(
             id=m.id,
@@ -61,39 +67,40 @@ async def list_merchants(
             is_favorite=m.is_favorite,
             visit_count=m.visit_count,
             total_spent=m.total_spent,
-            last_visit=m.last_visit
+            last_visit=m.last_visit,
         )
         for m in merchants
     ]
 
 
-@router.get("/favorites", response_model=List[MerchantList])
+@router.get("/favorites", response_model=list[MerchantList])
 async def list_favorite_merchants(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """List favorite merchants for current user."""
-    query = select(
-        Merchant.id,
-        Merchant.name,
-        Merchant.cnpj,
-        Merchant.category,
-        Merchant.is_favorite,
-        Merchant.visit_count,
-        Merchant.total_spent,
-        Merchant.last_visit
-    ).where(
-        and_(
-            Merchant.user_id == current_user.id,
-            Merchant.is_favorite == True
+    query = (
+        select(
+            Merchant.id,
+            Merchant.name,
+            Merchant.cnpj,
+            Merchant.category,
+            Merchant.is_favorite,
+            Merchant.visit_count,
+            Merchant.total_spent,
+            Merchant.last_visit,
         )
-    ).order_by(Merchant.name).offset(skip).limit(limit)
-    
+        .where(and_(Merchant.user_id == current_user.id, Merchant.is_favorite == True))
+        .order_by(Merchant.name)
+        .offset(skip)
+        .limit(limit)
+    )
+
     result = await db.execute(query)
     merchants = result.all()
-    
+
     return [
         MerchantList(
             id=m.id,
@@ -103,7 +110,7 @@ async def list_favorite_merchants(
             is_favorite=m.is_favorite,
             visit_count=m.visit_count,
             total_spent=m.total_spent,
-            last_visit=m.last_visit
+            last_visit=m.last_visit,
         )
         for m in merchants
     ]
@@ -113,25 +120,21 @@ async def list_favorite_merchants(
 async def get_merchant(
     merchant_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Get a specific merchant by ID."""
     result = await db.execute(
         select(Merchant).where(
-            and_(
-                Merchant.id == merchant_id,
-                Merchant.user_id == current_user.id
-            )
+            and_(Merchant.id == merchant_id, Merchant.user_id == current_user.id)
         )
     )
     merchant = result.scalar_one_or_none()
-    
+
     if not merchant:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Merchant not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Merchant not found"
         )
-    
+
     return merchant
 
 
@@ -139,26 +142,25 @@ async def get_merchant(
 async def create_merchant(
     merchant_data: MerchantCreate,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Create a new merchant."""
     # Check if merchant with same CNPJ already exists for this user
     result = await db.execute(
         select(Merchant).where(
             and_(
-                Merchant.user_id == current_user.id,
-                Merchant.cnpj == merchant_data.cnpj
+                Merchant.user_id == current_user.id, Merchant.cnpj == merchant_data.cnpj
             )
         )
     )
     existing = result.scalar_one_or_none()
-    
+
     if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Merchant with this CNPJ already exists"
+            detail="Merchant with this CNPJ already exists",
         )
-    
+
     merchant = Merchant(
         user_id=current_user.id,
         name=merchant_data.name,
@@ -170,13 +172,13 @@ async def create_merchant(
         state=merchant_data.state,
         visit_count=0,
         total_spent=Decimal("0.00"),
-        average_ticket=Decimal("0.00")
+        average_ticket=Decimal("0.00"),
     )
-    
+
     db.add(merchant)
     await db.commit()
     await db.refresh(merchant)
-    
+
     return merchant
 
 
@@ -185,33 +187,29 @@ async def update_merchant(
     merchant_id: uuid.UUID,
     merchant_data: MerchantUpdate,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Update a merchant."""
     result = await db.execute(
         select(Merchant).where(
-            and_(
-                Merchant.id == merchant_id,
-                Merchant.user_id == current_user.id
-            )
+            and_(Merchant.id == merchant_id, Merchant.user_id == current_user.id)
         )
     )
     merchant = result.scalar_one_or_none()
-    
+
     if not merchant:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Merchant not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Merchant not found"
         )
-    
+
     update_data = merchant_data.model_dump(exclude_unset=True)
-    
+
     for field, value in update_data.items():
         setattr(merchant, field, value)
-    
+
     await db.commit()
     await db.refresh(merchant)
-    
+
     return merchant
 
 
@@ -219,56 +217,46 @@ async def update_merchant(
 async def delete_merchant(
     merchant_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Delete a merchant."""
     result = await db.execute(
         select(Merchant).where(
-            and_(
-                Merchant.id == merchant_id,
-                Merchant.user_id == current_user.id
-            )
+            and_(Merchant.id == merchant_id, Merchant.user_id == current_user.id)
         )
     )
     merchant = result.scalar_one_or_none()
-    
+
     if not merchant:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Merchant not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Merchant not found"
         )
-    
+
     await db.delete(merchant)
     await db.commit()
-    
-    return None
 
 
 @router.patch("/{merchant_id}/favorite", response_model=MerchantResponse)
 async def toggle_favorite(
     merchant_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Toggle favorite status for a merchant."""
     result = await db.execute(
         select(Merchant).where(
-            and_(
-                Merchant.id == merchant_id,
-                Merchant.user_id == current_user.id
-            )
+            and_(Merchant.id == merchant_id, Merchant.user_id == current_user.id)
         )
     )
     merchant = result.scalar_one_or_none()
-    
+
     if not merchant:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Merchant not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Merchant not found"
         )
-    
+
     merchant.is_favorite = not merchant.is_favorite
     await db.commit()
     await db.refresh(merchant)
-    
+
     return merchant

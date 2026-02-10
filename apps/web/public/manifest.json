@@ -1,0 +1,26 @@
+{
+  "name": "SMarket - Analista de Compras Inteligente",
+  "short_name": "SMarket",
+  "description": "Analise suas notas fiscais e economize dinheiro com insights inteligentes",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#f6f8f7",
+  "theme_color": "#13ec80",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ]
+}
