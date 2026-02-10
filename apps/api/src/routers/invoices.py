@@ -1002,7 +1002,7 @@ async def enrich_cnpj(cnpj: str, current_user: User = Depends(get_current_user))
                 detail={
                     "error": "cnpj_not_found",
                     "message": "CNPJ não encontrado nas bases de dados públicas",
-                    "cnpj": format_cpnj(cnpj_clean),
+                    "cnpj": format_cnpj(cnpj_clean),
                     "hint": "Verifique se o CNPJ está correto e ativo",
                 },
             )
@@ -1013,7 +1013,7 @@ async def enrich_cnpj(cnpj: str, current_user: User = Depends(get_current_user))
 
         return {
             "success": True,
-            "cnpj": format_cpnj(cnpj_clean),
+            "cnpj": format_cnpj(cnpj_clean),
             "data": enriched_data,
             "suggested_name": enriched_data.get("razao_social")
             or enriched_data.get("nome_fantasia"),
