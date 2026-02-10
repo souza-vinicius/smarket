@@ -1,3 +1,5 @@
+from typing import ClassVar
+
 from pydantic_settings import BaseSettings
 
 
@@ -53,6 +55,23 @@ class Settings(BaseSettings):
     IMAGE_MAX_DIMENSION: int = 1536  # Max dimension for longest side
     IMAGE_JPEG_QUALITY: int = 90  # JPEG quality (1-100)
 
+    # AI Analysis - Master flag + individual flags per analysis type
+    ENABLE_AI_ANALYSIS: bool = True
+    ENABLE_ANALYSIS_PRICE_ALERT: bool = True
+    ENABLE_ANALYSIS_CATEGORY_INSIGHT: bool = True
+    ENABLE_ANALYSIS_MERCHANT_PATTERN: bool = True
+    ENABLE_ANALYSIS_SUMMARY: bool = True
+    ENABLE_ANALYSIS_BUDGET_HEALTH: bool = True
+    ENABLE_ANALYSIS_PER_CAPITA_SPENDING: bool = True
+    ENABLE_ANALYSIS_ESSENTIAL_RATIO: bool = True
+    ENABLE_ANALYSIS_INCOME_COMMITMENT: bool = True
+    ENABLE_ANALYSIS_CHILDREN_SPENDING: bool = True
+    ENABLE_ANALYSIS_WHOLESALE_OPPORTUNITY: bool = True
+    ENABLE_ANALYSIS_SHOPPING_FREQUENCY: bool = True
+    ENABLE_ANALYSIS_SEASONAL_ALERT: bool = True
+    ENABLE_ANALYSIS_SAVINGS_POTENTIAL: bool = True
+    ENABLE_ANALYSIS_FAMILY_NUTRITION: bool = True
+
     # CNPJ Features - Master flag to disable all CNPJ features at once
     ENABLE_CNPJ_FEATURES: bool = True
     ENABLE_CNPJ_VALIDATION: bool = True
@@ -63,6 +82,32 @@ class Settings(BaseSettings):
     @property
     def allowed_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",")]
+
+    _ANALYSIS_FLAG_MAP: ClassVar[dict[str, str]] = {
+        "price_alert": "ENABLE_ANALYSIS_PRICE_ALERT",
+        "category_insight": "ENABLE_ANALYSIS_CATEGORY_INSIGHT",
+        "merchant_pattern": "ENABLE_ANALYSIS_MERCHANT_PATTERN",
+        "summary": "ENABLE_ANALYSIS_SUMMARY",
+        "budget_health": "ENABLE_ANALYSIS_BUDGET_HEALTH",
+        "per_capita_spending": "ENABLE_ANALYSIS_PER_CAPITA_SPENDING",
+        "essential_ratio": "ENABLE_ANALYSIS_ESSENTIAL_RATIO",
+        "income_commitment": "ENABLE_ANALYSIS_INCOME_COMMITMENT",
+        "children_spending": "ENABLE_ANALYSIS_CHILDREN_SPENDING",
+        "wholesale_opportunity": "ENABLE_ANALYSIS_WHOLESALE_OPPORTUNITY",
+        "shopping_frequency": "ENABLE_ANALYSIS_SHOPPING_FREQUENCY",
+        "seasonal_alert": "ENABLE_ANALYSIS_SEASONAL_ALERT",
+        "savings_potential": "ENABLE_ANALYSIS_SAVINGS_POTENTIAL",
+        "family_nutrition": "ENABLE_ANALYSIS_FAMILY_NUTRITION",
+    }
+
+    def is_analysis_enabled(self, analysis_type: str) -> bool:
+        """Check if a specific analysis type is enabled (respects master flag)."""
+        if not self.ENABLE_AI_ANALYSIS:
+            return False
+        flag_attr = self._ANALYSIS_FLAG_MAP.get(analysis_type)
+        if flag_attr is None:
+            return True  # Unknown types default to enabled
+        return getattr(self, flag_attr, True)
 
     @property
     def cnpj_validation_enabled(self) -> bool:

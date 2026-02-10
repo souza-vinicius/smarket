@@ -57,6 +57,16 @@ const typeConfig: Record<string, { label: string; color: string }> = {
   category_insight: { label: "Categoria", color: "bg-primary/10 text-primary" },
   merchant_pattern: { label: "Estabelecimento", color: "bg-accent/10 text-accent" },
   summary: { label: "Resumo", color: "bg-muted text-muted-foreground" },
+  budget_health: { label: "Orçamento", color: "bg-destructive/10 text-destructive" },
+  per_capita_spending: { label: "Per Capita", color: "bg-info-subtle text-info" },
+  essential_ratio: { label: "Essenciais", color: "bg-warning-subtle text-warning" },
+  income_commitment: { label: "Renda", color: "bg-destructive/10 text-destructive" },
+  children_spending: { label: "Crianças", color: "bg-primary/10 text-primary" },
+  wholesale_opportunity: { label: "Atacado", color: "bg-accent/10 text-accent" },
+  shopping_frequency: { label: "Frequência", color: "bg-warning-subtle text-warning" },
+  seasonal_alert: { label: "Sazonalidade", color: "bg-info-subtle text-info" },
+  savings_potential: { label: "Economia", color: "bg-primary/10 text-primary" },
+  family_nutrition: { label: "Nutrição", color: "bg-accent/10 text-accent" },
 };
 
 function InsightCard({

@@ -1,6 +1,21 @@
 "use client";
 
-import { AlertTriangle, Info, Lightbulb, TrendingUp } from "lucide-react";
+import {
+  AlertTriangle,
+  Apple,
+  Baby,
+  BarChart3,
+  Calendar,
+  DollarSign,
+  Heart,
+  Info,
+  Lightbulb,
+  PiggyBank,
+  ShoppingCart,
+  TrendingUp,
+  Users,
+  Warehouse,
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,6 +33,16 @@ const typeIcons: Record<string, React.ReactNode> = {
   category_insight: <TrendingUp className="size-4" />,
   merchant_pattern: <Info className="size-4" />,
   savings_opportunity: <Lightbulb className="size-4" />,
+  budget_health: <Heart className="size-4" />,
+  per_capita_spending: <Users className="size-4" />,
+  essential_ratio: <ShoppingCart className="size-4" />,
+  income_commitment: <DollarSign className="size-4" />,
+  children_spending: <Baby className="size-4" />,
+  wholesale_opportunity: <Warehouse className="size-4" />,
+  shopping_frequency: <Calendar className="size-4" />,
+  seasonal_alert: <Apple className="size-4" />,
+  savings_potential: <PiggyBank className="size-4" />,
+  family_nutrition: <BarChart3 className="size-4" />,
 };
 
 const typeLabels: Record<string, string> = {
@@ -25,6 +50,16 @@ const typeLabels: Record<string, string> = {
   category_insight: "Insight de Categoria",
   merchant_pattern: "Padrão de Estabelecimento",
   savings_opportunity: "Oportunidade de Economia",
+  budget_health: "Saúde do Orçamento",
+  per_capita_spending: "Gasto Per Capita",
+  essential_ratio: "Essenciais vs Supérfluos",
+  income_commitment: "Comprometimento da Renda",
+  children_spending: "Gastos com Crianças",
+  wholesale_opportunity: "Oportunidade de Atacado",
+  shopping_frequency: "Frequência de Compras",
+  seasonal_alert: "Alerta Sazonal",
+  savings_potential: "Potencial de Economia",
+  family_nutrition: "Equilíbrio Nutricional",
 };
 
 const priorityLabels: Record<string, string> = {

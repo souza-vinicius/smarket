@@ -9,6 +9,7 @@ from src.database import AsyncSessionLocal
 from src.models.analysis import Analysis
 from src.models.invoice import Invoice
 from src.models.invoice_item import InvoiceItem
+from src.models.user import User
 from src.services.ai_analyzer import analyzer
 
 logger = logging.getLogger(__name__)
@@ -47,8 +48,16 @@ async def run_ai_analysis(invoice_id: str, user_id: str) -> None:
                     )
                     return
 
+                # Load user profile for personalized analyses
+                user_result = await db.execute(
+                    select(User).where(User.id == uuid.UUID(user_id))
+                )
+                user = user_result.scalar_one_or_none()
+
                 user_history = await _get_user_history(uuid.UUID(user_id), db)
-                analyses = await analyzer.analyze_invoice(invoice, user_history, db)
+                analyses = await analyzer.analyze_invoice(
+                    invoice, user_history, db, user=user
+                )
 
                 for analysis in analyses:
                     db.add(analysis)
