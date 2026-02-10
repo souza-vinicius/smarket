@@ -85,6 +85,53 @@ class AIAnalyzer:
 
         return analyses
 
+    async def generate_global_summary(self, analyses: list[Analysis]) -> str:
+        """
+        Gera um resumo executivo global com base em uma lista de insights.
+        """
+        if not analyses:
+            return "Não há insights suficientes para gerar um relatório ainda."
+
+        # Preparar dados para o prompt
+        insights_text = "\n".join(
+            [
+                f"- [{a.type}] {a.title}: {a.description}"
+                for a in analyses
+            ]
+        )
+
+        prompt = (
+            f"Analise os seguintes insights financeiros gerados recentemente para o usuário:\n\n"
+            f"{insights_text}\n\n"
+            f"Com base APENAS nestes insights, elabore um Resumo Executivo Financeiro (máximo 2 parágrafos). "
+            f"O texto deve ser direto, profissional mas amigável (tom 'coach financeiro'). "
+            f"Destaque os pontos positivos e as áreas de atenção. "
+            f"Não liste os insights um a um, mas sim sintetize as tendências observadas."
+            f"Comece com uma frase de impacto sobre a saúde financeira recente do usuário."
+        )
+
+        try:
+            response = await self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "Você é um consultor financeiro pessoal experiente "
+                            "que ajuda pessoas a organizarem suas finanças domésticas."
+                        ),
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=0.7,
+                max_tokens=500,
+            )
+            return response.choices[0].message.content or "Não foi possível gerar o resumo."
+        except Exception as e:
+            print(f"Erro ao gerar resumo global: {e}")
+            return "Ocorreu um erro ao gerar seu relatório de insights. Tente novamente mais tarde."
+
+
     async def _detect_price_alerts(
         self,
         invoice: Invoice,

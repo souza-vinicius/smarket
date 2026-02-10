@@ -17,7 +17,7 @@ import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useInsights, useMarkInsightAsRead } from "@/hooks/use-insights";
+import { useInsights, useMarkInsightAsRead, useInsightsReport } from "@/hooks/use-insights";
 
 type FilterType = "all" | "unread" | "price_alert" | "category_insight" | "merchant_pattern";
 type PriorityFilter = "all" | "critical" | "high" | "medium" | "low";
@@ -30,6 +30,8 @@ export default function InsightsPage() {
     type: typeFilter === "all" ? undefined : typeFilter,
     priority: priorityFilter === "all" ? undefined : priorityFilter,
   });
+
+  const { data: report, isLoading: isReportLoading } = useInsightsReport();
 
   const markAsReadMutation = useMarkInsightAsRead();
 
@@ -61,6 +63,37 @@ export default function InsightsPage() {
         <Header title="Insights" subtitle="Análises e recomendações para economizar" />
 
         <main className="p-6">
+          {/* Executive Summary */}
+          <div className="mb-6 rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-white p-6 shadow-sm">
+            <div className="flex items-start gap-4">
+              <div className="flex size-12 items-center justify-center rounded-lg bg-indigo-100">
+                <Sparkles className="size-6 text-indigo-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-indigo-900">Resumo do Consultor</h3>
+                <div className="mt-2 text-slate-700">
+                  {isReportLoading ? (
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-[90%]" />
+                      <Skeleton className="h-4 w-[80%]" />
+                    </div>
+                  ) : report?.summary ? (
+                    <div className="prose prose-indigo max-w-none text-sm leading-relaxed">
+                      {report.summary.split('\n').map((paragraph, i) => (
+                        paragraph && <p key={i} className="mb-2">{paragraph}</p>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-500">
+                      Adicione mais notas fiscais para gerar um relatório personalizado.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Stats Cards */}
           <div className="mb-6 grid gap-4 md:grid-cols-3">
             <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -114,11 +147,10 @@ export default function InsightsPage() {
                   onClick={() => {
                     setTypeFilter(filter.value);
                   }}
-                  className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${
-                    typeFilter === filter.value
+                  className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${typeFilter === filter.value
                       ? "bg-emerald-600 text-white shadow-md"
                       : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-100"
-                  }`}
+                    }`}
                 >
                   {filter.icon}
                   {filter.label}
@@ -138,11 +170,10 @@ export default function InsightsPage() {
                   onClick={() => {
                     setPriorityFilter(filter.value);
                   }}
-                  className={`rounded-full px-4 py-2 text-sm font-medium transition-all ${
-                    priorityFilter === filter.value
+                  className={`rounded-full px-4 py-2 text-sm font-medium transition-all ${priorityFilter === filter.value
                       ? `${filter.color} ring-2 ring-current ring-offset-2`
                       : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-100"
-                  }`}
+                    }`}
                 >
                   {filter.label}
                 </button>

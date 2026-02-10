@@ -15,6 +15,7 @@ from src.models.invoice_item import InvoiceItem
 from src.models.merchant import Merchant
 from src.models.user import User
 from src.schemas.analysis import AnalysisResponse
+from src.services.ai_analyzer import analyzer
 
 
 router = APIRouter()
@@ -428,3 +429,24 @@ async def get_category_spending(
             for i, s in enumerate(subcategories)
         ],
     }
+
+
+@router.get("/report", response_model=dict)
+async def get_insights_report(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate a global executive summary of recent insights."""
+    query = (
+        select(Analysis)
+        .where(and_(Analysis.user_id == current_user.id, Analysis.dismissed_at.is_(None)))
+        .order_by(Analysis.created_at.desc())
+        .limit(20)
+    )
+
+    result = await db.execute(query)
+    analyses = result.scalars().all()
+
+    summary = await analyzer.generate_global_summary(list(analyses))
+
+    return {"summary": summary}

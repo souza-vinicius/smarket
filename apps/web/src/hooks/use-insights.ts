@@ -94,3 +94,14 @@ export function useDismissInsight(): UseMutationResult<Analysis, Error, string> 
     },
   });
 }
+
+export function useInsightsReport(): UseQueryResult<{ summary: string }> {
+  return useQuery({
+    queryKey: [...INSIGHT_KEYS.all, "report"],
+    queryFn: async () => {
+      return apiClient.get<{ summary: string }>("/analysis/report");
+    },
+    staleTime: 1000 * 60 * 60, // 1 hour
+    refetchOnWindowFocus: false,
+  });
+}
