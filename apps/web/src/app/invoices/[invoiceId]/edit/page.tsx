@@ -25,6 +25,7 @@ import { useInvoice, useUpdateInvoice } from "@/hooks/use-invoices";
 import { formatCNPJInput, getCNPJErrorMessage, isValidCNPJ } from "@/lib/cnpj";
 import { type InvoiceItem, type InvoiceUpdateRequest } from "@/types";
 import { formatCurrency } from "@/lib/utils";
+import { CATEGORY_NAMES, getSubcategories } from "@/lib/category-options";
 
 interface EditableInvoice {
   issuer_name: string;
@@ -98,6 +99,8 @@ export default function InvoiceEditPage() {
           description: value as string,
           normalized_name: newItems[index].normalized_name ? (value as string) : undefined,
         };
+      } else if (field === "category_name") {
+        newItems[index] = { ...newItems[index], category_name: value as string, subcategory: "" };
       } else {
         newItems[index] = { ...newItems[index], [field]: value };
       }
@@ -497,21 +500,30 @@ export default function InvoiceEditPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-muted-foreground mb-1">Categoria</label>
-                  <input
-                    type="text"
+                  <select
                     value={item.category_name}
                     onChange={(e) => handleItemChange(index, "category_name", e.target.value)}
                     className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors"
-                  />
+                  >
+                    <option value="">Selecione uma categoria</option>
+                    {CATEGORY_NAMES.map((cat) => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-muted-foreground mb-1">Subcategoria</label>
-                  <input
-                    type="text"
+                  <select
                     value={item.subcategory}
                     onChange={(e) => handleItemChange(index, "subcategory", e.target.value)}
-                    className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors"
-                  />
+                    disabled={!item.category_name}
+                    className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <option value="">{item.category_name ? "Selecione uma subcategoria" : "Selecione uma categoria primeiro"}</option>
+                    {item.category_name && getSubcategories(item.category_name).map((sub) => (
+                      <option key={sub} value={sub}>{sub}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>

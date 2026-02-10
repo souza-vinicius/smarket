@@ -29,6 +29,7 @@ import {
 } from "@/hooks/use-invoices";
 import { formatCNPJInput, getCNPJErrorMessage, isValidCNPJ } from "@/lib/cnpj";
 import { formatCurrency } from "@/lib/utils";
+import { CATEGORY_NAMES, getSubcategories } from "@/lib/category-options";
 import { type InvoiceItem } from "@/types";
 
 interface DuplicateErrorData {
@@ -89,6 +90,8 @@ export default function InvoiceReviewPage() {
           description: value as string,
           normalized_name: newItems[index].normalized_name ? (value as string) : undefined,
         };
+      } else if (field === "category_name") {
+        newItems[index] = { ...newItems[index], category_name: value as string, subcategory: "" };
       } else {
         newItems[index] = { ...newItems[index], [field]: value };
       }
@@ -163,17 +166,17 @@ export default function InvoiceReviewPage() {
     } catch (err) {
       const axiosError = err as AxiosError<{
         detail?:
-          | {
-              error?: string;
-              message?: string;
-              field?: string;
-              hint?: string;
-              existing_invoice_id?: string;
-              existing_invoice_number?: string;
-              existing_invoice_date?: string;
-              existing_invoice_total?: number;
-            }
-          | string;
+        | {
+          error?: string;
+          message?: string;
+          field?: string;
+          hint?: string;
+          existing_invoice_id?: string;
+          existing_invoice_number?: string;
+          existing_invoice_date?: string;
+          existing_invoice_total?: number;
+        }
+        | string;
       }>;
 
       if (axiosError.response?.status === 400) {
@@ -205,8 +208,8 @@ export default function InvoiceReviewPage() {
           typeof axiosError?.response?.data?.detail === "object"
             ? axiosError.response.data.detail.message
             : axiosError?.response?.data?.detail ||
-              axiosError.message ||
-              "Falha ao salvar nota fiscal";
+            axiosError.message ||
+            "Falha ao salvar nota fiscal";
         alert(errorMessage);
       }
     }
@@ -461,11 +464,10 @@ export default function InvoiceReviewPage() {
                   onChange={(e) => handleHeaderChange("issuer_cnpj", e.target.value)}
                   placeholder="00.000.000/0000-00"
                   maxLength={18}
-                  className={`flex-1 px-4 py-2 rounded-lg border ${
-                    cnpjError
+                  className={`flex-1 px-4 py-2 rounded-lg border ${cnpjError
                       ? "border-destructive bg-destructive-subtle/30 text-destructive"
                       : "border-border bg-background text-foreground"
-                  } focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors`}
+                    } focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors`}
                 />
                 <Button
                   variant="outline"
@@ -535,11 +537,10 @@ export default function InvoiceReviewPage() {
                 value={editedData.issue_date ? new Date(editedData.issue_date).toISOString().slice(0, 16) : ""}
                 onChange={(e) => handleHeaderChange("issue_date", e.target.value)}
                 max={new Date().toISOString().slice(0, 16)}
-                className={`w-full px-4 py-2 rounded-lg border ${
-                  dateError
+                className={`w-full px-4 py-2 rounded-lg border ${dateError
                     ? "border-destructive bg-destructive-subtle/30 text-destructive"
                     : "border-border bg-background text-foreground"
-                } focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors`}
+                  } focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors`}
               />
               {dateError && <p className="text-sm text-destructive mt-1">{dateError}</p>}
             </div>
@@ -650,25 +651,32 @@ export default function InvoiceReviewPage() {
                 {/* Category */}
                 <div>
                   <label className="block text-sm font-medium text-muted-foreground mb-2">Categoria</label>
-                  <input
-                    type="text"
+                  <select
                     value={item.category_name || ""}
                     onChange={(e) => handleItemChange(index, "category_name", e.target.value)}
                     className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors"
-                    placeholder="Ex: Alimentos"
-                  />
+                  >
+                    <option value="">Selecione uma categoria</option>
+                    {CATEGORY_NAMES.map((cat) => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Subcategory */}
                 <div>
                   <label className="block text-sm font-medium text-muted-foreground mb-2">Subcategoria</label>
-                  <input
-                    type="text"
+                  <select
                     value={item.subcategory || ""}
                     onChange={(e) => handleItemChange(index, "subcategory", e.target.value)}
-                    className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors"
-                    placeholder="Ex: Laticínios"
-                  />
+                    disabled={!item.category_name}
+                    className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <option value="">{item.category_name ? "Selecione uma subcategoria" : "Selecione uma categoria primeiro"}</option>
+                    {item.category_name && getSubcategories(item.category_name).map((sub) => (
+                      <option key={sub} value={sub}>{sub}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>
