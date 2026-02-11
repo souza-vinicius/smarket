@@ -15,6 +15,7 @@ import {
   Receipt,
 } from "lucide-react";
 import { InvoiceCard } from "@/components/invoices/invoice-card";
+import { UpgradeModal } from "@/components/subscription/upgrade-modal";
 import { PageLayout } from "@/components/layout/page-layout";
 import { Button } from "@/components/ui/button";
 import { Card, StatCard } from "@/components/ui/card";
@@ -37,9 +38,11 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 function UploadModal({
   isOpen,
   onClose,
+  onSubscriptionError,
 }: {
   isOpen: boolean;
   onClose: () => void;
+  onSubscriptionError: (error: { limitType: "invoice" | "analysis"; currentPlan: string }) => void;
 }) {
   const [activeTab, setActiveTab] = useState<"photo" | "xml" | "qrcode">("photo");
   const [qrCode, setQrCode] = useState("");
@@ -56,6 +59,18 @@ function UploadModal({
     }
   };
 
+  const handleSubscriptionError = (error: any) => {
+    const status = error?.response?.status;
+    if (status === 402 || status === 429) {
+      const headers = error?.response?.headers;
+      const limitType = (headers?.["x-limit-type"] as "invoice" | "analysis") || "invoice";
+      const currentPlan = (headers?.["x-current-plan"] as string) || "free";
+
+      onSubscriptionError({ limitType, currentPlan });
+      onClose();
+    }
+  };
+
   const handleSubmit = () => {
     if (activeTab === "photo" && selectedFiles.length > 0) {
       uploadPhotosMutation.mutate(selectedFiles, {
@@ -63,6 +78,7 @@ function UploadModal({
           onClose();
           router.push(`/invoices/review/${data.processing_id}`);
         },
+        onError: handleSubscriptionError,
       });
     } else if (activeTab === "xml") {
       const input = document.createElement("input");
@@ -76,6 +92,7 @@ function UploadModal({
               onClose();
               router.push("/invoices");
             },
+            onError: handleSubscriptionError,
           });
         }
       };
@@ -88,6 +105,7 @@ function UploadModal({
             onClose();
             router.push("/invoices");
           },
+          onError: handleSubscriptionError,
         }
       );
     }
@@ -261,9 +279,15 @@ function PendingItem({
   );
 }
 
+interface SubscriptionError {
+  limitType: "invoice" | "analysis";
+  currentPlan: string;
+}
+
 export default function InvoicesPage() {
   const router = useRouter();
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [subscriptionError, setSubscriptionError] = useState<SubscriptionError | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [processingToDelete, setProcessingToDelete] = useState<string | null>(null);
@@ -445,7 +469,18 @@ export default function InvoicesPage() {
       <UploadModal
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
+        onSubscriptionError={setSubscriptionError}
       />
+
+      {/* Upgrade Modal */}
+      {subscriptionError && (
+        <UpgradeModal
+          isOpen={true}
+          onClose={() => setSubscriptionError(null)}
+          limitType={subscriptionError.limitType}
+          currentPlan={subscriptionError.currentPlan}
+        />
+      )}
 
       {/* Delete Confirmation */}
       <ConfirmModal

@@ -136,7 +136,12 @@ async def check_invoice_limit(
     if limit is not None and usage.invoices_count >= limit:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=f"Limite de {limit} notas fiscais/mês atingido. Faça upgrade.",
+            detail=f"Limite de {limit} notas fiscais/mês atingido. Faça upgrade para continuar.",
+            headers={
+                "X-Subscription-Error": "invoice_limit_reached",
+                "X-Limit-Type": "invoice",
+                "X-Current-Plan": sub.plan,
+            },
         )
 
     return current_user
@@ -169,7 +174,12 @@ async def check_analysis_limit(
     if limit is not None and usage.ai_analyses_count >= limit:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=f"Limite de {limit} análises de IA/mês atingido. Faça upgrade.",
+            detail=f"Limite de {limit} análises de IA/mês atingido. Faça upgrade para continuar.",
+            headers={
+                "X-Subscription-Error": "analysis_limit_reached",
+                "X-Limit-Type": "analysis",
+                "X-Current-Plan": sub.plan,
+            },
         )
 
     return current_user
@@ -179,7 +189,7 @@ async def check_analysis_limit(
 
 
 async def _get_active_subscription(user_id: uuid.UUID, db: AsyncSession):
-    """Get active subscription or raise 403."""
+    """Get active subscription or raise error with specific message."""
     from sqlalchemy import select
 
     from src.models.subscription import Subscription
@@ -188,11 +198,35 @@ async def _get_active_subscription(user_id: uuid.UUID, db: AsyncSession):
         select(Subscription).where(Subscription.user_id == user_id)
     )
     sub = result.scalar_one_or_none()
-    if not sub or not sub.is_active:
+
+    if not sub:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Assinatura inativa.",
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail="Nenhuma assinatura encontrada. Inicie seu trial gratuito de 30 dias.",
+            headers={"X-Subscription-Error": "no_subscription"},
         )
+
+    if not sub.is_active:
+        # Diferenciar entre trial expirado e assinatura cancelada
+        if sub.status == "expired":
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail="Seu trial expirou. Faça upgrade para continuar.",
+                headers={"X-Subscription-Error": "trial_expired"},
+            )
+        elif sub.status in ["cancelled", "past_due"]:
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail=f"Assinatura {sub.status}. Reative para continuar.",
+                headers={"X-Subscription-Error": "subscription_inactive"},
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail="Assinatura inativa. Entre em contato com o suporte.",
+                headers={"X-Subscription-Error": "subscription_inactive"},
+            )
+
     return sub
 
 
