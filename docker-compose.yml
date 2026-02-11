@@ -68,7 +68,7 @@ services:
       DEBUG: ${DEBUG:-false}
       APP_NAME: ${APP_NAME:-SMarket API}
     ports:
-      - "${API_PORT:-8005}:8000"
+      - "${API_PORT:-8000}:8000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -78,10 +78,8 @@ services:
       - ./apps/api:/app
     networks:
       - smarket-network
-      - dokploy-network
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=dokploy-network"
       - "traefik.http.routers.smarket-compose-api.rule=Host(`smarket-api-yinqlr-886c26-168-231-96-253.traefik.me`) || Host(`smarket-api-yinqlr-b71ecf-168-231-96-253.traefik.me`)"
       - "traefik.http.routers.smarket-compose-api.entrypoints=web"
       # - "traefik.http.routers.smarket-compose-api.tls.certresolver=letsencrypt"
@@ -101,15 +99,13 @@ services:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: ${WEB_PORT:-3000}
     ports:
-      - "${WEB_PORT:-3005}:3000"
+      - "${WEB_PORT:-3000}:3000"
     depends_on:
       - api
     networks:
       - smarket-network
-      - dokploy-network
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=dokploy-network"
       - "traefik.http.routers.smarket-compose-web.rule=Host(`smarket-app-yinqlr-886c26-168-231-96-253.traefik.me`) || Host(`smarket-app-yinqlr-b71ecf-168-231-96-253.traefik.me`)"
       - "traefik.http.routers.smarket-compose-web.entrypoints=web"
       # - "traefik.http.routers.smarket-compose-web.tls.certresolver=letsencrypt"
@@ -124,5 +120,3 @@ volumes:
 networks:
   smarket-network:
     driver: bridge
-  dokploy-network:
-    external: true
