@@ -92,12 +92,12 @@ services:
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
-        PORT: ${WEB_PORT:-3000}
+        PORT: 3000
     container_name: smarket-web
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://smarket-api-yinqlr-886c26-168-231-96-253.traefik.me}
       NODE_ENV: ${NODE_ENV:-production}
-      PORT: ${WEB_PORT:-3000}
+      PORT: 3000
     ports:
       - "${WEB_PORT:-3000}:3000"
     depends_on:
