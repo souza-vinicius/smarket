@@ -26,6 +26,7 @@ import {
 } from "@/hooks/use-invoices";
 import { InvoiceCard } from "@/components/invoices/invoice-card";
 import { UploadModal } from "@/components/invoices/upload-modal";
+import { UpgradeModal } from "@/components/subscription/upgrade-modal";
 import { formatCurrency } from "@/lib/utils";
 
 // Insight Card Component
@@ -92,9 +93,15 @@ function InsightCard({
   );
 }
 
+interface SubscriptionError {
+  limitType: "invoice" | "analysis";
+  currentPlan: string;
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [subscriptionError, setSubscriptionError] = useState<SubscriptionError | null>(null);
 
   const { data: summary, isLoading: isSummaryLoading } = useDashboardSummary();
   const { data: insights, isLoading: isInsightsLoading } = useRecentInsights(3);
@@ -106,12 +113,25 @@ export default function DashboardPage() {
   const uploadPhotosMutation = useUploadPhotos();
   const processQRCodeMutation = useProcessQRCode();
 
+  const handleSubscriptionError = (error: any) => {
+    const status = error?.response?.status;
+    if (status === 402 || status === 429) {
+      const headers = error?.response?.headers;
+      const limitType = (headers?.["x-limit-type"] as "invoice" | "analysis") || "invoice";
+      const currentPlan = (headers?.["x-current-plan"] as string) || "free";
+
+      setSubscriptionError({ limitType, currentPlan });
+      setIsUploadModalOpen(false);
+    }
+  };
+
   const handleUploadXML = (file: File) => {
     uploadXMLMutation.mutate(file, {
       onSuccess: () => {
         setIsUploadModalOpen(false);
         router.push("/invoices");
       },
+      onError: handleSubscriptionError,
     });
   };
 
@@ -123,6 +143,7 @@ export default function DashboardPage() {
           router.push(`/invoices/review/${data.processing_id}`);
         }
       },
+      onError: handleSubscriptionError,
     });
   };
 
@@ -134,6 +155,7 @@ export default function DashboardPage() {
           setIsUploadModalOpen(false);
           router.push("/invoices");
         },
+        onError: handleSubscriptionError,
       }
     );
   };
@@ -337,6 +359,16 @@ export default function DashboardPage() {
         onProcessQRCode={handleProcessQRCode}
         isUploading={isUploading}
       />
+
+      {/* Upgrade Modal */}
+      {subscriptionError && (
+        <UpgradeModal
+          isOpen={true}
+          onClose={() => setSubscriptionError(null)}
+          limitType={subscriptionError.limitType}
+          currentPlan={subscriptionError.currentPlan}
+        />
+      )}
     </PageLayout>
   );
 }

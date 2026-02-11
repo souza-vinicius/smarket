@@ -66,25 +66,14 @@ export default function AddInvoicePage() {
         }
       },
       onError: (error: any) => {
-        // Debug: log error structure
-        console.log("Upload error caught:", {
-          error,
-          status: error?.response?.status,
-          headers: error?.response?.headers,
-          data: error?.response?.data,
-        });
-
-        // Check for subscription errors (402 Payment Required or 429 Too Many Requests)
         const status = error?.response?.status;
         if (status === 402 || status === 429) {
-          // Extract error info from response headers
           const headers = error?.response?.headers;
           const limitType = (headers?.["x-limit-type"] as "invoice" | "analysis") || "invoice";
           const currentPlan = (headers?.["x-current-plan"] as string) || "free";
 
-          console.log("Setting subscription error:", { limitType, currentPlan });
           setSubscriptionError({ limitType, currentPlan });
-          setUploadMode(null); // Close upload modal
+          setUploadMode(null);
         }
       },
     });
