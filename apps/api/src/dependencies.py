@@ -70,3 +70,150 @@ async def get_optional_user(
         return await get_current_user(credentials, db)
     except HTTPException:
         return None
+
+
+# Subscription-related dependencies
+
+
+async def get_subscription(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get user's active subscription or raise 403."""
+    from src.config import settings
+
+    if not settings.subscription_enabled:
+        return None  # Feature disabled - everything allowed
+
+    from sqlalchemy import select
+
+    from src.models.subscription import Subscription
+
+    result = await db.execute(
+        select(Subscription).where(Subscription.user_id == current_user.id)
+    )
+    sub = result.scalar_one_or_none()
+
+    if not sub:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Nenhuma assinatura encontrada. Inicie seu trial gratuito.",
+        )
+
+    if not sub.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Assinatura {sub.status}. Renove para continuar.",
+        )
+
+    return sub
+
+
+async def check_invoice_limit(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    """Check if user can create more invoices this month."""
+    from datetime import datetime, timezone
+
+    from sqlalchemy import select
+
+    from src.config import settings
+    from src.models.subscription import PLAN_LIMITS, Subscription, SubscriptionPlan
+    from src.models.usage_record import UsageRecord
+
+    if not settings.subscription_enabled:
+        return current_user
+
+    sub = await _get_active_subscription(current_user.id, db)
+    if sub.plan == SubscriptionPlan.PREMIUM.value:
+        return current_user  # unlimited
+
+    now = datetime.now(timezone.utc)
+    usage = await _get_or_create_usage(current_user.id, now.year, now.month, db)
+    limit = PLAN_LIMITS[SubscriptionPlan(sub.plan)][0]
+
+    if limit is not None and usage.invoices_count >= limit:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Limite de {limit} notas fiscais/mês atingido. Faça upgrade.",
+        )
+
+    return current_user
+
+
+async def check_analysis_limit(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    """Check if user can request more AI analyses this month."""
+    from datetime import datetime, timezone
+
+    from sqlalchemy import select
+
+    from src.config import settings
+    from src.models.subscription import PLAN_LIMITS, Subscription, SubscriptionPlan
+    from src.models.usage_record import UsageRecord
+
+    if not settings.subscription_enabled:
+        return current_user
+
+    sub = await _get_active_subscription(current_user.id, db)
+    if sub.plan == SubscriptionPlan.PREMIUM.value:
+        return current_user
+
+    now = datetime.now(timezone.utc)
+    usage = await _get_or_create_usage(current_user.id, now.year, now.month, db)
+    limit = PLAN_LIMITS[SubscriptionPlan(sub.plan)][1]
+
+    if limit is not None and usage.ai_analyses_count >= limit:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Limite de {limit} análises de IA/mês atingido. Faça upgrade.",
+        )
+
+    return current_user
+
+
+# Private helpers
+
+
+async def _get_active_subscription(user_id: uuid.UUID, db: AsyncSession):
+    """Get active subscription or raise 403."""
+    from sqlalchemy import select
+
+    from src.models.subscription import Subscription
+
+    result = await db.execute(
+        select(Subscription).where(Subscription.user_id == user_id)
+    )
+    sub = result.scalar_one_or_none()
+    if not sub or not sub.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Assinatura inativa.",
+        )
+    return sub
+
+
+async def _get_or_create_usage(
+    user_id: uuid.UUID, year: int, month: int, db: AsyncSession
+):
+    """Get or create usage record for user/year/month."""
+    from sqlalchemy import select
+
+    from src.models.usage_record import UsageRecord
+
+    result = await db.execute(
+        select(UsageRecord).where(
+            UsageRecord.user_id == user_id,
+            UsageRecord.year == year,
+            UsageRecord.month == month,
+        )
+    )
+    usage = result.scalar_one_or_none()
+    if not usage:
+        usage = UsageRecord(user_id=user_id, year=year, month=month)
+        db.add(usage)
+        await db.flush()
+    return usage

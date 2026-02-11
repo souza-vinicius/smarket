@@ -43,6 +43,18 @@ class AIServiceError(SMarketException):
     pass
 
 
+class SubscriptionError(SMarketException):
+    """Raised when subscription operation fails."""
+
+    pass
+
+
+class UsageLimitExceededError(SMarketException):
+    """Raised when user exceeds plan limits."""
+
+    pass
+
+
 def handle_exception(exc: Exception) -> HTTPException:
     """Convert custom exceptions to HTTP responses."""
     if isinstance(exc, InvoiceAlreadyExistsError):

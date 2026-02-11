@@ -227,3 +227,51 @@ export interface PaginatedResponse<T> {
   skip: number;
   limit: number;
 }
+
+// Subscription Types
+export interface SubscriptionResponse {
+  id: string;
+  plan: "free" | "basic" | "premium";
+  billing_cycle: "monthly" | "yearly" | null;
+  status: "trial" | "active" | "past_due" | "cancelled" | "expired";
+  trial_start: string;
+  trial_end: string;
+  current_period_start: string | null;
+  current_period_end: string | null;
+  cancelled_at: string | null;
+  is_active: boolean;
+  invoice_limit: number | null;
+  analysis_limit: number | null;
+  created_at: string;
+}
+
+export interface UsageResponse {
+  invoices_used: number;
+  invoices_limit: number | null;
+  ai_analyses_used: number;
+  ai_analyses_limit: number | null;
+  month: number;
+  year: number;
+}
+
+export interface CheckoutRequest {
+  plan: "basic" | "premium";
+  billing_cycle: "monthly" | "yearly";
+  success_url: string;
+  cancel_url: string;
+}
+
+export interface CheckoutResponse {
+  checkout_url: string;
+  session_id: string;
+}
+
+export interface PaymentResponse {
+  id: string;
+  amount: number;
+  currency: string;
+  status: string;
+  provider: string;
+  paid_at: string | null;
+  created_at: string;
+}

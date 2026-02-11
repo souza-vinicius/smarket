@@ -63,6 +63,17 @@ async def run_ai_analysis(invoice_id: str, user_id: str) -> None:
                     db.add(analysis)
                 await db.commit()
 
+                # Increment AI analyses usage counter (only if subscription system is enabled)
+                from datetime import datetime
+                from src.config import settings
+                from src.dependencies import _get_or_create_usage
+
+                if settings.subscription_enabled:
+                    now = datetime.utcnow()
+                    usage = await _get_or_create_usage(uuid.UUID(user_id), now.year, now.month, db)
+                    usage.ai_analyses_count += 1
+                    await db.commit()
+
             logger.info(
                 "ai_analysis_completed",
                 extra={

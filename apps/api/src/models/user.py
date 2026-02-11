@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from src.models.merchant import Merchant
     from src.models.product import Product
     from src.models.purchase_pattern import PurchasePattern
+    from src.models.subscription import Subscription
 
 
 class User(Base):
@@ -74,4 +75,7 @@ class User(Base):
     )
     invoice_processing: Mapped[list["InvoiceProcessing"]] = relationship(
         back_populates="user", lazy="selectin"
+    )
+    subscription: Mapped[Optional["Subscription"]] = relationship(
+        back_populates="user", lazy="selectin", uselist=False
     )

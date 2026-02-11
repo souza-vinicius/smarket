@@ -17,6 +17,7 @@ from src.routers import (
     merchants,
     products,
     purchase_patterns,
+    subscriptions,
     users,
 )
 
@@ -75,6 +76,9 @@ app.include_router(
 )
 app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
 app.include_router(debug.router, prefix="/api/v1/debug", tags=["debug"])
+app.include_router(
+    subscriptions.router, prefix="/api/v1", tags=["subscriptions"]
+)
 
 
 @app.get("/health")
@@ -86,6 +90,11 @@ async def health_check():
 async def feature_status():
     """Get status of feature flags."""
     return {
+        "subscription_system": {
+            "enabled": settings.subscription_enabled,
+            "trial_duration_days": settings.TRIAL_DURATION_DAYS,
+            "description": "Subscription limits for invoices and AI analyses",
+        },
         "cnpj_features": {
             "master_enabled": settings.ENABLE_CNPJ_FEATURES,
             "validation": {
@@ -100,7 +109,7 @@ async def feature_status():
                 "timeout": settings.CNPJ_API_TIMEOUT,
                 "cache_ttl": settings.CNPJ_CACHE_TTL,
             },
-        }
+        },
     }
 
 
