@@ -46,6 +46,9 @@ langchain-anthropic==1.0.0
 redis==7.1.0
 cachetools==5.3.3
 
+# Payments
+stripe==11.4.1
+
 # Utilitários
 python-dateutil==2.9.0.post0
 pytz==2025.2
