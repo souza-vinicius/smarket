@@ -63,12 +63,12 @@ services:
       OPENROUTER_MODEL_FULL: ${OPENROUTER_MODEL_FULL:-google/gemini-2.0-flash-thinking-exp-01-21}
       OPENROUTER_BASE_URL: ${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
       SEFAZ_API_URL: ${SEFAZ_API_URL:-https://www.nfce.fazenda.sp.gov.br/NFCeConsultaPublica}
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:8000}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:8000,https://smarket-app-yinqlr-886c26-168-231-96-253.traefik.me}
       UPLOAD_DIR: ${UPLOAD_DIR:-uploads}
       DEBUG: ${DEBUG:-false}
       APP_NAME: ${APP_NAME:-SMarket API}
-    ports:
-      - "${API_PORT:-8000}:8000"
+    # ports:
+    #   - "${API_PORT:-8000}:8000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -78,6 +78,13 @@ services:
       - ./apps/api:/app
     networks:
       - smarket-network
+      - dokploy-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.smarket-api.rule=Host(`smarket-api-yinqlr-886c26-168-231-96-253.traefik.me`)"
+      - "traefik.http.routers.smarket-api.entrypoints=websecure"
+      - "traefik.http.routers.smarket-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.smarket-api.loadbalancer.server.port=8000"
     restart: unless-stopped
   # Next.js Frontend
   web:
@@ -89,15 +96,22 @@ services:
         PORT: ${WEB_PORT:-3000}
     container_name: smarket-web
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://smarket-api-yinqlr-886c26-168-231-96-253.traefik.me}
       NODE_ENV: ${NODE_ENV:-production}
       PORT: ${WEB_PORT:-3000}
-    ports:
-      - "${WEB_PORT:-3000}:${WEB_PORT:-3000}"
+    # ports:
+    #   - "${WEB_PORT:-3000}:${WEB_PORT:-3000}"
     depends_on:
       - api
     networks:
       - smarket-network
+      - dokploy-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.smarket-web.rule=Host(`smarket-app-yinqlr-886c26-168-231-96-253.traefik.me`)"
+      - "traefik.http.routers.smarket-web.entrypoints=websecure"
+      - "traefik.http.routers.smarket-web.tls.certresolver=letsencrypt"
+      - "traefik.http.services.smarket-web.loadbalancer.server.port=3000"
     restart: unless-stopped
 
 volumes:
@@ -108,3 +122,5 @@ volumes:
 networks:
   smarket-network:
     driver: bridge
+  dokploy-network:
+    external: true
