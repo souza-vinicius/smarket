@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { QueryClientProvider } from "@tanstack/react-query";
 
 import { queryClient } from "@/lib/query-client";
@@ -34,6 +35,19 @@ function useNativeInit() {
 
 export function Providers({ children }: { children: React.ReactNode }) {
   useNativeInit();
+  const router = useRouter();
+
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      queryClient.clear();
+      router.push("/login");
+    };
+
+    window.addEventListener("auth:unauthorized", handleUnauthorized);
+    return () => {
+      window.removeEventListener("auth:unauthorized", handleUnauthorized);
+    };
+  }, [router]);
 
   return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
 }

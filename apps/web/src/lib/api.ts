@@ -63,7 +63,8 @@ class ApiClient {
             return this.client(originalRequest);
           } catch (refreshError) {
             this.logout();
-            window.location.href = "/login";
+            // Dispatch unauthorized event instead of forcing reload
+            window.dispatchEvent(new Event("auth:unauthorized"));
             return Promise.reject(
               refreshError instanceof Error ? refreshError : new Error(String(refreshError))
             );

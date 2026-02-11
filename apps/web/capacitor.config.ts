@@ -5,7 +5,9 @@ const config: CapacitorConfig = {
   appName: 'SMarket',
   webDir: 'out',
   server: {
-    androidScheme: 'https',
+    androidScheme: 'http',
+    cleartext: true,
+    allowNavigation: ['*']
   },
   plugins: {
     SplashScreen: {

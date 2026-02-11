@@ -723,7 +723,46 @@ Adicionar ao `.env.example`:
 
 ---
 
-## 11. Troubleshooting
+## 11. Checklist para Produção
+
+Antes de enviar para a loja, verifique estes pontos críticos para garantir segurança e performance.
+
+### 11.1 URL da API (Obrigatório)
+Certifique-se de buildar com a URL de produção HTTPS.
+```bash
+NEXT_PUBLIC_API_URL=https://api.smarket.com.br npm run build:mobile
+```
+
+### 11.2 Scheme do Android (Recomendado)
+Para maior segurança, em produção, reverta o `androidScheme` para `https` no `capacitor.config.ts`.
+Isso exige que sua API suporte HTTPS corretamente (sem redirects problemáticos de CORS).
+
+```ts
+// apps/web/capacitor.config.ts
+server: {
+  androidScheme: 'https', // Voltar para https em produção
+  // cleartext: true, // Remover ou false
+  allowNavigation: ['*'],
+},
+```
+**Nota:** Se mudar para `https`, lembre-se de rodar `npx cap sync android`.
+
+### 11.3 Limpeza de Configurações de Debug
+No `AndroidManifest.xml`, remova ou defina como false:
+- `android:usesCleartextTraffic="false"` (A menos que sua API seja HTTP apenas, o que não é recomendado em prod).
+
+### 11.4 Versionamento
+Sempre incremente a versão antes de gerar o build final.
+- **Android**: `android/app/build.gradle` -> `versionCode` (inteiro) e `versionName` (string).
+- **iOS**: Xcode -> General -> Version e Build.
+
+### 11.5 Assinatura (Signing)
+- **Android**: Gere um Keystore de release e configure o `build.gradle` (veja seção 10.2).
+- **iOS**: Use um certificado de Distribuição (App Store) e provisioning profile correto.
+
+---
+
+## 12. Troubleshooting
 
 ### 11.1 Erro SSL no Android (net_error -202)
 
@@ -733,12 +772,35 @@ Adicionar ao `.env.example`:
 
 **Solução**:
 1.  Garanta que o `android:usesCleartextTraffic="true"` esteja no `AndroidManifest.xml` (já incluído neste plano).
-2.  Use `http://` (não `https://`) para o backend local.
-    Ex: `NEXT_PUBLIC_API_URL=http://192.168.1.15:8000 npm run build:mobile`
 
----
+### 11.2 Erro Mixed Content (HTTPS -> HTTP)
 
-## Resumo de Arquivos
+**Erro**: `Mixed Content: The page at 'https://localhost/login' was loaded over HTTPS, but requested an insecure XMLHttpRequest endpoint 'http://...'`
+
+**Causa**: O Capacitor por padrão serve o app em `https://localhost` no Android. Se sua API não tem SSL (é `http://`), o WebView bloqueia a conexão por segurança.
+
+**Solução**:
+1.  Configure o `capacitor.config.ts` para usar o esquema `http` no Android:
+    ```ts
+    server: {
+      androidScheme: 'http',
+      cleartext: true,
+      allowNavigation: ['*']
+    }
+    ```
+
+### 11.3 Erro CORS com redirect (HTTP -> HTTPS)
+
+**Erro**: `Access to XMLHttpRequest at 'http://...' from origin 'http://localhost' has been blocked by CORS policy`
+
+**Causa**: Você configurou o `NEXT_PUBLIC_API_URL` com `http://` mas o servidor (Dokploy/Traefik) redireciona automaticamente para `https://`. O navegador/WebView **não segue redirects** em requisições de preflight (OPTIONS), causando erro de CORS.
+
+**Solução**:
+Use a URL **HTTPS** do backend no comando de build:
+
+```bash
+NEXT_PUBLIC_API_URL=https://smarket-api.n8nvinicius.cloud npm run build:mobile
+```
 
 ### Modificar
 
