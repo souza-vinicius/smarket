@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.database import get_db
 from src.dependencies import get_current_user, security
 from src.models.user import User
-from src.schemas.auth import LoginRequest, RegisterRequest, Token
+from src.schemas.auth import ChangePasswordRequest, LoginRequest, RegisterRequest, Token
 from src.schemas.user import UserResponse
 from src.utils.security import (
     create_access_token,
@@ -171,3 +171,31 @@ async def refresh_token(
 async def get_me(current_user: User = Depends(get_current_user)):
     """Get current authenticated user."""
     return current_user
+
+
+@router.post("/change-password", status_code=status.HTTP_204_NO_CONTENT)
+async def change_password(
+    request: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Change user password (requires current password)."""
+    # Verify current password
+    if not verify_password(request.current_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Senha atual incorreta",
+        )
+
+    # Validate new password is different
+    if verify_password(request.new_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A nova senha deve ser diferente da senha atual",
+        )
+
+    # Update password
+    current_user.hashed_password = get_password_hash(request.new_password)
+    await db.commit()
+
+    return None

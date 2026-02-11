@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { apiClient } from "@/lib/api";
-import { type LoginRequest, type RegisterRequest, type User } from "@/types";
+import { type ChangePasswordRequest, type LoginRequest, type RegisterRequest, type User } from "@/types";
 
 const AUTH_KEYS = {
   user: ["user"] as const,
@@ -77,4 +77,13 @@ export function useAuth(): UseAuthReturn {
     isLoginPending: loginMutation.isPending,
     isRegisterPending: registerMutation.isPending,
   };
+}
+
+/**
+ * Hook for changing user password
+ */
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: (data: ChangePasswordRequest) => apiClient.changePassword(data),
+  });
 }

@@ -156,6 +156,10 @@ class ApiClient {
     return response.data;
   }
 
+  async changePassword(data: { current_password: string; new_password: string }): Promise<void> {
+    await this.client.post("/auth/change-password", data);
+  }
+
   // Profile methods
   async getProfile(): Promise<UserProfile> {
     const response = await this.client.get<UserProfile>("/users/profile");

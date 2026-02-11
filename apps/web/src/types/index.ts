@@ -34,6 +34,11 @@ export interface RegisterRequest {
   full_name: string;
 }
 
+export interface ChangePasswordRequest {
+  current_password: string;
+  new_password: string;
+}
+
 export interface Token {
   access_token: string;
   refresh_token: string;
