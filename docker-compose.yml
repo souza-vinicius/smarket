@@ -63,7 +63,7 @@ services:
       OPENROUTER_MODEL_FULL: ${OPENROUTER_MODEL_FULL:-google/gemini-2.0-flash-thinking-exp-01-21}
       OPENROUTER_BASE_URL: ${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
       SEFAZ_API_URL: ${SEFAZ_API_URL:-https://www.nfce.fazenda.sp.gov.br/NFCeConsultaPublica}
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:8000,http://smarket-app-yinqlr-886c26-168-231-96-253.traefik.me,http://smarket-app-yinqlr-b71ecf-168-231-96-253.traefik.me}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:8000,https://${WEB_DOMAIN:-smarket.n8nvinicius.cloud}}
       UPLOAD_DIR: ${UPLOAD_DIR:-uploads}
       DEBUG: ${DEBUG:-false}
       APP_NAME: ${APP_NAME:-SMarket API}
@@ -80,9 +80,9 @@ services:
       - smarket-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.smarket-compose-api.rule=Host(`smarket-api-yinqlr-886c26-168-231-96-253.traefik.me`) || Host(`smarket-api-yinqlr-b71ecf-168-231-96-253.traefik.me`)"
-      - "traefik.http.routers.smarket-compose-api.entrypoints=web"
-      # - "traefik.http.routers.smarket-compose-api.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.smarket-compose-api.rule=Host(`${API_DOMAIN:-smarket-api.n8nvinicius.cloud}`)"
+      - "traefik.http.routers.smarket-compose-api.entrypoints=websecure"
+      - "traefik.http.routers.smarket-compose-api.tls.certresolver=letsencrypt"
       - "traefik.http.services.smarket-compose-api.loadbalancer.server.port=8000"
     restart: unless-stopped
   # Next.js Frontend
@@ -91,11 +91,11 @@ services:
       context: ./apps/web
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://${API_DOMAIN:-smarket-api.n8nvinicius.cloud}}
         PORT: 3000
     container_name: smarket-web
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://smarket-api-yinqlr-886c26-168-231-96-253.traefik.me}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://${API_DOMAIN:-smarket-api.n8nvinicius.cloud}}
       NODE_ENV: ${NODE_ENV:-production}
       PORT: 3000
     ports:
@@ -106,9 +106,9 @@ services:
       - smarket-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.smarket-compose-web.rule=Host(`smarket-app-yinqlr-886c26-168-231-96-253.traefik.me`) || Host(`smarket-app-yinqlr-b71ecf-168-231-96-253.traefik.me`)"
-      - "traefik.http.routers.smarket-compose-web.entrypoints=web"
-      # - "traefik.http.routers.smarket-compose-web.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.smarket-compose-web.rule=Host(`${WEB_DOMAIN:-smarket.n8nvinicius.cloud}`)"
+      - "traefik.http.routers.smarket-compose-web.entrypoints=websecure"
+      - "traefik.http.routers.smarket-compose-web.tls.certresolver=letsencrypt"
       - "traefik.http.services.smarket-compose-web.loadbalancer.server.port=3000"
     restart: unless-stopped
 
