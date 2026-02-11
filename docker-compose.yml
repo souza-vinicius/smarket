@@ -67,8 +67,8 @@ services:
       UPLOAD_DIR: ${UPLOAD_DIR:-uploads}
       DEBUG: ${DEBUG:-false}
       APP_NAME: ${APP_NAME:-SMarket API}
-    # ports:
-    #   - "${API_PORT:-8000}:8000"
+    ports:
+      - "${API_PORT:-8005}:8000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -100,8 +100,8 @@ services:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://smarket-api-yinqlr-886c26-168-231-96-253.traefik.me}
       NODE_ENV: ${NODE_ENV:-production}
       PORT: ${WEB_PORT:-3000}
-    # ports:
-    #   - "${WEB_PORT:-3000}:${WEB_PORT:-3000}"
+    ports:
+      - "${WEB_PORT:-3005}:3000"
     depends_on:
       - api
     networks:
