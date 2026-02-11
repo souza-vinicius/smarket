@@ -79,39 +79,23 @@ async def get_subscription(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get user's subscription (auto-creates free tier if missing)."""
+    """Get user's subscription (for read-only endpoints)."""
     from src.config import settings
 
     if not settings.subscription_enabled:
         return None  # Feature disabled - everything allowed
 
-    from datetime import datetime, timedelta
-
     from sqlalchemy import select
 
-    from src.models.subscription import Subscription, SubscriptionPlan
+    from src.models.subscription import Subscription
 
     result = await db.execute(
         select(Subscription).where(Subscription.user_id == current_user.id)
     )
     sub = result.scalar_one_or_none()
 
-    if not sub:
-        # Auto-create a free subscription with expired trial
-        # Use naive UTC datetimes (DB columns are TIMESTAMP WITHOUT TIME ZONE)
-        now = datetime.utcnow()
-        sub = Subscription(
-            user_id=current_user.id,
-            plan=SubscriptionPlan.FREE.value,
-            status="expired",
-            trial_start=now - timedelta(days=31),
-            trial_end=now - timedelta(days=1),
-            created_at=now,
-            updated_at=now,
-        )
-        db.add(sub)
-        await db.flush()
-
+    # Return whatever we have (can be None, trial, active, expired, etc.)
+    # Endpoint handlers decide what to do
     return sub
 
 
@@ -204,13 +188,10 @@ async def _get_active_subscription(user_id: uuid.UUID, db: AsyncSession):
     Free-tier users (expired trial) are allowed through so that
     the caller can enforce per-plan limits (1 invoice/month, 2 analyses/month).
     Only paid plans that become inactive are blocked with 402.
-    If no subscription record exists, a free-tier one is auto-created.
     """
-    from datetime import datetime, timedelta
-
     from sqlalchemy import select
 
-    from src.models.subscription import Subscription, SubscriptionPlan
+    from src.models.subscription import Subscription
 
     result = await db.execute(
         select(Subscription).where(Subscription.user_id == user_id)
@@ -218,25 +199,15 @@ async def _get_active_subscription(user_id: uuid.UUID, db: AsyncSession):
     sub = result.scalar_one_or_none()
 
     if not sub:
-        # Auto-create a free subscription with expired trial
-        # Use naive UTC datetimes (DB columns are TIMESTAMP WITHOUT TIME ZONE)
-        now = datetime.utcnow()
-        sub = Subscription(
-            user_id=user_id,
-            plan=SubscriptionPlan.FREE.value,
-            status="expired",
-            trial_start=now - timedelta(days=31),
-            trial_end=now - timedelta(days=1),
-            created_at=now,
-            updated_at=now,
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail="Nenhuma assinatura encontrada. Contate o suporte.",
+            headers={"X-Subscription-Error": "no_subscription"},
         )
-        db.add(sub)
-        await db.flush()
-        return sub
 
     if not sub.is_active:
         # Free plan with expired trial: allow through (limits enforced by caller)
-        if sub.plan == SubscriptionPlan.FREE.value:
+        if sub.plan == "free":
             return sub
 
         # Paid plans that became inactive: block with 402

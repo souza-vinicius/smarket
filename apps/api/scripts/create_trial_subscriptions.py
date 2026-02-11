@@ -10,7 +10,7 @@ Usage:
 
 import asyncio
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from pathlib import Path
 
 # Add src to path
@@ -44,7 +44,7 @@ async def create_trial_subscriptions():
         created_count = 0
         for user in users:
             if user.id not in existing_subs:
-                trial_start = datetime.now(timezone.utc)
+                trial_start = datetime.utcnow()
                 trial_end = trial_start + timedelta(days=settings.TRIAL_DURATION_DAYS)
 
                 subscription = Subscription(
