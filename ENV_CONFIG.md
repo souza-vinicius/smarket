@@ -25,6 +25,20 @@ Este documento explica como configurar o SMarket usando variáveis de ambiente, 
 | `DEBUG` | `false` | Ativa modo debug |
 | `APP_NAME` | `SMarket API` | Nome da aplicação |
 
+### Portas
+
+| Variável | Padrão | Descrição |
+|----------|--------|-----------|
+| `API_PORT` | `8000` | Porta do FastAPI backend |
+| `WEB_PORT` | `3000` | Porta do Next.js frontend |
+
+**Usar portas customizadas:**
+```bash
+# .env
+API_PORT=8080
+WEB_PORT=3001
+```
+
 ### Banco de Dados
 
 | Variável | Padrão | Descrição |
@@ -97,6 +111,12 @@ openssl rand -hex 32
 |----------|--------|-----------|
 | `ALLOWED_ORIGINS` | `http://localhost:3000,http://localhost:8000` | Origins permitidas (separadas por vírgula) |
 
+**Ajustar se usar portas customizadas:**
+```bash
+# Para WEB_PORT=3001 e API_PORT=8080
+ALLOWED_ORIGINS=http://localhost:3001,http://localhost:8080
+```
+
 ### Frontend (Next.js)
 
 | Variável | Padrão | Descrição |
@@ -130,6 +150,18 @@ ANTHROPIC_MODEL=claude-3-5-sonnet-20241022
 SECRET_KEY=<secure-key-here>
 ALLOWED_ORIGINS=https://seudominio.com.br
 NEXT_PUBLIC_API_URL=https://api.seudominio.com.br
+```
+
+### Resolver Conflito de Portas (Dokploy/Produção)
+
+```bash
+# .env
+# Se as portas padrão (3000, 8000) estão ocupadas
+API_PORT=8001
+WEB_PORT=3001
+
+# Atualizar CORS correspondentemente
+ALLOWED_ORIGINS=http://localhost:3001,http://localhost:8001
 ```
 
 ### Usar múltiplos provedores de IA (Fallback)
