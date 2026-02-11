@@ -58,6 +58,7 @@ def _cors_headers(request: Request) -> dict[str, str]:
             "access-control-allow-credentials": "true",
             "access-control-allow-methods": "*",
             "access-control-allow-headers": "*",
+            "access-control-expose-headers": "X-Request-ID, X-Subscription-Error, X-Limit-Type, X-Current-Plan",
         }
     return {}
 
@@ -91,6 +92,12 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=[
+        "X-Request-ID",
+        "X-Subscription-Error",
+        "X-Limit-Type",
+        "X-Current-Plan",
+    ],
 )
 
 

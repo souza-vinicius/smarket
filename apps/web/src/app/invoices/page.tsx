@@ -60,12 +60,21 @@ function UploadModal({
   };
 
   const handleSubscriptionError = (error: any) => {
+    // Debug: log error structure
+    console.log("Upload error caught:", {
+      error,
+      status: error?.response?.status,
+      headers: error?.response?.headers,
+      data: error?.response?.data,
+    });
+
     const status = error?.response?.status;
     if (status === 402 || status === 429) {
       const headers = error?.response?.headers;
       const limitType = (headers?.["x-limit-type"] as "invoice" | "analysis") || "invoice";
       const currentPlan = (headers?.["x-current-plan"] as string) || "free";
 
+      console.log("Setting subscription error:", { limitType, currentPlan });
       onSubscriptionError({ limitType, currentPlan });
       onClose();
     }
