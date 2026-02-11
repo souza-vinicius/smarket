@@ -44,13 +44,16 @@ async def get_subscription_and_usage(
 
     if not subscription:
         # Auto-create a free subscription with expired trial
-        now_utc = datetime.now(timezone.utc)
+        # Use naive UTC datetimes (DB columns are TIMESTAMP WITHOUT TIME ZONE)
+        now_naive = datetime.utcnow()
         subscription = Subscription(
             user_id=current_user.id,
             plan=SubscriptionPlan.FREE.value,
             status="expired",
-            trial_start=now_utc - timedelta(days=31),
-            trial_end=now_utc - timedelta(days=1),
+            trial_start=now_naive - timedelta(days=31),
+            trial_end=now_naive - timedelta(days=1),
+            created_at=now_naive,
+            updated_at=now_naive,
         )
         db.add(subscription)
         await db.flush()
@@ -100,13 +103,16 @@ async def create_checkout_session(
 
     if not subscription:
         # Auto-create a free subscription with expired trial
-        now_utc = datetime.now(timezone.utc)
+        # Use naive UTC datetimes (DB columns are TIMESTAMP WITHOUT TIME ZONE)
+        now_naive = datetime.utcnow()
         subscription = Subscription(
             user_id=current_user.id,
             plan=SubscriptionPlan.FREE.value,
             status="expired",
-            trial_start=now_utc - timedelta(days=31),
-            trial_end=now_utc - timedelta(days=1),
+            trial_start=now_naive - timedelta(days=31),
+            trial_end=now_naive - timedelta(days=1),
+            created_at=now_naive,
+            updated_at=now_naive,
         )
         db.add(subscription)
         await db.flush()

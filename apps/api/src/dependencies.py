@@ -85,7 +85,7 @@ async def get_subscription(
     if not settings.subscription_enabled:
         return None  # Feature disabled - everything allowed
 
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
 
     from sqlalchemy import select
 
@@ -98,13 +98,16 @@ async def get_subscription(
 
     if not sub:
         # Auto-create a free subscription with expired trial
-        now = datetime.now(timezone.utc)
+        # Use naive UTC datetimes (DB columns are TIMESTAMP WITHOUT TIME ZONE)
+        now = datetime.utcnow()
         sub = Subscription(
             user_id=current_user.id,
             plan=SubscriptionPlan.FREE.value,
             status="expired",
             trial_start=now - timedelta(days=31),
             trial_end=now - timedelta(days=1),
+            created_at=now,
+            updated_at=now,
         )
         db.add(sub)
         await db.flush()
@@ -203,7 +206,7 @@ async def _get_active_subscription(user_id: uuid.UUID, db: AsyncSession):
     Only paid plans that become inactive are blocked with 402.
     If no subscription record exists, a free-tier one is auto-created.
     """
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
 
     from sqlalchemy import select
 
@@ -216,13 +219,16 @@ async def _get_active_subscription(user_id: uuid.UUID, db: AsyncSession):
 
     if not sub:
         # Auto-create a free subscription with expired trial
-        now = datetime.now(timezone.utc)
+        # Use naive UTC datetimes (DB columns are TIMESTAMP WITHOUT TIME ZONE)
+        now = datetime.utcnow()
         sub = Subscription(
             user_id=user_id,
             plan=SubscriptionPlan.FREE.value,
             status="expired",
             trial_start=now - timedelta(days=31),
             trial_end=now - timedelta(days=1),
+            created_at=now,
+            updated_at=now,
         )
         db.add(sub)
         await db.flush()

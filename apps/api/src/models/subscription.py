@@ -116,7 +116,7 @@ class Subscription(Base):
     @property
     def is_active(self) -> bool:
         """Check if subscription is currently active."""
-        now = datetime.now(timezone.utc)
+        now = datetime.utcnow()
         if self.status == SubscriptionStatus.TRIAL.value:
             return now < self.trial_end
         if self.status == SubscriptionStatus.ACTIVE.value:
