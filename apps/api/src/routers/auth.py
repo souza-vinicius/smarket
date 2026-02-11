@@ -25,10 +25,12 @@ router = APIRouter()
 )
 async def register(request: RegisterRequest, db: AsyncSession = Depends(get_db)):
     """Register a new user."""
+    import logging
     from datetime import datetime, timedelta, timezone
 
     from src.config import settings
-    from src.models.subscription import Subscription, SubscriptionPlan, SubscriptionStatus
+
+    logger = logging.getLogger(__name__)
 
     # Check if user already exists
     result = await db.execute(select(User).where(User.email == request.email))
@@ -46,20 +48,30 @@ async def register(request: RegisterRequest, db: AsyncSession = Depends(get_db))
     )
 
     db.add(user)
-    await db.flush()  # Flush to get user.id
 
-    # Auto-create trial subscription (30 days)
-    trial_start = datetime.now(timezone.utc)
-    trial_end = trial_start + timedelta(days=settings.TRIAL_DURATION_DAYS)
+    # Auto-create trial subscription (best-effort — don't fail registration)
+    try:
+        from src.models.subscription import (
+            Subscription,
+            SubscriptionPlan,
+            SubscriptionStatus,
+        )
 
-    subscription = Subscription(
-        user_id=user.id,
-        plan=SubscriptionPlan.FREE.value,
-        status=SubscriptionStatus.TRIAL.value,
-        trial_start=trial_start,
-        trial_end=trial_end,
-    )
-    db.add(subscription)
+        await db.flush()  # Flush to get user.id
+
+        trial_start = datetime.now(timezone.utc)
+        trial_end = trial_start + timedelta(days=settings.TRIAL_DURATION_DAYS)
+
+        subscription = Subscription(
+            user_id=user.id,
+            plan=SubscriptionPlan.FREE.value,
+            status=SubscriptionStatus.TRIAL.value,
+            trial_start=trial_start,
+            trial_end=trial_end,
+        )
+        db.add(subscription)
+    except Exception as e:
+        logger.warning("Failed to create trial subscription: %s", e, exc_info=True)
 
     await db.commit()
     await db.refresh(user)

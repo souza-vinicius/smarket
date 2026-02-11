@@ -1,9 +1,11 @@
 import logging
 import sys
+import traceback
 import uuid
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from src.config import settings
 from src.exceptions import SMarketException, handle_exception
@@ -28,6 +30,8 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[logging.StreamHandler(sys.stdout)],
 )
+
+logger = logging.getLogger(__name__)
 
 # Set specific loggers to DEBUG for detailed tracking
 logging.getLogger("src.services.multi_provider_extractor").setLevel(logging.DEBUG)
@@ -54,7 +58,14 @@ app.add_middleware(
 async def add_request_id(request: Request, call_next):
     request_id = str(uuid.uuid4())
     request.state.request_id = request_id
-    response = await call_next(request)
+    try:
+        response = await call_next(request)
+    except Exception:
+        logger.error("Unhandled error in middleware: %s", traceback.format_exc())
+        response = JSONResponse(
+            status_code=500,
+            content={"detail": "Internal server error"},
+        )
     response.headers["X-Request-ID"] = request_id
     return response
 
@@ -126,4 +137,18 @@ async def root():
 @app.exception_handler(SMarketException)
 async def smarket_exception_handler(request: Request, exc: SMarketException):
     """Handle SMarket custom exceptions."""
-    return handle_exception(exc)
+    http_exc = handle_exception(exc)
+    return JSONResponse(
+        status_code=http_exc.status_code,
+        content={"detail": http_exc.detail},
+    )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Catch-all handler so CORS headers are always present on errors."""
+    logger.error("Unhandled exception: %s", traceback.format_exc())
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"},
+    )
