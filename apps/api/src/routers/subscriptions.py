@@ -1,6 +1,6 @@
 """Subscription management endpoints."""
 
-from datetime import datetime, timezone
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
@@ -59,7 +59,7 @@ async def get_subscription_and_usage(
         await db.flush()
 
     # Get current month usage
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
     usage_result = await db.execute(
         select(UsageRecord).where(
             UsageRecord.user_id == current_user.id,
@@ -181,7 +181,7 @@ async def cancel_subscription(
 
     await StripeService.cancel_subscription(subscription.stripe_subscription_id)
 
-    subscription.cancelled_at = datetime.now(timezone.utc)
+    subscription.cancelled_at = datetime.utcnow()
     await db.commit()
 
     return {"message": "Assinatura cancelada. Acesso mantido até o fim do período."}

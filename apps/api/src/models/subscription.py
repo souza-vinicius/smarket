@@ -71,7 +71,7 @@ class Subscription(Base):
 
     # Trial dates
     trial_start: Mapped[datetime] = mapped_column(
-        default=lambda: datetime.now(timezone.utc), nullable=False
+        default=lambda: datetime.utcnow(), nullable=False
     )
     trial_end: Mapped[datetime] = mapped_column(nullable=False)  # trial_start + 30d
 
@@ -98,11 +98,11 @@ class Subscription(Base):
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(
-        default=lambda: datetime.now(timezone.utc), nullable=False
+        default=lambda: datetime.utcnow(), nullable=False
     )
     updated_at: Mapped[datetime] = mapped_column(
-        default=lambda: datetime.now(timezone.utc),
-        onupdate=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.utcnow(),
+        onupdate=lambda: datetime.utcnow(),
         nullable=False,
     )
 

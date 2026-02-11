@@ -1,7 +1,7 @@
 """Subscription business logic and webhook handling."""
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import select
@@ -111,7 +111,7 @@ class SubscriptionService:
             status="succeeded",
             provider="stripe",
             provider_payment_id=stripe_payment_id,
-            paid_at=datetime.now(timezone.utc),
+            paid_at=datetime.utcnow(),
         )
         db.add(payment)
         await db.commit()
@@ -267,7 +267,7 @@ class SubscriptionService:
             return
 
         subscription.status = SubscriptionStatus.CANCELLED.value
-        subscription.cancelled_at = datetime.now(timezone.utc)
+        subscription.cancelled_at = datetime.utcnow()
 
         await db.commit()
         logger.info(

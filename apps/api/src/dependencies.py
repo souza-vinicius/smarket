@@ -120,7 +120,7 @@ async def check_invoice_limit(
     db: AsyncSession = Depends(get_db),
 ) -> User:
     """Check if user can create more invoices this month."""
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     from sqlalchemy import select
 
@@ -138,7 +138,7 @@ async def check_invoice_limit(
     if limit is None:
         return current_user  # unlimited (Premium or Trial)
 
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
     usage = await _get_or_create_usage(current_user.id, now.year, now.month, db)
 
     if usage.invoices_count >= limit:
@@ -160,7 +160,7 @@ async def check_analysis_limit(
     db: AsyncSession = Depends(get_db),
 ) -> User:
     """Check if user can request more AI analyses this month."""
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     from sqlalchemy import select
 
@@ -178,7 +178,7 @@ async def check_analysis_limit(
     if limit is None:
         return current_user  # unlimited (Premium or Trial)
 
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
     usage = await _get_or_create_usage(current_user.id, now.year, now.month, db)
 
     if usage.ai_analyses_count >= limit:

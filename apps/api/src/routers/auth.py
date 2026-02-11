@@ -26,7 +26,7 @@ router = APIRouter()
 async def register(request: RegisterRequest, db: AsyncSession = Depends(get_db)):
     """Register a new user."""
     import logging
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
 
     from src.config import settings
 
@@ -60,7 +60,7 @@ async def register(request: RegisterRequest, db: AsyncSession = Depends(get_db))
 
         await db.flush()  # Flush to get user.id
 
-        trial_start = datetime.now(timezone.utc)
+        trial_start = datetime.utcnow()
         trial_end = trial_start + timedelta(days=settings.TRIAL_DURATION_DAYS)
 
         subscription = Subscription(
