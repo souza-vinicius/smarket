@@ -44,6 +44,7 @@ RUN pip install --no-cache-dir /tmp/wheels/* && rm -rf /tmp/wheels
 COPY src/ ./src/
 COPY alembic/ ./alembic/
 COPY alembic.ini .
+COPY scripts/ ./scripts/
 
 # Create uploads directory and set ownership
 RUN mkdir -p /app/uploads && chown -R appuser:appuser /app
