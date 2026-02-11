@@ -294,7 +294,7 @@ const Drawer: React.FC<DrawerProps> = ({
           "absolute bg-card shadow-2xl transition-transform duration-300 ease-out",
           positions[position],
           sizes[size],
-          position === "bottom" ? "rounded-t-2xl" : "",
+          position === "bottom" ? "rounded-t-2xl pb-safe" : "",
           animations[position]
         )}
       >

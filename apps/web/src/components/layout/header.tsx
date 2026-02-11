@@ -54,7 +54,7 @@ export function Header({
     <>
       <header
         className={cn(
-          "sticky top-0 z-30",
+          "sticky top-0 z-30 pt-safe",
           "bg-background/95 backdrop-blur-lg",
           "border-b border-border"
         )}

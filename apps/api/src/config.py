@@ -45,7 +45,7 @@ class Settings(BaseSettings):
     SEFAZ_API_URL: str = "https://www.nfce.fazenda.sp.gov.br/NFCeConsultaPublica"
 
     # CORS
-    ALLOWED_ORIGINS: str = "http://localhost:3000"
+    ALLOWED_ORIGINS: str = "http://localhost:3000,capacitor://localhost,https://localhost"
 
     # Uploads
     UPLOAD_DIR: str = "uploads"

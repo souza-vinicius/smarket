@@ -7,6 +7,7 @@ import { Upload, QrCode, X, FileText, ImagePlus, Trash2, Camera, Loader2 } from 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FEATURE_FLAGS } from "@/lib/feature-flags";
+import { isNative } from "@/lib/capacitor";
 import { cn } from "@/lib/utils";
 
 interface UploadModalProps {
@@ -143,6 +144,37 @@ export function UploadModal({
     }
   };
 
+  const handleTakePhoto = async () => {
+    try {
+      const { requestCameraPermission } = await import("@/lib/camera-permissions");
+      const hasPermission = await requestCameraPermission();
+
+      if (!hasPermission) {
+        alert("Permissão de câmera necessária para tirar fotos de notas fiscais. Habilite nas configurações do app.");
+        return;
+      }
+
+      const { Camera: CapCamera, CameraResultType, CameraSource } = await import("@capacitor/camera");
+      const photo = await CapCamera.getPhoto({
+        resultType: CameraResultType.DataUrl,
+        source: CameraSource.Camera,
+        quality: 90,
+        width: 1536,
+      });
+
+      if (photo.dataUrl) {
+        const response = await fetch(photo.dataUrl);
+        const blob = await response.blob();
+        const file = new File([blob], `photo-${Date.now()}.jpg`, { type: "image/jpeg" });
+        addImages([file]);
+      }
+    } catch (err) {
+      if ((err as Error).message !== "User cancelled photos app") {
+        console.error("Camera error:", err);
+      }
+    }
+  };
+
   const handleSubmitImages = () => {
     if (selectedImages.length > 0) {
       onUploadImages(selectedImages);
@@ -264,25 +296,38 @@ export function UploadModal({
                   <p className="mt-1 text-xs text-muted-foreground">
                     JPG, PNG ou WebP — até {MAX_IMAGES} imagens
                   </p>
-                  <label className="mt-3 inline-block">
-                    <input
-                      ref={imageInputRef}
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif"
-                      multiple
-                      onChange={handleImageFileChange}
-                      className="hidden"
-                    />
-                    <Button
-                      variant="outline"
-                      type="button"
-                      size="sm"
-                      className="pointer-events-none"
-                    >
-                      <Upload className="mr-2 size-4" />
-                      Selecionar fotos
-                    </Button>
-                  </label>
+                  <div className="mt-3 flex items-center justify-center gap-2">
+                    {isNative() && (
+                      <Button
+                        variant="default"
+                        type="button"
+                        size="sm"
+                        onClick={() => void handleTakePhoto()}
+                      >
+                        <Camera className="mr-2 size-4" />
+                        Tirar Foto
+                      </Button>
+                    )}
+                    <label className="inline-block">
+                      <input
+                        ref={imageInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif"
+                        multiple
+                        onChange={handleImageFileChange}
+                        className="hidden"
+                      />
+                      <Button
+                        variant="outline"
+                        type="button"
+                        size="sm"
+                        className="pointer-events-none"
+                      >
+                        <Upload className="mr-2 size-4" />
+                        Selecionar fotos
+                      </Button>
+                    </label>
+                  </div>
                 </>
               )}
             </div>
