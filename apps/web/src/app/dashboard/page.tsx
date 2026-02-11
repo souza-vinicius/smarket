@@ -16,7 +16,6 @@ import { Button } from "@/components/ui/button";
 import { Card, StatCard } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton, SkeletonCard } from "@/components/ui/skeleton";
-import { Modal } from "@/components/ui/modal";
 import { useDashboardSummary, useRecentInsights } from "@/hooks/use-dashboard";
 import { useMarkInsightAsRead } from "@/hooks/use-insights";
 import {
@@ -26,202 +25,8 @@ import {
   useInvoices,
 } from "@/hooks/use-invoices";
 import { InvoiceCard } from "@/components/invoices/invoice-card";
+import { UploadModal } from "@/components/invoices/upload-modal";
 import { formatCurrency } from "@/lib/utils";
-
-// Upload Modal Component
-function UploadModal({
-  isOpen,
-  onClose,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-}) {
-  const [activeTab, setActiveTab] = useState<"photo" | "xml" | "qrcode">("photo");
-  const [qrCode, setQrCode] = useState("");
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-
-  const router = useRouter();
-  const uploadXMLMutation = useUploadXML();
-  const uploadPhotosMutation = useUploadPhotos();
-  const processQRCodeMutation = useProcessQRCode();
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setSelectedFiles(Array.from(e.target.files));
-    }
-  };
-
-  const handleSubmit = () => {
-    if (activeTab === "photo" && selectedFiles.length > 0) {
-      uploadPhotosMutation.mutate(selectedFiles, {
-        onSuccess: (data) => {
-          onClose();
-          router.push(`/invoices/review/${data.processing_id}`);
-        },
-      });
-    } else if (activeTab === "xml") {
-      // Handle XML upload
-      const input = document.createElement("input");
-      input.type = "file";
-      input.accept = ".xml";
-      input.onchange = (e) => {
-        const file = (e.target as HTMLInputElement).files?.[0];
-        if (file) {
-          uploadXMLMutation.mutate(file, {
-            onSuccess: () => {
-              onClose();
-              router.push("/invoices");
-            },
-          });
-        }
-      };
-      input.click();
-    } else if (activeTab === "qrcode" && qrCode) {
-      processQRCodeMutation.mutate(
-        { qrcode_url: qrCode },
-        {
-          onSuccess: () => {
-            onClose();
-            router.push("/invoices");
-          },
-        }
-      );
-    }
-  };
-
-  const isUploading =
-    uploadXMLMutation.isPending ||
-    uploadPhotosMutation.isPending ||
-    processQRCodeMutation.isPending;
-
-  return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Adicionar Nota Fiscal"
-      size="md"
-      footer={
-        <>
-          <Button variant="outline" onClick={onClose}>
-            Cancelar
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            isLoading={isUploading}
-            disabled={
-              (activeTab === "photo" && selectedFiles.length === 0) ||
-              (activeTab === "qrcode" && !qrCode)
-            }
-          >
-            Enviar
-          </Button>
-        </>
-      }
-    >
-      <div className="space-y-4">
-        {/* Tabs */}
-        <div className="flex gap-2 p-1 bg-muted rounded-lg">
-          {[
-            { id: "photo", label: "Foto", icon: "📷" },
-            { id: "xml", label: "XML", icon: "📄" },
-            { id: "qrcode", label: "QR Code", icon: "📱" },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as typeof activeTab)}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-md text-sm font-medium transition-all ${activeTab === tab.id
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-                }`}
-            >
-              <span>{tab.icon}</span>
-              <span className="hidden sm:inline">{tab.label}</span>
-            </button>
-          ))}
-        </div>
-
-        {/* Content */}
-        {activeTab === "photo" && (
-          <div className="space-y-4">
-            <div className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary/50 transition-colors">
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleFileSelect}
-                className="hidden"
-                id="photo-upload"
-              />
-              <label
-                htmlFor="photo-upload"
-                className="cursor-pointer flex flex-col items-center gap-3"
-              >
-                <div className="w-16 h-16 rounded-full bg-primary-subtle flex items-center justify-center">
-                  <Receipt className="w-8 h-8 text-primary" />
-                </div>
-                <div>
-                  <p className="font-medium text-foreground">
-                    Clique para selecionar fotos
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    ou arraste e solte aqui
-                  </p>
-                </div>
-              </label>
-            </div>
-            {selectedFiles.length > 0 && (
-              <p className="text-sm text-muted-foreground text-center">
-                {selectedFiles.length} arquivo(s) selecionado(s)
-              </p>
-            )}
-          </div>
-        )}
-
-        {activeTab === "xml" && (
-          <div className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary/50 transition-colors">
-            <input
-              type="file"
-              accept=".xml"
-              onChange={handleFileSelect}
-              className="hidden"
-              id="xml-upload"
-            />
-            <label
-              htmlFor="xml-upload"
-              className="cursor-pointer flex flex-col items-center gap-3"
-            >
-              <div className="w-16 h-16 rounded-full bg-primary-subtle flex items-center justify-center">
-                <FileText className="w-8 h-8 text-primary" />
-              </div>
-              <div>
-                <p className="font-medium text-foreground">
-                  Selecionar arquivo XML
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Arquivos da nota fiscal eletrônica
-                </p>
-              </div>
-            </label>
-          </div>
-        )}
-
-        {activeTab === "qrcode" && (
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Cole a URL do QR Code da nota fiscal:
-            </p>
-            <textarea
-              value={qrCode}
-              onChange={(e) => setQrCode(e.target.value)}
-              placeholder="https://www.sefaz..."
-              className="w-full h-32 p-4 rounded-lg border border-border bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-            />
-          </div>
-        )}
-      </div>
-    </Modal>
-  );
-}
 
 // Insight Card Component
 function InsightCard({
@@ -295,6 +100,48 @@ export default function DashboardPage() {
   const { data: insights, isLoading: isInsightsLoading } = useRecentInsights(3);
   const { data: recentInvoices, isLoading: isInvoicesLoading } = useInvoices(0, 3);
   const markAsReadMutation = useMarkInsightAsRead();
+
+  // Upload hooks
+  const uploadXMLMutation = useUploadXML();
+  const uploadPhotosMutation = useUploadPhotos();
+  const processQRCodeMutation = useProcessQRCode();
+
+  const handleUploadXML = (file: File) => {
+    uploadXMLMutation.mutate(file, {
+      onSuccess: () => {
+        setIsUploadModalOpen(false);
+        router.push("/invoices");
+      },
+    });
+  };
+
+  const handleUploadImages = (files: File[]) => {
+    uploadPhotosMutation.mutate(files, {
+      onSuccess: (data) => {
+        setIsUploadModalOpen(false);
+        if (data.processing_id) {
+          router.push(`/invoices/review/${data.processing_id}`);
+        }
+      },
+    });
+  };
+
+  const handleProcessQRCode = (url: string) => {
+    processQRCodeMutation.mutate(
+      { qrcode_url: url },
+      {
+        onSuccess: () => {
+          setIsUploadModalOpen(false);
+          router.push("/invoices");
+        },
+      }
+    );
+  };
+
+  const isUploading =
+    uploadXMLMutation.isPending ||
+    uploadPhotosMutation.isPending ||
+    processQRCodeMutation.isPending;
 
   return (
     <PageLayout
@@ -481,10 +328,14 @@ export default function DashboardPage() {
         )}
       </section>
 
-      {/* Upload Modal */}
+      {/* Shared Upload Modal */}
       <UploadModal
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
+        onUploadXML={handleUploadXML}
+        onUploadImages={handleUploadImages}
+        onProcessQRCode={handleProcessQRCode}
+        isUploading={isUploading}
       />
     </PageLayout>
   );
