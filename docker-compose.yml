@@ -63,7 +63,7 @@ services:
       OPENROUTER_MODEL_FULL: ${OPENROUTER_MODEL_FULL:-google/gemini-2.0-flash-thinking-exp-01-21}
       OPENROUTER_BASE_URL: ${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
       SEFAZ_API_URL: ${SEFAZ_API_URL:-https://www.nfce.fazenda.sp.gov.br/NFCeConsultaPublica}
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:8000,https://smarket-app-yinqlr-886c26-168-231-96-253.traefik.me}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:8000,http://smarket-app-yinqlr-886c26-168-231-96-253.traefik.me}
       UPLOAD_DIR: ${UPLOAD_DIR:-uploads}
       DEBUG: ${DEBUG:-false}
       APP_NAME: ${APP_NAME:-SMarket API}
@@ -83,8 +83,8 @@ services:
       - "traefik.enable=true"
       - "traefik.docker.network=dokploy-network"
       - "traefik.http.routers.smarket-compose-api.rule=Host(`smarket-api-yinqlr-886c26-168-231-96-253.traefik.me`)"
-      - "traefik.http.routers.smarket-compose-api.entrypoints=web,websecure"
-      - "traefik.http.routers.smarket-compose-api.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.smarket-compose-api.entrypoints=web"
+      # - "traefik.http.routers.smarket-compose-api.tls.certresolver=letsencrypt"
       - "traefik.http.services.smarket-compose-api.loadbalancer.server.port=8000"
     restart: unless-stopped
   # Next.js Frontend
@@ -97,7 +97,7 @@ services:
         PORT: ${WEB_PORT:-3000}
     container_name: smarket-web
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://smarket-api-yinqlr-886c26-168-231-96-253.traefik.me}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://smarket-api-yinqlr-886c26-168-231-96-253.traefik.me}
       NODE_ENV: ${NODE_ENV:-production}
       PORT: ${WEB_PORT:-3000}
     # ports:
@@ -111,8 +111,8 @@ services:
       - "traefik.enable=true"
       - "traefik.docker.network=dokploy-network"
       - "traefik.http.routers.smarket-compose-web.rule=Host(`smarket-app-yinqlr-886c26-168-231-96-253.traefik.me`)"
-      - "traefik.http.routers.smarket-compose-web.entrypoints=web,websecure"
-      - "traefik.http.routers.smarket-compose-web.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.smarket-compose-web.entrypoints=web"
+      # - "traefik.http.routers.smarket-compose-web.tls.certresolver=letsencrypt"
       - "traefik.http.services.smarket-compose-web.loadbalancer.server.port=3000"
     restart: unless-stopped
 
