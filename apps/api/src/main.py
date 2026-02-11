@@ -34,8 +34,13 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Set specific loggers to DEBUG for detailed tracking
-logging.getLogger("src.services.multi_provider_extractor").setLevel(logging.DEBUG)
+logging.getLogger("src.services.multi_provider_extractor").setLevel(
+    logging.DEBUG
+)
 logging.getLogger("src.tasks.process_invoice_photos").setLevel(logging.DEBUG)
+
+# Log CORS origins at startup so we can verify on the server
+logger.info("CORS allowed origins: %s", settings.allowed_origins_list)
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -43,17 +48,22 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.allowed_origins_list,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+
+def _cors_headers(request: Request) -> dict[str, str]:
+    """Build CORS headers for a given request origin (fallback for errors)."""
+    origin = request.headers.get("origin", "")
+    if origin in settings.allowed_origins_list:
+        return {
+            "access-control-allow-origin": origin,
+            "access-control-allow-credentials": "true",
+            "access-control-allow-methods": "*",
+            "access-control-allow-headers": "*",
+        }
+    return {}
 
 
-# Request ID middleware for tracing
+# Request ID middleware for tracing — runs BEFORE CORSMiddleware,
+# so we must add CORS headers ourselves when catching errors here.
 @app.middleware("http")
 async def add_request_id(request: Request, call_next):
     request_id = str(uuid.uuid4())
@@ -61,13 +71,27 @@ async def add_request_id(request: Request, call_next):
     try:
         response = await call_next(request)
     except Exception:
-        logger.error("Unhandled error in middleware: %s", traceback.format_exc())
+        logger.error(
+            "Unhandled error in middleware: %s", traceback.format_exc()
+        )
         response = JSONResponse(
             status_code=500,
             content={"detail": "Internal server error"},
+            headers=_cors_headers(request),
         )
     response.headers["X-Request-ID"] = request_id
     return response
+
+
+# CORS — added after @app.middleware so it wraps the request-id middleware.
+# In Starlette's stack the first add_middleware call is the outermost layer.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.allowed_origins_list,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 # Routers

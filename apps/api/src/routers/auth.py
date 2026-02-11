@@ -50,6 +50,7 @@ async def register(request: RegisterRequest, db: AsyncSession = Depends(get_db))
     db.add(user)
 
     # Auto-create trial subscription (best-effort — don't fail registration)
+    subscription_created = False
     try:
         from src.models.subscription import (
             Subscription,
@@ -70,10 +71,23 @@ async def register(request: RegisterRequest, db: AsyncSession = Depends(get_db))
             trial_end=trial_end,
         )
         db.add(subscription)
+        subscription_created = True
     except Exception as e:
         logger.warning("Failed to create trial subscription: %s", e, exc_info=True)
 
-    await db.commit()
+    try:
+        await db.commit()
+    except Exception as e:
+        await db.rollback()
+        if subscription_created:
+            # Retry without subscription
+            logger.warning(
+                "Commit failed with subscription, retrying user-only: %s", e
+            )
+            db.add(user)
+            await db.commit()
+        else:
+            raise
     await db.refresh(user)
 
     return user
