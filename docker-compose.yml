@@ -63,7 +63,9 @@ services:
       OPENROUTER_MODEL_FULL: ${OPENROUTER_MODEL_FULL:-google/gemini-2.0-flash-thinking-exp-01-21}
       OPENROUTER_BASE_URL: ${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
       SEFAZ_API_URL: ${SEFAZ_API_URL:-https://www.nfce.fazenda.sp.gov.br/NFCeConsultaPublica}
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:8000,https://${WEB_DOMAIN:-smarket.n8nvinicius.cloud}}
+      # IMPORTANT: For production, set ALLOWED_ORIGINS in .env with your domains
+      # e.g. https://smarket.n8nvinicius.cloud,https://smarket-api.n8nvinicius.cloud
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:8000}
       UPLOAD_DIR: ${UPLOAD_DIR:-uploads}
       DEBUG: ${DEBUG:-false}
       APP_NAME: ${APP_NAME:-SMarket API}
@@ -75,7 +77,7 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      - ./apps/api:/app
+      - api_uploads:/app/uploads
     networks:
       - smarket-network
     labels:
@@ -91,11 +93,12 @@ services:
       context: ./apps/web
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://${API_DOMAIN:-smarket-api.n8nvinicius.cloud}}
+        # IMPORTANT: Set NEXT_PUBLIC_API_URL in .env for production deployments
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
         PORT: 3000
     container_name: smarket-web
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://${API_DOMAIN:-smarket-api.n8nvinicius.cloud}}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
       NODE_ENV: ${NODE_ENV:-production}
       PORT: 3000
     ports:
@@ -115,6 +118,7 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  api_uploads:
 
 
 networks:
