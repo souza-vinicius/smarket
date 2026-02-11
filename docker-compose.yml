@@ -63,7 +63,7 @@ services:
       OPENROUTER_MODEL_FULL: ${OPENROUTER_MODEL_FULL:-google/gemini-2.0-flash-thinking-exp-01-21}
       OPENROUTER_BASE_URL: ${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
       SEFAZ_API_URL: ${SEFAZ_API_URL:-https://www.nfce.fazenda.sp.gov.br/NFCeConsultaPublica}
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:8000,http://smarket-app-yinqlr-886c26-168-231-96-253.traefik.me}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:8000,http://smarket-app-yinqlr-886c26-168-231-96-253.traefik.me,http://smarket-app-yinqlr-b71ecf-168-231-96-253.traefik.me}
       UPLOAD_DIR: ${UPLOAD_DIR:-uploads}
       DEBUG: ${DEBUG:-false}
       APP_NAME: ${APP_NAME:-SMarket API}
@@ -82,7 +82,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=dokploy-network"
-      - "traefik.http.routers.smarket-compose-api.rule=Host(`smarket-api-yinqlr-886c26-168-231-96-253.traefik.me`)"
+      - "traefik.http.routers.smarket-compose-api.rule=Host(`smarket-api-yinqlr-886c26-168-231-96-253.traefik.me`) || Host(`smarket-api-yinqlr-b71ecf-168-231-96-253.traefik.me`)"
       - "traefik.http.routers.smarket-compose-api.entrypoints=web"
       # - "traefik.http.routers.smarket-compose-api.tls.certresolver=letsencrypt"
       - "traefik.http.services.smarket-compose-api.loadbalancer.server.port=8000"
@@ -110,7 +110,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=dokploy-network"
-      - "traefik.http.routers.smarket-compose-web.rule=Host(`smarket-app-yinqlr-886c26-168-231-96-253.traefik.me`)"
+      - "traefik.http.routers.smarket-compose-web.rule=Host(`smarket-app-yinqlr-886c26-168-231-96-253.traefik.me`) || Host(`smarket-app-yinqlr-b71ecf-168-231-96-253.traefik.me`)"
       - "traefik.http.routers.smarket-compose-web.entrypoints=web"
       # - "traefik.http.routers.smarket-compose-web.tls.certresolver=letsencrypt"
       - "traefik.http.services.smarket-compose-web.loadbalancer.server.port=3000"
