@@ -13,14 +13,18 @@ import {
   Bell,
   Shield,
   HelpCircle,
+  Crown,
+  Calendar,
 } from "lucide-react";
 import { PageLayout } from "@/components/layout/page-layout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal, ConfirmModal } from "@/components/ui/modal";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
 import { useSettings, useUpdateSettings } from "@/hooks/use-settings";
+import { useSubscription } from "@/hooks/use-subscription";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface SettingsSectionProps {
@@ -241,9 +245,13 @@ export default function SettingsPage() {
   const router = useRouter();
   const { logout, user } = useAuth();
   const { data: settings, isLoading } = useSettings();
+  const { data: subscriptionData, isLoading: isSubscriptionLoading } = useSubscription();
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isHouseholdModalOpen, setIsHouseholdModalOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+
+  const subscription = subscriptionData?.subscription;
+  const usage = subscriptionData?.usage;
 
   const handleLogout = () => {
     logout();
@@ -307,6 +315,82 @@ export default function SettingsPage() {
           label="Tema"
           value="Automático"
         />
+      </SettingsSection>
+
+      {/* Subscription Section */}
+      <SettingsSection title="Assinatura">
+        {isSubscriptionLoading ? (
+          <Skeleton className="h-32" />
+        ) : subscription ? (
+          <Card className="p-4">
+            {/* Header */}
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center">
+                  <Crown className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-semibold text-foreground">
+                      Plano {subscription.plan === "free" ? "Gratuito" : subscription.plan === "basic" ? "Básico" : "Premium"}
+                    </h3>
+                    <Badge variant={subscription.status === "trial" ? "warning" : subscription.status === "active" ? "success" : "default"}>
+                      {subscription.status === "trial" ? "Trial" : subscription.status === "active" ? "Ativo" : subscription.status}
+                    </Badge>
+                  </div>
+                  {subscription.status === "trial" && (
+                    <p className="text-sm text-muted-foreground flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      Trial até {new Date(subscription.trial_end).toLocaleDateString("pt-BR")}
+                    </p>
+                  )}
+                  {subscription.billing_cycle && (
+                    <p className="text-sm text-muted-foreground">
+                      Cobrança {subscription.billing_cycle === "monthly" ? "mensal" : "anual"}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Usage Stats */}
+            {usage && (
+              <div className="grid grid-cols-2 gap-3 mb-4 p-3 bg-muted rounded-lg">
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Notas Fiscais</p>
+                  <p className="text-sm font-semibold text-foreground">
+                    {usage.invoices_used} / {usage.invoices_limit === null ? "∞" : usage.invoices_limit}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Análises de IA</p>
+                  <p className="text-sm font-semibold text-foreground">
+                    {usage.ai_analyses_used} / {usage.ai_analyses_limit === null ? "∞" : usage.ai_analyses_limit}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Actions */}
+            <Button
+              fullWidth
+              variant="outline"
+              onClick={() => router.push("/settings/subscription")}
+              rightIcon={<ChevronRight className="w-4 h-4" />}
+            >
+              Gerenciar Assinatura
+            </Button>
+          </Card>
+        ) : (
+          <Card className="p-4 text-center">
+            <p className="text-muted-foreground mb-3">
+              Nenhuma assinatura encontrada
+            </p>
+            <Button onClick={() => router.push("/pricing")}>
+              Ver Planos
+            </Button>
+          </Card>
+        )}
       </SettingsSection>
 
       {/* Security Section */}
