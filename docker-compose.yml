@@ -2,24 +2,24 @@ version: '3.8'
 
 services:
   # PostgreSQL Database
-  postgres:
-    image: postgres:16-alpine
-    container_name: smarket-postgres
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-smarket}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-smarket_password}
-      POSTGRES_DB: ${POSTGRES_DB:-smarket}
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U smarket" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - smarket-network
+  # postgres:
+  #   image: postgres:16-alpine
+  #   container_name: smarket-postgres
+  #   environment:
+  #     POSTGRES_USER: ${POSTGRES_USER:-smarket}
+  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-smarket_password}
+  #     POSTGRES_DB: ${POSTGRES_DB:-smarket}
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   healthcheck:
+  #     test: [ "CMD-SHELL", "pg_isready -U smarket" ]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   networks:
+  #     - smarket-network
 
   # Redis Cache
   redis:
@@ -70,8 +70,8 @@ services:
     ports:
       - "${API_PORT:-8000}:8000"
     depends_on:
-      postgres:
-        condition: service_healthy
+      # postgres:
+      #   condition: service_healthy
       redis:
         condition: service_healthy
     volumes:
@@ -101,7 +101,7 @@ services:
     restart: unless-stopped
 
 volumes:
-  postgres_data:
+  # postgres_data:
   redis_data:
 
 
