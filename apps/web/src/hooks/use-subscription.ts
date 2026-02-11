@@ -10,7 +10,7 @@ import {
   SubscriptionResponse,
   UsageResponse,
 } from "@/types";
-import api from "@/lib/api";
+import { apiClient } from "@/lib/api";
 
 // Query keys
 export const subscriptionKeys = {
@@ -24,11 +24,10 @@ export function useSubscription() {
   return useQuery({
     queryKey: subscriptionKeys.detail(),
     queryFn: async () => {
-      const { data } = await api.get<{
+      return apiClient.get<{
         subscription: SubscriptionResponse;
         usage: UsageResponse;
       }>("/subscriptions");
-      return data;
     },
     staleTime: 30 * 1000, // 30 seconds
     retry: 1,
@@ -41,11 +40,10 @@ export function useCheckout() {
 
   return useMutation({
     mutationFn: async (request: CheckoutRequest) => {
-      const { data } = await api.post<CheckoutResponse>(
+      return apiClient.post<CheckoutResponse>(
         "/subscriptions/checkout",
         request
       );
-      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: subscriptionKeys.detail() });
@@ -57,14 +55,9 @@ export function useCheckout() {
 export function usePortal() {
   return useMutation({
     mutationFn: async (returnUrl: string) => {
-      const { data } = await api.post<{ url: string }>(
-        "/subscriptions/portal",
-        null,
-        {
-          params: { return_url: returnUrl },
-        }
+      return apiClient.post<{ url: string }>(
+        `/subscriptions/portal?return_url=${encodeURIComponent(returnUrl)}`
       );
-      return data;
     },
   });
 }
@@ -75,10 +68,9 @@ export function useCancelSubscription() {
 
   return useMutation({
     mutationFn: async () => {
-      const { data } = await api.post<{ message: string }>(
+      return apiClient.post<{ message: string }>(
         "/subscriptions/cancel"
       );
-      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: subscriptionKeys.detail() });
@@ -91,8 +83,7 @@ export function usePayments() {
   return useQuery({
     queryKey: subscriptionKeys.payments(),
     queryFn: async () => {
-      const { data } = await api.get<PaymentResponse[]>("/subscriptions/payments");
-      return data;
+      return apiClient.get<PaymentResponse[]>("/subscriptions/payments");
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
