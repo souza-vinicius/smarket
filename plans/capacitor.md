@@ -380,11 +380,36 @@ Objetivo: app nativo se conecta ao backend.
 
 ### 6.1 API URL em build time
 
-`NEXT_PUBLIC_API_URL` e resolvida em build time. Para build mobile de producao:
+`NEXT_PUBLIC_API_URL` é resolvido em **build time** (quando rodamos `npm run build:mobile`), pois o Capacitor usa exportação estática (`output: export`).
+
+Existem duas formas de configurar:
+
+#### Opção A: Arquivo `.env.production` (Recomendado)
+
+Crie o arquivo `apps/web/.env.production`:
+
+```env
+NEXT_PUBLIC_API_URL=https://api.smarket.com.br
+```
+
+Ao rodar o build, o Next.js pegará automaticamente esta variável.
+
+#### Opção B: Via linha de comando
 
 ```bash
-NEXT_PUBLIC_API_URL=https://api.smarket.com.br BUILD_TARGET=capacitor npm run build
+NEXT_PUBLIC_API_URL=https://api.smarket.com.br npm run build:mobile
 ```
+
+> **Nota para Desenvolvimento Local**:
+> Se você estiver rodando o backend localmente e testando no dispositivo físico ou emulador, **NÃO use `localhost`**, pois `localhost` refere-se ao próprio dispositivo (celular).
+>
+> Use o IP da sua máquina na rede local:
+> ```bash
+> # Exemplo (verifique seu IP com ifconfig/ipconfig)
+> NEXT_PUBLIC_API_URL=http://192.168.1.15:8000 npm run build:mobile
+> ```
+>
+> Certifique-se também que seu backend está rodando em `0.0.0.0` e não apenas em `127.0.0.1` para aceitar conexões externas.
 
 ### 6.2 Adicionar origins do Capacitor ao CORS
 
@@ -695,6 +720,21 @@ Adicionar ao `.env.example`:
 # KEY_ALIAS=smarket
 # KEY_PASSWORD=your-key-password
 ```
+
+---
+
+## 11. Troubleshooting
+
+### 11.1 Erro SSL no Android (net_error -202)
+
+**Erro**: `[ERROR:ssl_client_socket_impl.cc(992)] handshake failed; returned -1, SSL error code 1, net_error -202`
+
+**Causa**: O app está tentando conectar via HTTPS a um servidor com certificado inválido ou auto-assinado (comum em localhost), ou você configurou `https://` para um IP local que só aceita HTTP.
+
+**Solução**:
+1.  Garanta que o `android:usesCleartextTraffic="true"` esteja no `AndroidManifest.xml` (já incluído neste plano).
+2.  Use `http://` (não `https://`) para o backend local.
+    Ex: `NEXT_PUBLIC_API_URL=http://192.168.1.15:8000 npm run build:mobile`
 
 ---
 
