@@ -132,10 +132,20 @@ class Subscription(Base):
 
     @property
     def invoice_limit(self) -> int | None:
-        """Get monthly invoice limit (None = unlimited)."""
+        """Get monthly invoice limit (None = unlimited).
+
+        During trial period, limits are unlimited regardless of plan.
+        """
+        if self.status == SubscriptionStatus.TRIAL.value:
+            return None  # unlimited during trial
         return PLAN_LIMITS[self.plan_enum][0]
 
     @property
     def analysis_limit(self) -> int | None:
-        """Get monthly AI analysis limit (None = unlimited)."""
+        """Get monthly AI analysis limit (None = unlimited).
+
+        During trial period, limits are unlimited regardless of plan.
+        """
+        if self.status == SubscriptionStatus.TRIAL.value:
+            return None  # unlimited during trial
         return PLAN_LIMITS[self.plan_enum][1]

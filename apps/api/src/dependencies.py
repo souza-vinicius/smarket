@@ -119,21 +119,23 @@ async def check_invoice_limit(
     from sqlalchemy import select
 
     from src.config import settings
-    from src.models.subscription import PLAN_LIMITS, Subscription, SubscriptionPlan
+    from src.models.subscription import Subscription
     from src.models.usage_record import UsageRecord
 
     if not settings.subscription_enabled:
         return current_user
 
     sub = await _get_active_subscription(current_user.id, db)
-    if sub.plan == SubscriptionPlan.PREMIUM.value:
-        return current_user  # unlimited
+
+    # Check limit (None = unlimited, applies to Premium and Trial)
+    limit = sub.invoice_limit
+    if limit is None:
+        return current_user  # unlimited (Premium or Trial)
 
     now = datetime.now(timezone.utc)
     usage = await _get_or_create_usage(current_user.id, now.year, now.month, db)
-    limit = PLAN_LIMITS[SubscriptionPlan(sub.plan)][0]
 
-    if limit is not None and usage.invoices_count >= limit:
+    if usage.invoices_count >= limit:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail=f"Limite de {limit} notas fiscais/mês atingido. Faça upgrade para continuar.",
@@ -157,21 +159,23 @@ async def check_analysis_limit(
     from sqlalchemy import select
 
     from src.config import settings
-    from src.models.subscription import PLAN_LIMITS, Subscription, SubscriptionPlan
+    from src.models.subscription import Subscription
     from src.models.usage_record import UsageRecord
 
     if not settings.subscription_enabled:
         return current_user
 
     sub = await _get_active_subscription(current_user.id, db)
-    if sub.plan == SubscriptionPlan.PREMIUM.value:
-        return current_user
+
+    # Check limit (None = unlimited, applies to Premium and Trial)
+    limit = sub.analysis_limit
+    if limit is None:
+        return current_user  # unlimited (Premium or Trial)
 
     now = datetime.now(timezone.utc)
     usage = await _get_or_create_usage(current_user.id, now.year, now.month, db)
-    limit = PLAN_LIMITS[SubscriptionPlan(sub.plan)][1]
 
-    if limit is not None and usage.ai_analyses_count >= limit:
+    if usage.ai_analyses_count >= limit:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail=f"Limite de {limit} análises de IA/mês atingido. Faça upgrade para continuar.",
