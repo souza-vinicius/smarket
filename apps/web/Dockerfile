@@ -46,7 +46,8 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 ENV NODE_ENV=production
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD wget -qO /dev/null http://localhost:3000/api/health || exit 1
+# Use node for healthcheck — 127.0.0.1 (not localhost) to avoid IPv6 issues
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=5 \
+    CMD node -e "require('http').get('http://127.0.0.1:3000/api/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"
 
 CMD ["node", "server.js"]
