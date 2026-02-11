@@ -81,10 +81,11 @@ services:
       - dokploy-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.smarket-api.rule=Host(`smarket-api-yinqlr-886c26-168-231-96-253.traefik.me`)"
-      - "traefik.http.routers.smarket-api.entrypoints=websecure"
-      - "traefik.http.routers.smarket-api.tls.certresolver=letsencrypt"
-      - "traefik.http.services.smarket-api.loadbalancer.server.port=8000"
+      - "traefik.docker.network=dokploy-network"
+      - "traefik.http.routers.smarket-compose-api.rule=Host(`smarket-api-yinqlr-886c26-168-231-96-253.traefik.me`)"
+      - "traefik.http.routers.smarket-compose-api.entrypoints=web,websecure"
+      - "traefik.http.routers.smarket-compose-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.smarket-compose-api.loadbalancer.server.port=8000"
     restart: unless-stopped
   # Next.js Frontend
   web:
@@ -108,10 +109,11 @@ services:
       - dokploy-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.smarket-web.rule=Host(`smarket-app-yinqlr-886c26-168-231-96-253.traefik.me`)"
-      - "traefik.http.routers.smarket-web.entrypoints=websecure"
-      - "traefik.http.routers.smarket-web.tls.certresolver=letsencrypt"
-      - "traefik.http.services.smarket-web.loadbalancer.server.port=3000"
+      - "traefik.docker.network=dokploy-network"
+      - "traefik.http.routers.smarket-compose-web.rule=Host(`smarket-app-yinqlr-886c26-168-231-96-253.traefik.me`)"
+      - "traefik.http.routers.smarket-compose-web.entrypoints=web,websecure"
+      - "traefik.http.routers.smarket-compose-web.tls.certresolver=letsencrypt"
+      - "traefik.http.services.smarket-compose-web.loadbalancer.server.port=3000"
     restart: unless-stopped
 
 volumes:
