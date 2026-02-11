@@ -79,15 +79,17 @@ async def get_subscription(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get user's active subscription or raise 403."""
+    """Get user's subscription (auto-creates free tier if missing)."""
     from src.config import settings
 
     if not settings.subscription_enabled:
         return None  # Feature disabled - everything allowed
 
+    from datetime import datetime, timedelta, timezone
+
     from sqlalchemy import select
 
-    from src.models.subscription import Subscription
+    from src.models.subscription import Subscription, SubscriptionPlan
 
     result = await db.execute(
         select(Subscription).where(Subscription.user_id == current_user.id)
@@ -95,16 +97,17 @@ async def get_subscription(
     sub = result.scalar_one_or_none()
 
     if not sub:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Nenhuma assinatura encontrada. Inicie seu trial gratuito.",
+        # Auto-create a free subscription with expired trial
+        now = datetime.now(timezone.utc)
+        sub = Subscription(
+            user_id=current_user.id,
+            plan=SubscriptionPlan.FREE.value,
+            status="expired",
+            trial_start=now - timedelta(days=31),
+            trial_end=now - timedelta(days=1),
         )
-
-    if not sub.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Assinatura {sub.status}. Renove para continuar.",
-        )
+        db.add(sub)
+        await db.flush()
 
     return sub
 
@@ -193,10 +196,18 @@ async def check_analysis_limit(
 
 
 async def _get_active_subscription(user_id: uuid.UUID, db: AsyncSession):
-    """Get active subscription or raise error with specific message."""
+    """Get subscription with limit enforcement.
+
+    Free-tier users (expired trial) are allowed through so that
+    the caller can enforce per-plan limits (1 invoice/month, 2 analyses/month).
+    Only paid plans that become inactive are blocked with 402.
+    If no subscription record exists, a free-tier one is auto-created.
+    """
+    from datetime import datetime, timedelta, timezone
+
     from sqlalchemy import select
 
-    from src.models.subscription import Subscription
+    from src.models.subscription import Subscription, SubscriptionPlan
 
     result = await db.execute(
         select(Subscription).where(Subscription.user_id == user_id)
@@ -204,14 +215,25 @@ async def _get_active_subscription(user_id: uuid.UUID, db: AsyncSession):
     sub = result.scalar_one_or_none()
 
     if not sub:
-        raise HTTPException(
-            status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail="Nenhuma assinatura encontrada. Inicie seu trial gratuito de 30 dias.",
-            headers={"X-Subscription-Error": "no_subscription"},
+        # Auto-create a free subscription with expired trial
+        now = datetime.now(timezone.utc)
+        sub = Subscription(
+            user_id=user_id,
+            plan=SubscriptionPlan.FREE.value,
+            status="expired",
+            trial_start=now - timedelta(days=31),
+            trial_end=now - timedelta(days=1),
         )
+        db.add(sub)
+        await db.flush()
+        return sub
 
     if not sub.is_active:
-        # Diferenciar entre trial expirado e assinatura cancelada
+        # Free plan with expired trial: allow through (limits enforced by caller)
+        if sub.plan == SubscriptionPlan.FREE.value:
+            return sub
+
+        # Paid plans that became inactive: block with 402
         if sub.status == "expired":
             raise HTTPException(
                 status_code=status.HTTP_402_PAYMENT_REQUIRED,

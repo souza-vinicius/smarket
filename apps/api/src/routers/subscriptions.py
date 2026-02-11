@@ -32,6 +32,10 @@ async def get_subscription_and_usage(
     db: AsyncSession = Depends(get_db),
 ):
     """Get user's subscription and current month usage."""
+    from datetime import timedelta
+
+    from src.models.subscription import SubscriptionPlan
+
     # Get subscription
     result = await db.execute(
         select(Subscription).where(Subscription.user_id == current_user.id)
@@ -39,10 +43,17 @@ async def get_subscription_and_usage(
     subscription = result.scalar_one_or_none()
 
     if not subscription:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Nenhuma assinatura encontrada.",
+        # Auto-create a free subscription with expired trial
+        now_utc = datetime.now(timezone.utc)
+        subscription = Subscription(
+            user_id=current_user.id,
+            plan=SubscriptionPlan.FREE.value,
+            status="expired",
+            trial_start=now_utc - timedelta(days=31),
+            trial_end=now_utc - timedelta(days=1),
         )
+        db.add(subscription)
+        await db.flush()
 
     # Get current month usage
     now = datetime.now(timezone.utc)
@@ -77,6 +88,10 @@ async def create_checkout_session(
     db: AsyncSession = Depends(get_db),
 ):
     """Create Stripe Checkout session for subscription upgrade."""
+    from datetime import timedelta
+
+    from src.models.subscription import SubscriptionPlan
+
     # Get user's subscription
     result = await db.execute(
         select(Subscription).where(Subscription.user_id == current_user.id)
@@ -84,10 +99,17 @@ async def create_checkout_session(
     subscription = result.scalar_one_or_none()
 
     if not subscription:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Nenhuma assinatura encontrada.",
+        # Auto-create a free subscription with expired trial
+        now_utc = datetime.now(timezone.utc)
+        subscription = Subscription(
+            user_id=current_user.id,
+            plan=SubscriptionPlan.FREE.value,
+            status="expired",
+            trial_start=now_utc - timedelta(days=31),
+            trial_end=now_utc - timedelta(days=1),
         )
+        db.add(subscription)
+        await db.flush()
 
     # Create Stripe Checkout session
     session = await StripeService.create_checkout_session(
