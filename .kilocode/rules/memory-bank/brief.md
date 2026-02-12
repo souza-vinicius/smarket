@@ -40,16 +40,17 @@ smarket/
 - **Styling**: Tailwind CSS
 - **State Management**: TanStack React Query
 - **Charts**: Recharts
+- **Tables**: TanStack React Table
 - **Linting**: ESLint with comprehensive plugins (TypeScript, React, a11y, Tailwind, Security)
 - **Mobile**: Capacitor for Android/iOS
 
-## Data Model (12 Core Entities)
+## Data Model (14 Core Entities)
 
 ### Entity Relationships
 ```
-User ─┬─► Subscription ─► Payment
-      │        │
-      │        └─► UsageRecord
+User ─┬─► Subscription ─► Payment ─► CouponUsage
+      │        │                │
+      │        └─► UsageRecord   └─► Coupon
       │
       ├─► Merchant ─► Invoice ─► InvoiceItem ─► Product
       │                    │
@@ -59,11 +60,13 @@ User ─┬─► Subscription ─► Payment
       │
       ├─► Analysis
       │
-      └─► PurchasePattern
+      ├─► PurchasePattern
+      │
+      └─► AuditLog (admin actions)
 ```
 
 ### Entities Summary
-1. **User**: Authentication, household profile, and user identification
+1. **User**: Authentication, household profile, and user identification (includes `admin_role` for RBAC)
 2. **Subscription**: User subscription with trial support (FREE/BASIC/PREMIUM)
 3. **Payment**: Payment records for subscription transactions
 4. **UsageRecord**: Monthly usage tracking (invoices, AI analyses)
@@ -75,6 +78,9 @@ User ─┬─► Subscription ─► Payment
 10. **Category**: Product classification (system + user-defined)
 11. **Analysis**: AI-generated insights and alerts
 12. **PurchasePattern**: Detected recurring purchase patterns
+13. **Coupon**: Discount coupons for subscriptions (percentage/fixed)
+14. **CouponUsage**: Records of coupon usage by users
+15. **AuditLog**: Administrative action tracking for compliance
 
 ## API Endpoints
 
@@ -93,6 +99,7 @@ User ─┬─► Subscription ─► Payment
 - `/api/v1/analysis` - AI insights and dashboard
 - `/api/v1/purchase-patterns` - Recurring patterns
 - `/api/v1/subscriptions` - Subscription and payment management
+- `/api/v1/coupons` - Coupon validation
 
 ### Subscription Endpoints (`/api/v1/subscriptions`)
 - `GET /` - Get subscription and current month usage
@@ -101,6 +108,30 @@ User ─┬─► Subscription ─► Payment
 - `POST /cancel` - Cancel subscription at period end
 - `GET /payments` - List payment history
 - `POST /webhooks/stripe` - Handle Stripe webhook events
+
+### Admin Endpoints (`/api/v1/admin`) - Web Only
+- `GET /` - Admin area info
+- `GET /dashboard/stats` - Dashboard KPIs (MRR, users, churn, etc.)
+- `GET /dashboard/revenue` - Revenue chart data
+- `GET /dashboard/growth` - User growth chart
+- `GET /dashboard/operations` - Operational metrics (OCR success rate)
+- `GET /users` - List users with filters
+- `GET /users/{id}` - User details
+- `PUT /users/{id}` - Update user
+- `DELETE /users/{id}` - Soft delete user
+- `POST /users/{id}/restore` - Restore deleted user
+- `POST /users/{id}/impersonate` - Generate impersonation token
+- `GET /users/{id}/activity` - User activity log
+- `GET /subscriptions` - List subscriptions
+- `POST /subscriptions/{id}/cancel` - Cancel subscription
+- `POST /subscriptions/{id}/extend-trial` - Extend trial
+- `GET /payments` - List payments
+- `POST /payments/{id}/refund` - Process refund
+- `GET /coupons` - List coupons
+- `POST /coupons` - Create coupon
+- `PUT /coupons/{id}` - Update coupon
+- `GET /audit-logs` - System audit logs
+- `GET /settings` - System settings
 
 ## Key Features
 
@@ -125,6 +156,11 @@ User ─┬─► Subscription ─► Payment
 - ✅ CNPJ validation and enrichment via BrasilAPI/ReceitaWS
 - ✅ Feature flags for AI analysis types
 - ✅ Mobile app via Capacitor (Android)
+- ✅ Admin area with RBAC (Web only)
+- ✅ Coupon system for discounts
+- ✅ Audit logging for admin actions
+- ✅ User impersonation for support
+- ✅ SaaS metrics (MRR, ARR, ARPU, churn, trial conversion)
 
 ### Planned Features
 - [ ] Price comparison page
@@ -163,6 +199,18 @@ User ─┬─► Subscription ─► Payment
 
 - All new users get 30-day trial with unlimited access
 - Trial users have PREMIUM-level features during trial period
+
+## Admin Roles (RBAC)
+
+| Role | Permissions |
+|------|-------------|
+| `super_admin` | Full access to everything |
+| `admin` | Most features except super admin actions |
+| `support` | Read-only + user impersonation |
+| `finance` | Reports, payments, refunds |
+| `read_only` | View-only access |
+
+Permission format: `resource:action` (e.g., `user:delete`, `subscription:update`)
 
 ## Development Commands
 
@@ -215,6 +263,10 @@ docker compose down api && docker compose up --build api  # Clean restart
 - `STRIPE_SECRET_KEY` - Stripe API key
 - `STRIPE_WEBHOOK_SECRET` - Stripe webhook signing secret
 - `STRIPE_*_PRICE_ID` - Stripe price IDs for each plan/cycle
+
+### Admin System
+- `ADMIN_BOOTSTRAP_EMAIL` - Email to promote to admin on startup
+- `ADMIN_BOOTSTRAP_ROLE` - Role to assign (default: `super_admin`)
 
 ### Frontend
 - `NEXT_PUBLIC_API_URL` - Backend API URL
@@ -305,11 +357,16 @@ class EntityResponse(EntityBase):
 - [`apps/api/src/config.py`](apps/api/src/config.py) - Pydantic Settings with feature flags
 - [`apps/api/src/database.py`](apps/api/src/database.py) - SQLAlchemy setup
 - [`apps/api/src/dependencies.py`](apps/api/src/dependencies.py) - FastAPI dependencies
+- [`apps/api/src/core/roles.py`](apps/api/src/core/roles.py) - Admin RBAC definitions
 - [`apps/api/src/services/ai_analyzer.py`](apps/api/src/services/ai_analyzer.py) - Multi-provider AI integration
 - [`apps/api/src/services/multi_provider_extractor.py`](apps/api/src/services/multi_provider_extractor.py) - LLM vision extraction
 - [`apps/api/src/services/cnpj_enrichment.py`](apps/api/src/services/cnpj_enrichment.py) - CNPJ data enrichment
 - [`apps/api/src/services/stripe_service.py`](apps/api/src/services/stripe_service.py) - Stripe integration
 - [`apps/api/src/services/subscription_service.py`](apps/api/src/services/subscription_service.py) - Subscription logic
+- [`apps/api/src/services/admin_service.py`](apps/api/src/services/admin_service.py) - Admin operations
+- [`apps/api/src/services/metrics_service.py`](apps/api/src/services/metrics_service.py) - SaaS metrics calculation
+- [`apps/api/src/services/coupon_service.py`](apps/api/src/services/coupon_service.py) - Coupon validation
+- [`apps/api/src/routers/admin/__init__.py`](apps/api/src/routers/admin/__init__.py) - Admin router
 - [`apps/web/src/lib/api.ts`](apps/web/src/lib/api.ts) - Frontend API client
 - [`apps/web/src/types/index.ts`](apps/web/src/types/index.ts) - TypeScript interfaces
 
@@ -319,9 +376,21 @@ class EntityResponse(EntityBase):
 | Service | Container | Port | Description |
 |---------|-----------|------|-------------|
 | postgres | smarket-postgres | 5432 | PostgreSQL 16 database |
-| redis | smarket-redis | 6379 | Redis 7 cache |
+| redis | smarket-redis | 6372 | Redis 7 cache |
 | api | smarket-api | 8000 | FastAPI backend |
 | web | smarket-web | 3000 | Next.js frontend |
+
+### Backend Services
+| Service | Purpose |
+|---------|---------|
+| `AdminService` | User management, impersonation, audit logging |
+| `MetricsService` | SaaS KPIs (MRR, ARR, ARPU, churn, trial conversion) |
+| `CouponService` | Coupon validation and application |
+| `ai_analyzer` | Multi-provider AI integration |
+| `multi_provider_extractor` | LLM vision extraction |
+| `cnpj_enrichment` | CNPJ data from BrasilAPI/ReceitaWS |
+| `stripe_service` | Stripe Checkout, Portal, webhooks |
+| `subscription_service` | Subscription lifecycle management |
 
 ## Security Considerations
 
@@ -333,10 +402,13 @@ class EntityResponse(EntityBase):
 - Input validation via Pydantic
 - Stripe webhook signature verification
 - CNPJ validation before enrichment
+- Admin area blocked on native mobile platforms (iOS/Android)
+- RBAC permission checks on all admin endpoints
+- Audit logging for all administrative actions
 
 ## Current State
 
-The project is at **MVP+ stage** with core functionality and subscription system implemented:
+The project is at **MVP+ stage** with core functionality, subscription system, and admin area implemented:
 - Full authentication flow with household profile
 - Invoice processing (XML/QRCode/Photo)
 - Multi-provider AI-powered analysis generation
@@ -345,15 +417,19 @@ The project is at **MVP+ stage** with core functionality and subscription system
 - Usage tracking and limits
 - Comprehensive dashboard and insights display
 - Mobile app via Capacitor (Android)
+- Admin area with RBAC (Web only)
+- Coupon system for discounts
+- SaaS metrics and analytics
 
 The codebase follows a clean architecture with clear separation between:
-- Models (SQLAlchemy ORM) - 12 entities
+- Models (SQLAlchemy ORM) - 14 entities
 - Schemas (Pydantic validation)
 - Routers (API endpoints)
 - Services (Business logic)
 - Parsers (Invoice processing)
 - Tasks (Background processing)
 - Utils (Helper functions)
+- Core (Roles and permissions)
 
 ### Feature Flags System
 The project uses a comprehensive feature flag system:
@@ -381,5 +457,32 @@ The project uses a comprehensive feature flag system:
 | `/pricing` | Subscription plans |
 | `/settings` | User settings |
 | `/settings/subscription` | Subscription management |
+| `/admin` | Admin dashboard (Web only) |
+| `/admin/users` | User management |
+| `/admin/subscriptions` | Subscription management |
+| `/admin/payments` | Payment management |
+| `/admin/coupons` | Coupon management |
+| `/admin/settings` | System settings |
 | `/privacy` | Privacy policy |
 | `/terms` | Terms of service |
+
+## HTTP Status Codes
+
+| Code | Meaning | When Used |
+|------|---------|-----------|
+| 200 | OK | Successful GET requests |
+| 201 | Created | Successful POST creating a resource |
+| 204 | No Content | Successful DELETE requests |
+| 400 | Bad Request | Invalid input data |
+| 401 | Unauthorized | Missing or invalid JWT token |
+| 402 | Payment Required | Subscription inactive or trial expired |
+| 403 | Forbidden | User inactive or insufficient permissions |
+| 404 | Not Found | Resource doesn't exist |
+| 409 | Conflict | Duplicate invoice |
+| 429 | Too Many Requests | Monthly usage limit reached |
+| 500 | Internal Server Error | Unexpected server errors |
+
+### Subscription Error Headers (402 & 429)
+- `X-Subscription-Error`: Error type
+- `X-Limit-Type`: Resource type (`invoice` or `analysis`)
+- `X-Current-Plan`: User's current plan
