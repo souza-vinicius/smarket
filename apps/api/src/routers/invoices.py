@@ -61,7 +61,7 @@ logger_stdlib = logging.getLogger(__name__)
 @router.get("/", response_model=list[InvoiceList])
 async def list_invoices(
     skip: int = 0,
-    limit: int = 100,
+    limit: int = 1000,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -79,7 +79,7 @@ async def list_invoices(
         .outerjoin(InvoiceItem, InvoiceItem.invoice_id == Invoice.id)
         .where(Invoice.user_id == current_user.id)
         .group_by(Invoice.id)
-        .order_by(Invoice.created_at.desc())
+        .order_by(Invoice.issue_date.desc())
         .offset(skip)
         .limit(limit)
     )

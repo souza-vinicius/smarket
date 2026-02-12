@@ -6,3 +6,5 @@ docker-compose.override.yml
 
 # Capacitor static export
 apps/web/out/
+
+.DS_Store

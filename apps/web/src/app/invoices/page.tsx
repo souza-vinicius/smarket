@@ -17,6 +17,7 @@ import {
 import { InvoiceCard } from "@/components/invoices/invoice-card";
 import { UploadModal } from "@/components/invoices/upload-modal";
 import { UpgradeModal } from "@/components/subscription/upgrade-modal";
+import { VirtualizedInvoiceList } from "@/components/invoices/virtualized-invoice-list";
 import { PageLayout } from "@/components/layout/page-layout";
 import { Button } from "@/components/ui/button";
 import { Card, StatCard } from "@/components/ui/card";
@@ -33,6 +34,7 @@ import {
   useDeleteProcessing,
 } from "@/hooks/use-invoices";
 import { useInvoicesSummary } from "@/hooks/use-invoices-summary";
+import { useGroupedInvoices } from "@/hooks/use-grouped-invoices";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 // Pending Item - Mobile optimized
@@ -184,6 +186,9 @@ export default function InvoicesPage() {
     });
   }, [invoices, searchQuery]);
 
+  // Group invoices by month for virtualized rendering
+  const groupedItems = useGroupedInvoices(filteredInvoices);
+
   const handleDelete = () => {
     if (processingToDelete) {
       deleteProcessingMutation.mutate(processingToDelete, {
@@ -306,15 +311,7 @@ export default function InvoicesPage() {
             <SkeletonListItem />
           </div>
         ) : filteredInvoices.length > 0 ? (
-          <div className="space-y-3">
-            {filteredInvoices.map((invoice) => (
-              <InvoiceCard
-                key={invoice.id}
-                invoice={invoice}
-                onClick={() => router.push(`/invoices/${invoice.id}`)}
-              />
-            ))}
-          </div>
+          <VirtualizedInvoiceList items={groupedItems} />
         ) : (
           <Card className="text-center py-12">
             <div className="w-16 h-16 rounded-full bg-muted mx-auto mb-4 flex items-center justify-center">
