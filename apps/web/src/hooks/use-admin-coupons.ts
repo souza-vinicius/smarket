@@ -55,7 +55,7 @@ export function useAdminCoupons(params: CouponsListParams = {}) {
       queryParams.set("per_page", String(per_page));
 
       const response = await adminApi.get<CouponsListResponse>(
-        `/admin/coupons?${queryParams.toString()}`
+        `/coupons?${queryParams.toString()}`
       );
       return response.data;
     },
@@ -77,7 +77,7 @@ export function useAdminCoupon(couponId: string) {
     queryKey: ADMIN_COUPONS_KEYS.detail(couponId),
     queryFn: async () => {
       const response = await adminApi.get<CouponResponse>(
-        `/admin/coupons/${couponId}`
+        `/coupons/${couponId}`
       );
       return response.data;
     },
@@ -96,7 +96,7 @@ export function useCreateCoupon() {
 
   return useMutation({
     mutationFn: async (data: CouponCreate) => {
-      const response = await adminApi.post<CouponResponse>("/admin/coupons", data);
+      const response = await adminApi.post<CouponResponse>("/coupons", data);
       return response.data;
     },
     onSuccess: () => {
@@ -111,7 +111,7 @@ export function useUpdateCoupon(couponId: string) {
   return useMutation({
     mutationFn: async (data: CouponUpdate) => {
       const response = await adminApi.put<CouponResponse>(
-        `/admin/coupons/${couponId}`,
+        `/coupons/${couponId}`,
         data
       );
       return response.data;
@@ -129,7 +129,7 @@ export function useDeactivateCoupon() {
   return useMutation({
     mutationFn: async (couponId: string) => {
       const response = await adminApi.delete<{ message: string }>(
-        `/admin/coupons/${couponId}`
+        `/coupons/${couponId}`
       );
       return response.data;
     },
@@ -163,7 +163,7 @@ export function useCouponUsages(couponId: string, params: CouponUsagesParams = {
       queryParams.set("per_page", String(per_page));
 
       const response = await adminApi.get<CouponUsagesResponse>(
-        `/admin/coupons/${couponId}/usages?${queryParams.toString()}`
+        `/coupons/${couponId}/usages?${queryParams.toString()}`
       );
       return response.data;
     },
@@ -186,7 +186,7 @@ export function useCouponStats(couponId: string) {
     queryKey: ADMIN_COUPONS_KEYS.stats(couponId),
     queryFn: async () => {
       const response = await adminApi.get<CouponStatsResponse>(
-        `/admin/coupons/${couponId}/stats`
+        `/coupons/${couponId}/stats`
       );
       return response.data;
     },

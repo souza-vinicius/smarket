@@ -83,7 +83,7 @@ class MetricsService:
         query = text("""
             WITH months AS (
                 SELECT generate_series(
-                    DATE_TRUNC('month', NOW() - INTERVAL '%(months)s months'),
+                    DATE_TRUNC('month', NOW() - INTERVAL ':months months'),
                     DATE_TRUNC('month', NOW()),
                     INTERVAL '1 month'
                 ) AS month
@@ -96,7 +96,7 @@ class MetricsService:
                 FROM payments p
                 JOIN subscriptions s ON p.subscription_id = s.id
                 WHERE p.status = 'succeeded'
-                    AND p.created_at >= NOW() - INTERVAL '%(months)s months'
+                    AND p.created_at >= NOW() - INTERVAL ':months months'
             ),
             mrr_by_month AS (
                 SELECT
@@ -120,9 +120,9 @@ class MetricsService:
                 0::float AS contraction_mrr,
                 0::float AS churn_mrr
             FROM mrr_by_month
-        """)
+        """).bindparams(months=months)
 
-        result = await self.db.execute(query, {"months": months})
+        result = await self.db.execute(query)
         rows = result.all()
 
         return [
@@ -150,7 +150,7 @@ class MetricsService:
         query = text("""
             WITH months AS (
                 SELECT generate_series(
-                    DATE_TRUNC('month', NOW() - INTERVAL '%(months)s months'),
+                    DATE_TRUNC('month', NOW() - INTERVAL ':months months'),
                     DATE_TRUNC('month', NOW()),
                     INTERVAL '1 month'
                 ) AS month
@@ -160,7 +160,7 @@ class MetricsService:
                     DATE_TRUNC('month', created_at) AS month,
                     COUNT(*) AS new_users
                 FROM users
-                WHERE created_at >= NOW() - INTERVAL '%(months)s months'
+                WHERE created_at >= NOW() - INTERVAL ':months months'
                 GROUP BY DATE_TRUNC('month', created_at)
             ),
             cancelled_by_month AS (
@@ -169,7 +169,7 @@ class MetricsService:
                     COUNT(*) AS churned_users
                 FROM subscriptions
                 WHERE status = 'cancelled'
-                    AND cancelled_at >= NOW() - INTERVAL '%(months)s months'
+                    AND cancelled_at >= NOW() - INTERVAL ':months months'
                 GROUP BY DATE_TRUNC('month', cancelled_at)
             )
             SELECT
@@ -187,9 +187,9 @@ class MetricsService:
             LEFT JOIN users_by_month ubm ON ubm.month = m.month
             LEFT JOIN cancelled_by_month cbm ON cbm.month = m.month
             ORDER BY m.month
-        """)
+        """).bindparams(months=months)
 
-        result = await self.db.execute(query, {"months": months})
+        result = await self.db.execute(query)
         rows = result.all()
 
         return [
