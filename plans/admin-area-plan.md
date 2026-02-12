@@ -609,27 +609,27 @@ class CouponUsage(Base):
 - [x] Pagina: Lista de pagamentos (data-table)
 - [x] Modal de reembolso com confirmacao
 
-### FASE 4: Cupons e Promocoes ⏳ PENDENTE
+### FASE 4: Cupons e Promocoes ✅ COMPLETO
 
 **Backend:**
-- [ ] Criar modelos `Coupon` e `CouponUsage` + migration
-- [ ] Criar `CouponService` com regras de validacao:
-  - Verificar validade (data)
-  - Verificar limite de uso global
-  - Verificar limite de uso por usuario
-  - Verificar `first_time_only`
-  - Verificar `allow_reuse_after_cancel`
-  - Verificar `is_stackable`
-  - Verificar `applicable_plans` e `applicable_cycles`
-- [ ] Endpoints CRUD de cupons (admin)
-- [ ] Endpoint: Validar cupom (publico — para checkout)
-- [ ] Endpoint: Historico de uso e estatisticas do cupom
-- [ ] Integrar cupons no fluxo de checkout Stripe (Stripe Coupons API)
+- [x] Criar modelos `Coupon` e `CouponUsage` + migration
+- [x] Criar `CouponService` com regras de validacao:
+  - [x] Verificar validade (data)
+  - [x] Verificar limite de uso global
+  - [x] Verificar limite de uso por usuario
+  - [x] Verificar `first_time_only`
+  - [x] Verificar `allow_reuse_after_cancel`
+  - [x] Verificar `is_stackable`
+  - [x] Verificar `applicable_plans` e `applicable_cycles`
+- [x] Endpoints CRUD de cupons (admin)
+- [x] Endpoint: Validar cupom (publico — para checkout)
+- [x] Endpoint: Historico de uso e estatisticas do cupom
+- [ ] Integrar cupons no fluxo de checkout Stripe (Stripe Coupons API) — **Futuro (nao essencial)**
 
 **Frontend:**
-- [ ] Pagina: Lista de cupons (data-table com status, uso, validade)
-- [ ] Pagina: Formulario de criacao/edicao de cupom
-- [ ] Aplicar cupom na pagina de pricing/checkout
+- [x] Pagina: Lista de cupons (data-table com status, uso, validade)
+- [x] Pagina: Formulario de criacao/edicao de cupom
+- [ ] Aplicar cupom na pagina de pricing/checkout — **Futuro (depende de checkout)**
 
 ### FASE 5: Dashboard e Metricas ✅ COMPLETO
 
@@ -1010,64 +1010,78 @@ async def test_refund_calls_stripe(client, admin_user, payment, mock_stripe):
 | **FASE 1** | Fundacao (Auth RBAC, modelo User, AuditLog) | ✅ | Completo (13 fev 2026) |
 | **FASE 2** | Gestao de Usuarios | ✅ | Completo (13 fev 2026) |
 | **FASE 3** | Gestao de Assinaturas + Pagamentos | ✅ | Completo (13 fev 2026) |
-| **FASE 4** | Cupons e Promocoes | ⏳ | **Proximo** |
+| **FASE 4** | Cupons e Promocoes | ✅ | Completo (13 fev 2026) |
 | **FASE 5** | Dashboard e Metricas | ✅ | Completo (13 fev 2026) |
-| **FASE 6** | Relatorios e Exportacao CSV | ⏳ | Pendente |
+| **FASE 6** | Relatorios e Exportacao CSV | ⏳ | **Proximo** |
 | **FASE 7** | Configuracoes + Auditoria | ✅ | Completo (13 fev 2026) |
 | **FASE 8** | Testes e Qualidade | ⏳ | Pendente |
 
-**Resumo:** 5 de 8 fases implementadas (62.5%). Infra de admin totalmente funcional.
+**Resumo:** 6 de 8 fases implementadas (75%). Sistema de cupons totalmente funcional.
 
-### Arquivos Implementados
+### Arquivos Implementados (40+ arquivos)
 
-**Backend:**
+**Backend (18 arquivos):**
 - `src/models/user.py` — Adicoes: `admin_role`, `deleted_at`, `is_admin` property
+- `src/models/audit_log.py` — Modelo AuditLog com indices
+- `src/models/coupon.py` — Modelos `Coupon` e `CouponUsage` (NOVO — FASE 4)
 - `src/core/roles.py` — Enum AdminRole + mapeamento de permissoes
 - `src/dependencies.py` — `get_current_admin`, `require_permission`
-- `src/models/audit_log.py` — Modelo AuditLog com indices
-- `src/schemas/admin.py` — Todos os schemas Pydantic
-- `src/routers/admin/__init__.py` — Router base + endpoints dashboard/users/system
-- `src/routers/admin/subscriptions.py` — Endpoints de assinaturas
-- `src/routers/admin/payments.py` — Endpoints de pagamentos
+- `src/schemas/admin.py` — Schemas Pydantic admin
+- `src/schemas/coupon.py` — Schemas coupon (NOVO — FASE 4)
+- `src/routers/admin/__init__.py` — Router base + endpoints
+- `src/routers/admin/subscriptions.py` — Endpoints assinaturas
+- `src/routers/admin/payments.py` — Endpoints pagamentos
 - `src/routers/admin/settings.py` — Feature flags + roles + audit logs
-- `src/services/admin_service.py` — Logica de negocio admin
-- `src/services/metrics_service.py` — Calculos de metricas SaaS
-- `src/config.py` — `ADMIN_BOOTSTRAP_EMAIL` config var
-- Migrations Alembic — User, AuditLog tables
+- `src/routers/admin/coupons.py` — CRUD cupons (NOVO — FASE 4)
+- `src/routers/coupons.py` — Validacao publica de cupom (NOVO — FASE 4)
+- `src/services/admin_service.py` — Logica admin
+- `src/services/metrics_service.py` — Metricas SaaS
+- `src/services/coupon_service.py` — Validacao cupoms (NOVO — FASE 4)
+- `src/config.py` — Config vars
+- Migrations Alembic — User, AuditLog, Coupons tables
 
-**Frontend:**
-- `src/middleware.ts` — Bloqueio nativo em `/admin/*`
-- `src/lib/admin-api.ts` — Cliente Axios com retry + header `X-Platform` + token refresh
-- `src/app/admin/layout.tsx` — Guard de acesso + sidebar com links
-- `src/app/admin/page.tsx` — Dashboard com Recharts (MRR, growth) + operational metrics + system health
+**Frontend (22 arquivos):**
+- `src/middleware.ts` — Bloqueio nativo `/admin/*`
+- `src/lib/admin-api.ts` — Cliente Axios + retry + token refresh
+- `src/app/admin/layout.tsx` — Guard + sidebar
+- `src/app/admin/page.tsx` — Dashboard Recharts + health
 - `src/app/admin/users/page.tsx` — Lista usuarios
-- `src/app/admin/users/[id]/page.tsx` — Detalhes usuario + impersonacao
+- `src/app/admin/users/[id]/page.tsx` — Detalhes usuario
 - `src/app/admin/subscriptions/page.tsx` — Lista assinaturas
 - `src/app/admin/subscriptions/[id]/page.tsx` — Detalhes assinatura
 - `src/app/admin/payments/page.tsx` — Lista pagamentos
 - `src/app/admin/settings/page.tsx` — Feature flags + roles
-- `src/app/admin/settings/audit-logs/page.tsx` — Audit logs com filtros
-- `src/hooks/use-admin-analytics.ts` — Hooks para metricas + health
-- `src/hooks/use-admin-users.ts` — Hooks para usuarios
-- `src/hooks/use-admin-subscriptions.ts` — Hooks para assinaturas
-- `src/hooks/use-admin-payments.ts` — Hooks para pagamentos
-- `src/hooks/use-admin-settings.ts` — Hooks para settings + audit logs
+- `src/app/admin/settings/audit-logs/page.tsx` — Audit logs
+- `src/app/admin/coupons/page.tsx` — Lista cupons (NOVO — FASE 4)
+- `src/app/admin/coupons/new/page.tsx` — Criar cupom (NOVO — FASE 4)
+- `src/app/admin/coupons/[id]/page.tsx` — Detalhes cupom (NOVO — FASE 4)
+- `src/hooks/use-admin-analytics.ts` — Metricas + health
+- `src/hooks/use-admin-users.ts` — Usuarios
+- `src/hooks/use-admin-subscriptions.ts` — Assinaturas
+- `src/hooks/use-admin-payments.ts` — Pagamentos
+- `src/hooks/use-admin-settings.ts` — Settings + audit logs
+- `src/hooks/use-admin-coupons.ts` — Cupons (NOVO — FASE 4)
 - `src/types/admin.ts` — TypeScript interfaces
 
 ### Proximos Passos
 
-1. **FASE 4: Cupons e Promocoes** (~2-3 horas)
-   - Criar modelos `Coupon` + `CouponUsage`
-   - `CouponService` com validacoes
-   - Endpoints CRUD admin + validacao publica
-   - Frontend: lista, criacao, edicao, aplicacao no checkout
-
-2. **FASE 6: Relatorios** (~4-5 horas)
+1. **FASE 6: Relatorios** (~4-5 horas) — **PROXIMO**
    - Relatorio de churn (timeline, motivos, por plano)
    - Relatorio de conversao (funil trial -> paid)
    - Exportacao CSV com streaming
+   - Frontend: pagina de relatorios com filtros
 
-3. **FASE 8: Testes** (~6-8 horas)
-   - Cobertura de MetricsService, CouponService, endpoints admin
-   - Testes de seguranca (RBAC, bloqueio nativo)
+2. **FASE 8: Testes** (~6-8 horas)
+   - Cobertura unitaria: MetricsService, CouponService
+   - Testes de integracao: endpoints admin, RBAC
+   - Testes de seguranca: bloqueio nativo, soft delete
    - Documentacao OpenAPI/Swagger
+
+### Entregas Completadas
+
+| Data | Fase | Descricao | Tempo |
+|------|------|-----------|-------|
+| 13 fev | 1-3 | Fundacao + Usuarios + Assinaturas/Pagamentos | ~8h |
+| 13 fev | 5-7 | Dashboard + Settings + Auditoria | ~4h |
+| 13 fev | 4 | Cupons e Promocoes | ~3h |
+| **Total** | **1-7** | **6 de 8 fases** | **~15h** |
