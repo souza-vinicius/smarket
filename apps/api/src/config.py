@@ -83,6 +83,10 @@ class Settings(BaseSettings):
     ENABLE_SUBSCRIPTION_SYSTEM: bool = False
     TRIAL_DURATION_DAYS: int = 30
 
+    # Admin System - Bootstrap first admin user
+    ADMIN_BOOTSTRAP_EMAIL: str = ""  # Email of user to make admin on startup
+    ADMIN_BOOTSTRAP_ROLE: str = "super_admin"  # Role to assign (super_admin, admin, support, finance, read_only)
+
     # Stripe Payment Integration
     STRIPE_SECRET_KEY: str = ""
     STRIPE_WEBHOOK_SECRET: str = ""

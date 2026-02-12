@@ -3,7 +3,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import JSON, Boolean, Integer, Numeric, String
+from sqlalchemy import JSON, Boolean, Index, Integer, Numeric, String, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.database import Base
@@ -30,6 +30,10 @@ class User(Base):
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+    # Admin fields
+    admin_role: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
 
     # Preferências do usuário
     preferences: Mapped[dict] = mapped_column(
@@ -78,4 +82,19 @@ class User(Base):
     )
     subscription: Mapped[Optional["Subscription"]] = relationship(
         back_populates="user", lazy="selectin", uselist=False
+    )
+
+    # Properties
+    @property
+    def is_admin(self) -> bool:
+        """Check if user has any admin role."""
+        return self.admin_role is not None
+
+    # Table constraints and indexes
+    __table_args__ = (
+        Index(
+            "idx_users_admin_role",
+            "admin_role",
+            postgresql_where=text("admin_role IS NOT NULL"),
+        ),
     )

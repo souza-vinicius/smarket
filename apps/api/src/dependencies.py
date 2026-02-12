@@ -254,3 +254,74 @@ async def _get_or_create_usage(
         db.add(usage)
         await db.flush()
     return usage
+
+
+# Admin-related dependencies
+
+
+async def get_current_admin(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    """
+    Verify that the current user has admin privileges.
+
+    Raises:
+        HTTPException: 403 if user is not an admin or is inactive
+    """
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acesso negado. Apenas administradores podem acessar esta área.",
+        )
+
+    if not current_user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Conta de administrador inativa.",
+        )
+
+    return current_user
+
+
+def require_permission(permission: str):
+    """
+    Dependency factory to check if admin has a specific permission.
+
+    Usage:
+        @router.delete("/users/{user_id}", dependencies=[Depends(require_permission("user:delete"))])
+
+    Args:
+        permission: Permission string in format "resource:action"
+
+    Returns:
+        FastAPI dependency function
+    """
+
+    async def permission_checker(
+        admin: User = Depends(get_current_admin),
+    ) -> User:
+        from src.core.roles import AdminRole, has_permission
+
+        if admin.admin_role is None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Acesso negado. Função administrativa não definida.",
+            )
+
+        try:
+            role = AdminRole(admin.admin_role)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Função administrativa inválida: {admin.admin_role}",
+            )
+
+        if not has_permission(role, permission):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Permissão negada. Função '{role.value}' não tem permissão para '{permission}'.",
+            )
+
+        return admin
+
+    return permission_checker

@@ -22,6 +22,7 @@ from src.routers import (
     subscriptions,
     users,
 )
+from src.routers.admin import admin_router
 
 
 # Configurar logging
@@ -47,6 +48,38 @@ app = FastAPI(
     description="API para análise de notas fiscais",
     version="1.0.0",
 )
+
+
+@app.on_event("startup")
+async def bootstrap_admin():
+    """Bootstrap first admin user if ADMIN_BOOTSTRAP_EMAIL is configured."""
+    if not settings.ADMIN_BOOTSTRAP_EMAIL:
+        return
+
+    from sqlalchemy import select
+
+    from src.database import AsyncSessionLocal
+    from src.models.user import User
+
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(
+            select(User).where(User.email == settings.ADMIN_BOOTSTRAP_EMAIL)
+        )
+        user = result.scalar_one_or_none()
+
+        if user and not user.admin_role:
+            user.admin_role = settings.ADMIN_BOOTSTRAP_ROLE
+            await db.commit()
+            logger.info(
+                "Admin bootstrapped: %s -> %s",
+                user.email,
+                settings.ADMIN_BOOTSTRAP_ROLE,
+            )
+        elif not user:
+            logger.warning(
+                "ADMIN_BOOTSTRAP_EMAIL configured but user not found: %s",
+                settings.ADMIN_BOOTSTRAP_EMAIL,
+            )
 
 
 def _cors_headers(request: Request) -> dict[str, str]:
@@ -121,6 +154,7 @@ app.include_router(debug.router, prefix="/api/v1/debug", tags=["debug"])
 app.include_router(
     subscriptions.router, prefix="/api/v1", tags=["subscriptions"]
 )
+app.include_router(admin_router, prefix="/api/v1")
 
 
 @app.get("/health")
