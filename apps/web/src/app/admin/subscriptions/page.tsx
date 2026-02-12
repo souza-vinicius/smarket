@@ -7,26 +7,26 @@ import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { useAdminUsersList } from "@/hooks/use-admin-users";
-import type { AdminUser } from "@/types/admin";
-import { Search, Plus, Users } from "lucide-react";
+import { useAdminSubscriptionsList } from "@/hooks/use-admin-subscriptions";
+import type { AdminSubscription } from "@/types/admin";
+import { Search, CreditCard, Calendar } from "lucide-react";
 
-const columns: ColumnDef<AdminUser>[] = [
+const columns: ColumnDef<AdminSubscription>[] = [
   {
-    accessorKey: "full_name",
-    header: "Nome",
+    accessorKey: "user_email",
+    header: "Usuário",
     cell: ({ row }) => (
       <div>
-        <div className="font-medium text-gray-900">{row.original.full_name}</div>
-        <div className="text-sm text-gray-500">{row.original.email}</div>
+        <div className="font-medium text-gray-900">{row.original.user_email}</div>
+        <div className="text-sm text-gray-500">ID: {row.original.id.slice(0, 8)}</div>
       </div>
     ),
   },
   {
-    accessorKey: "subscription_plan",
+    accessorKey: "plan",
     header: "Plano",
     cell: ({ row }) => {
-      const plan = row.original.subscription_plan || "free";
+      const plan = row.original.plan;
       const planColors: Record<string, string> = {
         free: "bg-gray-100 text-gray-800",
         basic: "bg-blue-100 text-blue-800",
@@ -40,35 +40,46 @@ const columns: ColumnDef<AdminUser>[] = [
     },
   },
   {
-    accessorKey: "is_active",
+    accessorKey: "status",
     header: "Status",
     cell: ({ row }) => {
-      const isActive = row.original.is_active;
-      const isDeleted = row.original.deleted_at !== null;
-
-      if (isDeleted) {
-        return <Badge variant="destructive">Desativado</Badge>;
-      }
-      return isActive ? (
-        <Badge className="bg-green-100 text-green-800">Ativo</Badge>
-      ) : (
-        <Badge variant="secondary">Inativo</Badge>
+      const status = row.original.status;
+      const statusColors: Record<string, string> = {
+        trial: "bg-yellow-100 text-yellow-800",
+        active: "bg-green-100 text-green-800",
+        past_due: "bg-orange-100 text-orange-800",
+        cancelled: "bg-red-100 text-red-800",
+        expired: "bg-gray-100 text-gray-800",
+      };
+      return (
+        <Badge className={statusColors[status] || statusColors.expired}>
+          {status.toUpperCase()}
+        </Badge>
       );
     },
   },
   {
-    accessorKey: "invoices_count",
-    header: "Notas",
-    cell: ({ row }) => (
-      <span className="text-gray-600">{row.original.invoices_count}</span>
-    ),
+    accessorKey: "billing_cycle",
+    header: "Ciclo",
+    cell: ({ row }) => {
+      const cycle = row.original.billing_cycle;
+      return (
+        <span className="text-gray-600 capitalize">
+          {cycle === "monthly" ? "Mensal" : cycle === "yearly" ? "Anual" : "-"}
+        </span>
+      );
+    },
   },
   {
-    accessorKey: "created_at",
-    header: "Criado em",
+    accessorKey: "current_period_end",
+    header: "Renovação",
     cell: ({ row }) => (
       <span className="text-gray-600">
-        {new Date(row.original.created_at).toLocaleDateString("pt-BR")}
+        {row.original.current_period_end
+          ? new Date(row.original.current_period_end).toLocaleDateString("pt-BR")
+          : row.original.trial_end
+          ? new Date(row.original.trial_end).toLocaleDateString("pt-BR")
+          : "-"}
       </span>
     ),
   },
@@ -76,7 +87,7 @@ const columns: ColumnDef<AdminUser>[] = [
     id: "actions",
     header: "",
     cell: ({ row }) => (
-      <Link href={`/admin/users/${row.original.id}`}>
+      <Link href={`/admin/subscriptions/${row.original.id}`}>
         <Button variant="outline" size="sm">
           Detalhes
         </Button>
@@ -85,16 +96,16 @@ const columns: ColumnDef<AdminUser>[] = [
   },
 ];
 
-export default function UsersPage() {
+export default function SubscriptionsPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [includeDeleted, setIncludeDeleted] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("");
 
-  const { users, total, pages, isLoading } = useAdminUsersList({
+  const { subscriptions, total, pages, isLoading } = useAdminSubscriptionsList({
     page,
     perPage: 20,
     search: search || undefined,
-    includeDeleted,
+    status: statusFilter || undefined,
   });
 
   return (
@@ -103,11 +114,11 @@ export default function UsersPage() {
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <Users className="h-8 w-8" />
-            Usuários
+            <CreditCard className="h-8 w-8" />
+            Assinaturas
           </h1>
           <p className="text-gray-600 mt-2">
-            Gerencie os usuários da plataforma
+            Gerencie as assinaturas da plataforma
           </p>
         </div>
       </div>
@@ -119,7 +130,7 @@ export default function UsersPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
               type="text"
-              placeholder="Buscar por nome ou email..."
+              placeholder="Buscar por email..."
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
@@ -129,18 +140,21 @@ export default function UsersPage() {
             />
           </div>
 
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={includeDeleted}
-              onChange={(e) => {
-                setIncludeDeleted(e.target.checked);
-                setPage(1);
-              }}
-              className="rounded border-gray-300"
-            />
-            <span className="text-sm text-gray-600">Incluir desativados</span>
-          </label>
+          <select
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setPage(1);
+            }}
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Todos os status</option>
+            <option value="trial">Trial</option>
+            <option value="active">Ativo</option>
+            <option value="past_due">Atrasado</option>
+            <option value="cancelled">Cancelado</option>
+            <option value="expired">Expirado</option>
+          </select>
         </div>
       </div>
 
@@ -160,8 +174,8 @@ export default function UsersPage() {
           <>
             <DataTable
               columns={columns}
-              data={users}
-              searchKey="full_name"
+              data={subscriptions}
+              searchKey="user_email"
               searchPlaceholder="Filtrar na tabela..."
             />
 

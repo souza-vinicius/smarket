@@ -7,65 +7,69 @@ import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { useAdminUsersList } from "@/hooks/use-admin-users";
-import type { AdminUser } from "@/types/admin";
-import { Search, Plus, Users } from "lucide-react";
+import { useAdminPaymentsList } from "@/hooks/use-admin-payments";
+import type { AdminPayment } from "@/types/admin";
+import { Search, DollarSign, Calendar } from "lucide-react";
 
-const columns: ColumnDef<AdminUser>[] = [
+const columns: ColumnDef<AdminPayment>[] = [
   {
-    accessorKey: "full_name",
-    header: "Nome",
+    accessorKey: "user_email",
+    header: "Usuário",
     cell: ({ row }) => (
       <div>
-        <div className="font-medium text-gray-900">{row.original.full_name}</div>
-        <div className="text-sm text-gray-500">{row.original.email}</div>
+        <div className="font-medium text-gray-900">{row.original.user_email}</div>
+        <div className="text-sm text-gray-500">ID: {row.original.id.slice(0, 8)}</div>
       </div>
     ),
   },
   {
-    accessorKey: "subscription_plan",
-    header: "Plano",
+    accessorKey: "amount",
+    header: "Valor",
+    cell: ({ row }) => (
+      <div className="font-medium text-gray-900">
+        {new Intl.NumberFormat("pt-BR", {
+          style: "currency",
+          currency: row.original.currency || "BRL",
+        }).format(row.original.amount)}
+      </div>
+    ),
+  },
+  {
+    accessorKey: "status",
+    header: "Status",
     cell: ({ row }) => {
-      const plan = row.original.subscription_plan || "free";
-      const planColors: Record<string, string> = {
-        free: "bg-gray-100 text-gray-800",
-        basic: "bg-blue-100 text-blue-800",
-        premium: "bg-purple-100 text-purple-800",
+      const status = row.original.status;
+      const statusColors: Record<string, string> = {
+        succeeded: "bg-green-100 text-green-800",
+        pending: "bg-yellow-100 text-yellow-800",
+        failed: "bg-red-100 text-red-800",
+        refunded: "bg-gray-100 text-gray-800",
+        partially_refunded: "bg-blue-100 text-blue-800",
+      };
+      const statusLabels: Record<string, string> = {
+        succeeded: "PAGO",
+        pending: "PENDENTE",
+        failed: "FALHOU",
+        refunded: "REEMBOLSADO",
+        partially_refunded: "PARCIAL",
       };
       return (
-        <Badge className={planColors[plan] || planColors.free}>
-          {plan.toUpperCase()}
+        <Badge className={statusColors[status] || statusColors.succeeded}>
+          {statusLabels[status] || status.toUpperCase()}
         </Badge>
       );
     },
   },
   {
-    accessorKey: "is_active",
-    header: "Status",
-    cell: ({ row }) => {
-      const isActive = row.original.is_active;
-      const isDeleted = row.original.deleted_at !== null;
-
-      if (isDeleted) {
-        return <Badge variant="destructive">Desativado</Badge>;
-      }
-      return isActive ? (
-        <Badge className="bg-green-100 text-green-800">Ativo</Badge>
-      ) : (
-        <Badge variant="secondary">Inativo</Badge>
-      );
-    },
-  },
-  {
-    accessorKey: "invoices_count",
-    header: "Notas",
+    accessorKey: "provider",
+    header: "Provider",
     cell: ({ row }) => (
-      <span className="text-gray-600">{row.original.invoices_count}</span>
+      <span className="text-gray-600 capitalize">{row.original.provider}</span>
     ),
   },
   {
     accessorKey: "created_at",
-    header: "Criado em",
+    header: "Data",
     cell: ({ row }) => (
       <span className="text-gray-600">
         {new Date(row.original.created_at).toLocaleDateString("pt-BR")}
@@ -76,7 +80,7 @@ const columns: ColumnDef<AdminUser>[] = [
     id: "actions",
     header: "",
     cell: ({ row }) => (
-      <Link href={`/admin/users/${row.original.id}`}>
+      <Link href={`/admin/payments/${row.original.id}`}>
         <Button variant="outline" size="sm">
           Detalhes
         </Button>
@@ -85,16 +89,16 @@ const columns: ColumnDef<AdminUser>[] = [
   },
 ];
 
-export default function UsersPage() {
+export default function PaymentsPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [includeDeleted, setIncludeDeleted] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("");
 
-  const { users, total, pages, isLoading } = useAdminUsersList({
+  const { payments, total, pages, isLoading } = useAdminPaymentsList({
     page,
     perPage: 20,
     search: search || undefined,
-    includeDeleted,
+    status: statusFilter || undefined,
   });
 
   return (
@@ -103,11 +107,11 @@ export default function UsersPage() {
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <Users className="h-8 w-8" />
-            Usuários
+            <DollarSign className="h-8 w-8" />
+            Pagamentos
           </h1>
           <p className="text-gray-600 mt-2">
-            Gerencie os usuários da plataforma
+            Gerencie os pagamentos e reembolsos
           </p>
         </div>
       </div>
@@ -119,7 +123,7 @@ export default function UsersPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
               type="text"
-              placeholder="Buscar por nome ou email..."
+              placeholder="Buscar por email..."
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
@@ -129,18 +133,21 @@ export default function UsersPage() {
             />
           </div>
 
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={includeDeleted}
-              onChange={(e) => {
-                setIncludeDeleted(e.target.checked);
-                setPage(1);
-              }}
-              className="rounded border-gray-300"
-            />
-            <span className="text-sm text-gray-600">Incluir desativados</span>
-          </label>
+          <select
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setPage(1);
+            }}
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Todos os status</option>
+            <option value="succeeded">Pago</option>
+            <option value="pending">Pendente</option>
+            <option value="failed">Falhou</option>
+            <option value="refunded">Reembolsado</option>
+            <option value="partially_refunded">Parcial</option>
+          </select>
         </div>
       </div>
 
@@ -160,8 +167,8 @@ export default function UsersPage() {
           <>
             <DataTable
               columns={columns}
-              data={users}
-              searchKey="full_name"
+              data={payments}
+              searchKey="user_email"
               searchPlaceholder="Filtrar na tabela..."
             />
 

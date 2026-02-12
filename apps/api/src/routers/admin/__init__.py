@@ -19,6 +19,12 @@ from src.models.invoice import Invoice
 from src.models.subscription import Subscription
 from src.models.user import User
 from src.schemas.admin import AdminUserDetail, AdminUserListItem, AdminUserUpdate
+from src.services.admin_service import AdminService
+from src.services.metrics_service import MetricsService
+
+# Import sub-routers
+from src.routers.admin.subscriptions import subscriptions_router
+from src.routers.admin.payments import payments_router
 
 logger = structlog.get_logger()
 
@@ -71,6 +77,61 @@ async def admin_root(admin: User = Depends(get_current_admin)):
 
 
 # ============================================================================
+# Dashboard Endpoints
+# ============================================================================
+
+
+@admin_router.get(
+    "/dashboard/stats",
+    dependencies=[Depends(require_permission("user:read"))],
+)
+async def get_dashboard_stats(
+    db: AsyncSession = Depends(get_db),
+):
+    """Get dashboard KPIs (MRR, users, churn, etc.)."""
+    metrics = MetricsService(db)
+    return await metrics.get_dashboard_stats()
+
+
+@admin_router.get(
+    "/dashboard/revenue",
+    dependencies=[Depends(require_permission("user:read"))],
+)
+async def get_revenue_chart(
+    months: int = Query(12, ge=3, le=24, description="Number of months"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get revenue chart data (MRR over time)."""
+    metrics = MetricsService(db)
+    return await metrics.get_revenue_chart_data(months)
+
+
+@admin_router.get(
+    "/dashboard/growth",
+    dependencies=[Depends(require_permission("user:read"))],
+)
+async def get_growth_chart(
+    months: int = Query(12, ge=3, le=24, description="Number of months"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get user growth chart data."""
+    metrics = MetricsService(db)
+    return await metrics.get_growth_chart_data(months)
+
+
+@admin_router.get(
+    "/dashboard/operations",
+    dependencies=[Depends(require_permission("user:read"))],
+)
+async def get_operational_metrics(
+    db: AsyncSession = Depends(get_db),
+):
+    """Get operational metrics (OCR, processing, etc.)."""
+    metrics = MetricsService(db)
+    return await metrics.get_operational_metrics()
+
+
+# ============================================================================
 # User Management Endpoints
 # ============================================================================
 
@@ -84,6 +145,7 @@ async def list_users(
     search: Optional[str] = Query(None, description="Search by name or email"),
     is_active: Optional[bool] = Query(None, description="Filter by active status"),
     admin_only: Optional[bool] = Query(None, description="Show only admin users"),
+    include_deleted: bool = Query(False, description="Include soft-deleted users"),
     page: int = Query(1, ge=1, description="Page number"),
     per_page: int = Query(20, ge=1, le=100, description="Items per page"),
 ):
@@ -122,6 +184,10 @@ async def list_users(
 
     if admin_only:
         query = query.where(User.admin_role.isnot(None))
+
+    # By default, exclude soft-deleted users unless explicitly requested
+    if not include_deleted:
+        query = query.where(User.deleted_at.is_(None))
 
     # Count total before pagination
     count_query = select(func.count()).select_from(query.subquery())
@@ -227,49 +293,107 @@ async def get_user_detail(
     dependencies=[Depends(require_permission("user:update"))],
 )
 async def update_user(
+    request: Request,
     user_id: uuid.UUID,
     data: AdminUserUpdate,
     admin: User = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db),
 ):
     """Update user fields (admin only)."""
-    result = await db.execute(select(User).where(User.id == user_id))
-    user = result.scalar_one_or_none()
+    service = AdminService(db, admin, request)
+    return await service.update_user(user_id, data)
 
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Usuário não encontrado.",
-        )
 
-    # Prevent modifying own admin_role
-    if data.admin_role is not None and user_id == admin.id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Você não pode alterar sua própria função administrativa.",
-        )
+@admin_router.delete(
+    "/users/{user_id}",
+    dependencies=[Depends(require_permission("user:delete"))],
+)
+async def delete_user(
+    request: Request,
+    user_id: uuid.UUID,
+    admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Soft delete a user (set deleted_at and is_active=False)."""
+    service = AdminService(db, admin, request)
+    return await service.soft_delete_user(user_id)
 
-    update_data = data.model_dump(exclude_unset=True)
-    if not update_data:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Nenhum campo para atualizar.",
-        )
 
-    # Convert enum to string value for admin_role
-    if "admin_role" in update_data and update_data["admin_role"] is not None:
-        update_data["admin_role"] = update_data["admin_role"].value
+@admin_router.post(
+    "/users/{user_id}/restore",
+    dependencies=[Depends(require_permission("user:update"))],
+)
+async def restore_user(
+    request: Request,
+    user_id: uuid.UUID,
+    admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Restore a soft-deleted user."""
+    service = AdminService(db, admin, request)
+    return await service.restore_user(user_id)
 
-    await db.execute(
-        update(User).where(User.id == user_id).values(**update_data)
-    )
-    await db.commit()
 
-    logger.info(
-        "Admin updated user",
-        admin_email=admin.email,
-        target_user_id=str(user_id),
-        fields=list(update_data.keys()),
-    )
+@admin_router.post(
+    "/users/{user_id}/impersonate",
+    dependencies=[Depends(require_permission("user:impersonate"))],
+)
+async def impersonate_user(
+    request: Request,
+    user_id: uuid.UUID,
+    admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Generate impersonation token for a user.
 
-    return {"message": "Usuário atualizado com sucesso."}
+    Returns a short-lived JWT that allows the admin to act as the target user.
+    The token includes an 'impersonated_by' claim for audit purposes.
+    """
+    service = AdminService(db, admin, request)
+    return await service.impersonate_user(user_id)
+
+
+@admin_router.get(
+    "/users/{user_id}/activity",
+    dependencies=[Depends(require_permission("user:read"))],
+)
+async def get_user_activity(
+    user_id: uuid.UUID,
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get audit log activity for a specific user."""
+    service = AdminService(db, admin)
+    return await service.get_user_activity(user_id, page, per_page)
+
+
+# ============================================================================
+# Audit Log Endpoints
+# ============================================================================
+
+
+@admin_router.get(
+    "/audit-logs",
+    dependencies=[Depends(require_permission("audit:read"))],
+)
+async def list_audit_logs(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    resource_type: Optional[str] = Query(None, description="Filter by resource type"),
+    action: Optional[str] = Query(None, description="Filter by action"),
+    db: AsyncSession = Depends(get_db),
+):
+    """List audit logs with optional filters."""
+    metrics = MetricsService(db)
+    return await metrics.get_audit_logs(page, per_page, resource_type, action)
+
+
+# ============================================================================
+# Include Sub-routers
+# ============================================================================
+
+admin_router.include_router(subscriptions_router)
+admin_router.include_router(payments_router)

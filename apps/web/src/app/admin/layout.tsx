@@ -75,15 +75,15 @@ export default function AdminLayout({
           </Link>
           <Link
             href="/admin/subscriptions"
-            className="block px-6 py-3 text-gray-700 hover:bg-gray-100 transition-colors opacity-50 cursor-not-allowed"
+            className="block px-6 py-3 text-gray-700 hover:bg-gray-100 transition-colors"
           >
-            💳 Assinaturas (Em breve)
+            💳 Assinaturas
           </Link>
           <Link
             href="/admin/payments"
-            className="block px-6 py-3 text-gray-700 hover:bg-gray-100 transition-colors opacity-50 cursor-not-allowed"
+            className="block px-6 py-3 text-gray-700 hover:bg-gray-100 transition-colors"
           >
-            💰 Pagamentos (Em breve)
+            💰 Pagamentos
           </Link>
 
           <div className="mt-8 border-t border-gray-200 pt-4">
