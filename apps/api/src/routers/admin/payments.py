@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database import get_db
 from src.dependencies import get_current_admin, require_permission
+from src.routers.admin.common import validate_platform
 from src.models.payment import Payment
 from src.models.subscription import Subscription
 from src.models.user import User
@@ -24,8 +25,12 @@ from src.services.admin_service import AdminService
 
 logger = structlog.get_logger()
 
-# Create router
-payments_router = APIRouter(prefix="/payments", tags=["admin-payments"])
+# Create router with auth dependencies
+payments_router = APIRouter(
+    prefix="/payments",
+    tags=["admin-payments"],
+    dependencies=[Depends(get_current_admin), Depends(validate_platform)],
+)
 
 
 @payments_router.get(

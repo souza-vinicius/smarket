@@ -36,28 +36,7 @@ admin_router = APIRouter(
 )
 
 
-async def validate_platform(request: Request):
-    """
-    Middleware to block native platform access to admin area.
-
-    Admin area is web-only. Reject requests from iOS/Android apps.
-    """
-    platform = request.headers.get("x-platform", "web").lower()
-
-    if platform in ("ios", "android"):
-        logger.warning(
-            "Admin access attempt from native platform blocked",
-            platform=platform,
-            ip=request.client.host if request.client else None,
-            user_agent=request.headers.get("user-agent"),
-        )
-
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Área administrativa disponível apenas via navegador web.",
-            headers={"X-Admin-Error": "native_platform_blocked"},
-        )
-
+from src.routers.admin.common import validate_platform
 
 # Apply platform validation to all admin routes
 admin_router.dependencies.append(Depends(validate_platform))

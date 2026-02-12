@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database import get_db
 from src.dependencies import get_current_admin, require_permission
+from src.routers.admin.common import validate_platform
 from src.models.payment import Payment
 from src.models.subscription import Subscription, SubscriptionStatus
 from src.models.user import User
@@ -25,8 +26,12 @@ from src.services.stripe_service import StripeService
 
 logger = structlog.get_logger()
 
-# Create router
-subscriptions_router = APIRouter(prefix="/subscriptions", tags=["admin-subscriptions"])
+# Create router with auth dependencies
+subscriptions_router = APIRouter(
+    prefix="/subscriptions",
+    tags=["admin-subscriptions"],
+    dependencies=[Depends(get_current_admin), Depends(validate_platform)],
+)
 
 
 @subscriptions_router.get(
