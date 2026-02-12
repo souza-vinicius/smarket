@@ -123,7 +123,7 @@ export default function AddInvoicePage() {
         <main className="p-6">
           {/* Welcome Section */}
           <div className="mb-8 text-center">
-            <h1 className="mb-2 text-2xl font-bold text-slate-900">Bem-vindo ao SMarket, João</h1>
+            <h1 className="mb-2 text-2xl font-bold text-slate-900">Bem-vindo ao Mercado Esperto, João</h1>
             <p className="text-slate-600">Onde você quer economizar hoje?</p>
           </div>
 
@@ -195,7 +195,7 @@ export default function AddInvoicePage() {
 
           {/* Footer */}
           <div className="text-center text-xs text-slate-400">
-            © 2024 SMarket - Gestão Inteligente de Economia
+            © 2024 Mercado Esperto - Gestão Inteligente de Economia
           </div>
         </main>
       </div>

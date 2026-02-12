@@ -1,6 +1,6 @@
 # Deployment Guide - Sistema de Assinaturas
 
-Guia completo para deploy do sistema de assinaturas SMarket com Stripe.
+Guia completo para deploy do sistema de assinaturas Mercado Esperto com Stripe.
 
 ---
 
@@ -22,7 +22,7 @@ Guia completo para deploy do sistema de assinaturas SMarket com Stripe.
 3. Crie os 4 produtos:
 
 #### Produto 1: Plano Básico
-- **Name**: SMarket Básico
+- **Name**: Mercado Esperto Básico
 - **Description**: 5 notas fiscais/mês + 5 análises IA/mês
 - **Pricing**:
   - **Mensal**: R$ 9,90 (recurring, monthly)
@@ -30,7 +30,7 @@ Guia completo para deploy do sistema de assinaturas SMarket com Stripe.
 - Salve os **Price IDs**: `price_xxxBasicMonthly` e `price_xxxBasicYearly`
 
 #### Produto 2: Plano Premium
-- **Name**: SMarket Premium
+- **Name**: Mercado Esperto Premium
 - **Description**: Notas fiscais ilimitadas + análises IA ilimitadas
 - **Pricing**:
   - **Mensal**: R$ 19,90 (recurring, monthly)

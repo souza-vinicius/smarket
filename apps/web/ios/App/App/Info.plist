@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-        <string>SMarket</string>
+        <string>Mercado Esperto</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -46,8 +46,8 @@
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>SMarket precisa da camera para fotografar notas fiscais</string>
+	<string>Mercado Esperto precisa da camera para fotografar notas fiscais</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>SMarket precisa acessar fotos de notas fiscais</string>
+	<string>Mercado Esperto precisa acessar fotos de notas fiscais</string>
 </dict>
 </plist>

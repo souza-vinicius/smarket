@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from src.config import settings
-from src.exceptions import SMarketException, handle_exception
+from src.exceptions import MercadoEspertoException, handle_exception
 from src.routers import (
     analysis,
     auth,
@@ -165,9 +165,9 @@ async def root():
     }
 
 
-@app.exception_handler(SMarketException)
-async def smarket_exception_handler(request: Request, exc: SMarketException):
-    """Handle SMarket custom exceptions."""
+@app.exception_handler(MercadoEspertoException)
+async def mercado_esperto_exception_handler(request: Request, exc: MercadoEspertoException):
+    """Handle Mercado Esperto custom exceptions."""
     http_exc = handle_exception(exc)
     return JSONResponse(
         status_code=http_exc.status_code,

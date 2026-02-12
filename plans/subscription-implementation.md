@@ -1,4 +1,4 @@
-# Plano de Implementação — Sistema de Assinaturas SMarket
+# Plano de Implementação — Sistema de Assinaturas Mercado Esperto
 
 > Substitui `subscription-plan.md`. Baseado na análise do código atual e padrões existentes do projeto.
 
@@ -298,10 +298,10 @@ STRIPE_PREMIUM_YEARLY_PRICE_ID: str = ""
 
 # Apple IAP
 APPLE_SHARED_SECRET: str = ""
-APPLE_BUNDLE_ID: str = "com.smarket.app"
+APPLE_BUNDLE_ID: str = "com.mercadoesperto.app"
 
 # Google Play
-GOOGLE_PLAY_PACKAGE_NAME: str = "com.smarket.app"
+GOOGLE_PLAY_PACKAGE_NAME: str = "com.mercadoesperto.app"
 GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: str = ""  # path to JSON key
 
 @property
@@ -623,11 +623,11 @@ Cada handler é **idempotente** — usa `provider_payment_id` como chave para ev
 Adicionar em `apps/api/src/exceptions.py`:
 
 ```python
-class SubscriptionError(SMarketException):
+class SubscriptionError(MercadoEspertoException):
     """Raised when subscription operation fails."""
     pass
 
-class UsageLimitExceededError(SMarketException):
+class UsageLimitExceededError(MercadoEspertoException):
     """Raised when user exceeds plan limits."""
     pass
 ```
@@ -759,10 +759,10 @@ import { InAppPurchase2 } from '@capacitor-community/in-app-purchases';
 import { Capacitor } from '@capacitor/core';
 
 const PRODUCT_IDS = {
-  basic_monthly: 'com.smarket.basic.monthly',
-  basic_yearly: 'com.smarket.basic.yearly',
-  premium_monthly: 'com.smarket.premium.monthly',
-  premium_yearly: 'com.smarket.premium.yearly',
+  basic_monthly: 'com.mercadoesperto.basic.monthly',
+  basic_yearly: 'com.mercadoesperto.basic.yearly',
+  premium_monthly: 'com.mercadoesperto.premium.monthly',
+  premium_yearly: 'com.mercadoesperto.premium.yearly',
 };
 
 export class IAPService {

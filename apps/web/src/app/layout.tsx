@@ -11,8 +11,8 @@ const manrope = Manrope({
 
 export const metadata: Metadata = {
   title: {
-    default: "SMarket - Analista de Compras Inteligente",
-    template: "%s | SMarket",
+    default: "Mercado Esperto - Analista de Compras Inteligente",
+    template: "%s | Mercado Esperto",
   },
   description:
     "Analise suas notas fiscais e economize dinheiro com insights inteligentes. Sua ferramenta completa para gestão de gastos.",
@@ -24,9 +24,9 @@ export const metadata: Metadata = {
     "nfce",
     "controle financeiro",
   ],
-  authors: [{ name: "SMarket" }],
-  creator: "SMarket",
-  publisher: "SMarket",
+  authors: [{ name: "Mercado Esperto" }],
+  creator: "Mercado Esperto",
+  publisher: "Mercado Esperto",
   formatDetection: {
     email: false,
     address: false,
@@ -40,14 +40,14 @@ export const metadata: Metadata = {
     type: "website",
     locale: "pt_BR",
     url: "/",
-    siteName: "SMarket",
-    title: "SMarket - Analista de Compras Inteligente",
+    siteName: "Mercado Esperto",
+    title: "Mercado Esperto - Analista de Compras Inteligente",
     description:
       "Analise suas notas fiscais e economize dinheiro com insights inteligentes.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "SMarket - Analista de Compras Inteligente",
+    title: "Mercado Esperto - Analista de Compras Inteligente",
     description:
       "Analise suas notas fiscais e economize dinheiro com insights inteligentes.",
   },
@@ -80,7 +80,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "SMarket",
+    title: "Mercado Esperto",
   },
 };
 
@@ -105,10 +105,10 @@ export default function RootLayout({
     <html lang="pt-BR" className={manrope.variable} suppressHydrationWarning>
       <head>
         {/* PWA Meta Tags */}
-        <meta name="application-name" content="SMarket" />
+        <meta name="application-name" content="Mercado Esperto" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="SMarket" />
+        <meta name="apple-mobile-web-app-title" content="Mercado Esperto" />
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="msapplication-TileColor" content="#13ec80" />

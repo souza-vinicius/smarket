@@ -1,7 +1,7 @@
-# Infrastructure Setup Plan: SMarket VPS (Phases 1-3)
+# Infrastructure Setup Plan: Mercado Esperto VPS (Phases 1-3)
 
 ## Goal
-Create production-ready infrastructure documentation and configuration files for deploying SMarket to Hostinger VPS (16GB RAM, 8 vCPU, São Paulo) supporting 1000 concurrent users while maintaining strict $16.67/month budget.
+Create production-ready infrastructure documentation and configuration files for deploying Mercado Esperto to Hostinger VPS (16GB RAM, 8 vCPU, São Paulo) supporting 1000 concurrent users while maintaining strict $16.67/month budget.
 
 ## Deliverables Summary
 

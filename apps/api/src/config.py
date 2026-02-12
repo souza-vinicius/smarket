@@ -5,13 +5,13 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     # App
-    APP_NAME: str = "SMarket API"
+    APP_NAME: str = "Mercado Esperto API"
     DEBUG: bool = False
 
     # Database
     DATABASE_URL: (
         str
-    ) = "postgresql+asyncpg://smarket:smarket_password@postgres:5432/smarket"
+    ) = "postgresql+asyncpg://mercadoesperto:mercadoesperto_password@postgres:5432/mercadoesperto"
     DB_ECHO: bool = False
 
     # JWT
@@ -93,10 +93,10 @@ class Settings(BaseSettings):
 
     # Apple IAP (for future Fase 3)
     APPLE_SHARED_SECRET: str = ""
-    APPLE_BUNDLE_ID: str = "com.smarket.app"
+    APPLE_BUNDLE_ID: str = "com.mercadoesperto.app"
 
     # Google Play (for future Fase 3)
-    GOOGLE_PLAY_PACKAGE_NAME: str = "com.smarket.app"
+    GOOGLE_PLAY_PACKAGE_NAME: str = "com.mercadoesperto.app"
     GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: str = ""  # path to JSON key
 
     @property

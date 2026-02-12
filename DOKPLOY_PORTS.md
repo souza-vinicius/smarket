@@ -25,7 +25,7 @@ ALLOWED_ORIGINS=http://localhost:3001,http://localhost:8001
 ## 🔧 Passos no Dokploy
 
 1. **Abra o painel do Dokploy**
-2. **Vá para sua aplicação SMarket**
+2. **Vá para sua aplicação Mercado Esperto**
 3. **Clique em Environment (ou Settings)**
 4. **Adicione/modifique:**
    ```

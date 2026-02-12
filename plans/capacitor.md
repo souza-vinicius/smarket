@@ -1,8 +1,8 @@
-# Plano: Migrar SMarket Web para iOS/Android com Capacitor
+# Plano: Migrar Mercado Esperto Web para iOS/Android com Capacitor
 
 ## Contexto
 
-O SMarket e um app Next.js 14 (App Router) 100% client-side que usa React Query + Axios para data fetching. O objetivo e empacota-lo como app nativo iOS e Android usando Capacitor, mantendo o deploy web existente (Docker/Dokploy) funcionando.
+O Mercado Esperto e um app Next.js 14 (App Router) 100% client-side que usa React Query + Axios para data fetching. O objetivo e empacota-lo como app nativo iOS e Android usando Capacitor, mantendo o deploy web existente (Docker/Dokploy) funcionando.
 
 Por que Capacitor:
 - Reutiliza ~95% do codigo existente
@@ -124,7 +124,7 @@ npm install @capacitor/ios @capacitor/android
 ### 2.2 Inicializar e configurar
 
 ```bash
-npx cap init "SMarket" "com.smarket.app" --web-dir out
+npx cap init "Mercado Esperto" "com.mercadoesperto.app" --web-dir out
 ```
 
 Arquivo criado: `apps/web/capacitor.config.ts`
@@ -133,8 +133,8 @@ Arquivo criado: `apps/web/capacitor.config.ts`
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.smarket.app',
-  appName: 'SMarket',
+  appId: 'com.mercadoesperto.app',
+  appName: 'Mercado Esperto',
   webDir: 'out',
   server: {
     androidScheme: 'https',
@@ -236,8 +236,8 @@ Adicionar botao "Tirar Foto" (visivel apenas em `isNative()`):
 ### 3.5 Permissoes nativas e fluxo de solicitacao
 
 iOS (`apps/web/ios/App/App/Info.plist`):
-- `NSCameraUsageDescription`: "SMarket precisa da camera para fotografar notas fiscais"
-- `NSPhotoLibraryUsageDescription`: "SMarket precisa acessar fotos de notas fiscais"
+- `NSCameraUsageDescription`: "Mercado Esperto precisa da camera para fotografar notas fiscais"
+- `NSPhotoLibraryUsageDescription`: "Mercado Esperto precisa acessar fotos de notas fiscais"
 
 Android (`apps/web/android/app/src/main/AndroidManifest.xml`):
 - `android.permission.CAMERA`
@@ -389,7 +389,7 @@ Existem duas formas de configurar:
 Crie o arquivo `apps/web/.env.production`:
 
 ```env
-NEXT_PUBLIC_API_URL=https://api.smarket.com.br
+NEXT_PUBLIC_API_URL=https://api.mercadoesperto.com.br
 ```
 
 Ao rodar o build, o Next.js pegará automaticamente esta variável.
@@ -397,7 +397,7 @@ Ao rodar o build, o Next.js pegará automaticamente esta variável.
 #### Opção B: Via linha de comando
 
 ```bash
-NEXT_PUBLIC_API_URL=https://api.smarket.com.br npm run build:mobile
+NEXT_PUBLIC_API_URL=https://api.mercadoesperto.com.br npm run build:mobile
 ```
 
 > **Nota para Desenvolvimento Local**:
@@ -466,7 +466,7 @@ Configurar em `capacitor.config.ts`:
 ```ts
 plugins: {
   AppUpdate: {
-    updateUrl: 'https://api.smarket.com.br/app-update',
+    updateUrl: 'https://api.mercadoesperto.com.br/app-update',
     autoUpdate: true,
   },
 }
@@ -490,7 +490,7 @@ server: {
 },
 plugins: {
   App: {
-    urlScheme: 'smarket',
+    urlScheme: 'mercadoesperto',
   },
 }
 ```
@@ -541,8 +541,8 @@ Arquivo: `apps/web/package.json`
   "specs": "e2e",
   "configurations": {
     "ios.sim.debug": {
-      "binaryPath": "ios/build/Build/Products/Debug-iphonesimulator/SMarket.app",
-      "build": "xcodebuild -workspace ios/SMarket.xcworkspace -scheme SMarket -configuration Debug -sdk iphonesimulator -derivedDataPath ios/build",
+      "binaryPath": "ios/build/Build/Products/Debug-iphonesimulator/Mercado Esperto.app",
+      "build": "xcodebuild -workspace ios/Mercado Esperto.xcworkspace -scheme Mercado Esperto -configuration Debug -sdk iphonesimulator -derivedDataPath ios/build",
       "type": "ios.app",
       "device": {
         "type": "iPhone 15 Pro"
@@ -622,7 +622,7 @@ Objetivo: publicar o app na Apple App Store e Google Play Store.
 #### 10.1.1 Configurar certificados e provisioning profiles
 
 1. Acessar [Apple Developer](https://developer.apple.com)
-2. Criar App ID: `com.smarket.app`
+2. Criar App ID: `com.mercadoesperto.app`
 3. Criar Distribution Certificate
 4. Criar Provisioning Profile (App Store)
 
@@ -636,7 +636,7 @@ npx cap open ios
 ```
 
 No Xcode:
-1. Selecionar scheme "SMarket"
+1. Selecionar scheme "Mercado Esperto"
 2. Selecionar "Any iOS Device (arm64)"
 3. Product > Archive
 4. Após o build, clicar em "Distribute App"
@@ -655,7 +655,7 @@ No Xcode:
 #### 10.2.1 Gerar keystore de assinatura
 
 ```bash
-keytool -genkey -v -keystore smarket-release.keystore -alias smarket -keyalg RSA -keysize 2048 -validity 10000
+keytool -genkey -v -keystore mercadoesperto-release.keystore -alias mercadoesperto -keyalg RSA -keysize 2048 -validity 10000
 ```
 
 Salvar o keystore em local seguro (NÃO commitar no git).
@@ -668,7 +668,7 @@ Arquivo: `apps/web/android/app/build.gradle`
 android {
     signingConfigs {
         release {
-            storeFile file('../../smarket-release.keystore')
+            storeFile file('../../mercadoesperto-release.keystore')
             storePassword System.getenv("KEYSTORE_PASSWORD")
             keyAlias System.getenv("KEY_ALIAS")
             keyPassword System.getenv("KEY_PASSWORD")
@@ -713,11 +713,11 @@ Adicionar ao `.env.example`:
 # iOS Signing (para CI/CD)
 # IOS_CERTIFICATE_PATH=path/to/certificate.p12
 # IOS_CERTIFICATE_PASSWORD=your-password
-# IOS_PROVISIONING_PROFILE_SPECIFIER=com.smarket.app
+# IOS_PROVISIONING_PROFILE_SPECIFIER=com.mercadoesperto.app
 
 # Android Signing (para CI/CD)
 # KEYSTORE_PASSWORD=your-keystore-password
-# KEY_ALIAS=smarket
+# KEY_ALIAS=mercadoesperto
 # KEY_PASSWORD=your-key-password
 ```
 
@@ -730,7 +730,7 @@ Antes de enviar para a loja, verifique estes pontos críticos para garantir segu
 ### 11.1 URL da API (Obrigatório)
 Certifique-se de buildar com a URL de produção HTTPS.
 ```bash
-NEXT_PUBLIC_API_URL=https://api.smarket.com.br npm run build:mobile
+NEXT_PUBLIC_API_URL=https://api.mercadoesperto.com.br npm run build:mobile
 ```
 
 ### 11.2 Scheme do Android (Recomendado)
@@ -799,7 +799,7 @@ Sempre incremente a versão antes de gerar o build final.
 Use a URL **HTTPS** do backend no comando de build:
 
 ```bash
-NEXT_PUBLIC_API_URL=https://smarket-api.n8nvinicius.cloud npm run build:mobile
+NEXT_PUBLIC_API_URL=https://mercadoesperto-api.n8nvinicius.cloud npm run build:mobile
 ```
 
 ### Modificar

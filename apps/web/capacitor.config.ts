@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.smarket.app',
-  appName: 'SMarket',
+  appId: 'com.mercadoesperto.app',
+  appName: 'Mercado Esperto',
   webDir: 'out',
   server: {
     androidScheme: 'http',

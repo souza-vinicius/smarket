@@ -22,7 +22,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-lg font-semibold text-foreground">1. Aceitação dos Termos</h2>
             <p>
-              Ao acessar e utilizar o SMarket, você concorda com estes Termos de Uso.
+              Ao acessar e utilizar o Mercado Esperto, você concorda com estes Termos de Uso.
               Caso não concorde com algum dos termos, não utilize o serviço.
             </p>
           </section>
@@ -30,7 +30,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-lg font-semibold text-foreground">2. Descrição do Serviço</h2>
             <p>
-              O SMarket é uma plataforma de análise de notas fiscais (NF-e/NFC-e) que permite
+              O Mercado Esperto é uma plataforma de análise de notas fiscais (NF-e/NFC-e) que permite
               aos usuários digitalizar, organizar e analisar seus gastos com auxílio de
               inteligência artificial.
             </p>
@@ -57,7 +57,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-lg font-semibold text-foreground">5. Propriedade Intelectual</h2>
             <p>
-              Todo o conteúdo, marcas, logos e software do SMarket são de propriedade exclusiva
+              Todo o conteúdo, marcas, logos e software do Mercado Esperto são de propriedade exclusiva
               da plataforma e protegidos por leis de propriedade intelectual.
             </p>
           </section>
@@ -65,7 +65,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-lg font-semibold text-foreground">6. Limitação de Responsabilidade</h2>
             <p>
-              As análises e insights fornecidos pelo SMarket são de caráter informativo.
+              As análises e insights fornecidos pelo Mercado Esperto são de caráter informativo.
               Não nos responsabilizamos por decisões financeiras baseadas exclusivamente
               nas informações fornecidas pela plataforma.
             </p>
@@ -83,7 +83,7 @@ export default function TermsPage() {
             <h2 className="text-lg font-semibold text-foreground">8. Contato</h2>
             <p>
               Em caso de dúvidas sobre estes termos, entre em contato pelo e-mail:
-              suporte@smarket.com.br
+              suporte@mercadoesperto.com.br
             </p>
           </section>
         </div>

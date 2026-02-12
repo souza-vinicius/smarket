@@ -2,7 +2,7 @@
 
 ## Visão Geral
 
-Este documento descreve a implementação da validação e enriquecimento de CNPJ usando APIs públicas brasileiras no sistema SMarket.
+Este documento descreve a implementação da validação e enriquecimento de CNPJ usando APIs públicas brasileiras no sistema Mercado Esperto.
 
 ## Funcionalidades Implementadas
 

@@ -3,13 +3,13 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-smarket}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-smarket_password}
-      POSTGRES_DB: ${POSTGRES_DB:-smarket}
+      POSTGRES_USER: ${POSTGRES_USER:-mercadoesperto}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mercadoesperto_password}
+      POSTGRES_DB: ${POSTGRES_DB:-mercadoesperto}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-smarket}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mercadoesperto}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -39,7 +39,7 @@ services:
       dockerfile: Dockerfile
     environment:
       PYTHONUNBUFFERED: 1
-      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://smarket:smarket_password@postgres:5432/smarket}
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://mercadoesperto:mercadoesperto_password@postgres:5432/mercadoesperto}
       DB_ECHO: ${DB_ECHO:-false}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       SECRET_KEY: ${SECRET_KEY:-your-secret-key-change-in-production}
@@ -60,7 +60,7 @@ services:
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:8000}
       UPLOAD_DIR: ${UPLOAD_DIR:-uploads}
       DEBUG: ${DEBUG:-false}
-      APP_NAME: ${APP_NAME:-SMarket API}
+      APP_NAME: ${APP_NAME:-Mercado Esperto API}
       ENABLE_CNPJ_FEATURES: ${ENABLE_CNPJ_FEATURES:-true}
       ENABLE_CNPJ_VALIDATION: ${ENABLE_CNPJ_VALIDATION:-true}
       ENABLE_CNPJ_ENRICHMENT: ${ENABLE_CNPJ_ENRICHMENT:-true}

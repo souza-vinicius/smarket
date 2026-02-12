@@ -1,6 +1,6 @@
-# SMarket - Analista de Compras Inteligente
+# Mercado Esperto - Analista de Compras Inteligente
 
-SMarket é um aplicativo brasileiro de análise de notas fiscais (NF-e/NFC-e) que utiliza inteligência artificial para fornecer insights sobre suas compras e ajudá-lo a economizar dinheiro.
+Mercado Esperto é um aplicativo brasileiro de análise de notas fiscais (NF-e/NFC-e) que utiliza inteligência artificial para fornecer insights sobre suas compras e ajudá-lo a economizar dinheiro.
 
 ## 🚀 Funcionalidades
 

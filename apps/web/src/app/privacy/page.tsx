@@ -114,7 +114,7 @@ export default function PrivacyPage() {
             </h2>
             <p>
               Para exercer seus direitos ou esclarecer dúvidas sobre privacidade,
-              entre em contato: privacidade@smarket.com.br
+              entre em contato: privacidade@mercadoesperto.com.br
             </p>
           </section>
         </div>

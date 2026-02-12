@@ -323,7 +323,7 @@ export function Header({
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-foreground">
-                  Bem-vindo ao SMarket!
+                  Bem-vindo ao Mercado Esperto!
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Comece adicionando sua primeira nota fiscal.

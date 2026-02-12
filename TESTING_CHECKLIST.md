@@ -313,7 +313,7 @@ curl http://localhost:8000/api/v1/subscriptions/payments \
 2. [ ] Loading state aparece (botão desabilitado)
 3. [ ] Redirect para `checkout.stripe.com`
 4. [ ] Checkout page mostra:
-   - Produto correto (SMarket Básico)
+   - Produto correto (Mercado Esperto Básico)
    - Preço correto (R$ 9,90/mês ou R$ 99/ano)
    - Email pré-preenchido
 5. [ ] Usar cartão teste: **4242 4242 4242 4242**

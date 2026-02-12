@@ -34,7 +34,7 @@ export default function RegisterPage() {
     acceptTerms;
 
   return (
-    <AuthLayout title="Criar conta" subtitle="Comece a economizar com o SMarket">
+    <AuthLayout title="Criar conta" subtitle="Comece a economizar com o Mercado Esperto">
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* Error Message */}
         {registerError && (

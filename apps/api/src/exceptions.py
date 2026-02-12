@@ -4,8 +4,8 @@ from fastapi import HTTPException, status
 from src.utils.logger import logger
 
 
-class SMarketException(Exception):
-    """Base exception for SMarket application."""
+class MercadoEspertoException(Exception):
+    """Base exception for Mercado Esperto application."""
 
     def __init__(self, message: str, detail: str = None):
         self.message = message
@@ -13,43 +13,43 @@ class SMarketException(Exception):
         super().__init__(message)
 
 
-class InvoiceProcessingError(SMarketException):
+class InvoiceProcessingError(MercadoEspertoException):
     """Raised when invoice processing fails."""
 
     pass
 
 
-class InvoiceAlreadyExistsError(SMarketException):
+class InvoiceAlreadyExistsError(MercadoEspertoException):
     """Raised when trying to add a duplicate invoice."""
 
     pass
 
 
-class InvalidInvoiceFormatError(SMarketException):
+class InvalidInvoiceFormatError(MercadoEspertoException):
     """Raised when invoice format is invalid."""
 
     pass
 
 
-class ExternalServiceError(SMarketException):
+class ExternalServiceError(MercadoEspertoException):
     """Raised when external service (Sefaz, OpenAI) fails."""
 
     pass
 
 
-class AIServiceError(SMarketException):
+class AIServiceError(MercadoEspertoException):
     """Raised when AI analysis fails."""
 
     pass
 
 
-class SubscriptionError(SMarketException):
+class SubscriptionError(MercadoEspertoException):
     """Raised when subscription operation fails."""
 
     pass
 
 
-class UsageLimitExceededError(SMarketException):
+class UsageLimitExceededError(MercadoEspertoException):
     """Raised when user exceeds plan limits."""
 
     pass

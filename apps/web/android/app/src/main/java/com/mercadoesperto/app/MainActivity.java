@@ -1,4 +1,4 @@
-package com.smarket.app;
+package com.mercadoesperto.app;
 
 import com.getcapacitor.BridgeActivity;
 

@@ -70,7 +70,7 @@ src/
 ├── config.py          # Pydantic Settings (reads .env); 47+ config vars
 ├── database.py        # Async SQLAlchemy engine + get_db() dependency
 ├── dependencies.py    # Shared FastAPI Depends (get_current_user)
-├── exceptions.py      # Custom exception hierarchy (SMarketException base)
+├── exceptions.py      # Custom exception hierarchy (MercadoEspertoException base)
 ├── models/            # SQLAlchemy ORM — one file per entity (9 models)
 ├── schemas/           # Pydantic request/response models (Base/Create/Response pattern)
 ├── routers/           # One router file per resource (10 routers, 29+ endpoints)
@@ -248,7 +248,7 @@ State is fetched via TanStack React Query. The root layout wraps children in a `
 - Imports grouped: stdlib → third-party → local (absolute only, e.g. `from src.models.user import User`)
 - Naming: `snake_case` for modules/functions/variables, `PascalCase` for classes, `UPPER_SNAKE_CASE` for constants
 - Pydantic schemas: `<Entity>Base` → `<Entity>Create` → `<Entity>Response`
-- Custom exceptions via `SMarketException` hierarchy in `exceptions.py`; converted to `HTTPException` by handler
+- Custom exceptions via `MercadoEspertoException` hierarchy in `exceptions.py`; converted to `HTTPException` by handler
 
 ## Code style (frontend)
 

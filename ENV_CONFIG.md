@@ -1,6 +1,6 @@
 # Configuração via Variáveis de Ambiente
 
-Este documento explica como configurar o SMarket usando variáveis de ambiente, sem precisar modificar o código-fonte.
+Este documento explica como configurar o Mercado Esperto usando variáveis de ambiente, sem precisar modificar o código-fonte.
 
 ## 📋 Setup Inicial
 
@@ -23,7 +23,7 @@ Este documento explica como configurar o SMarket usando variáveis de ambiente, 
 | Variável | Padrão | Descrição |
 |----------|--------|-----------|
 | `DEBUG` | `false` | Ativa modo debug |
-| `APP_NAME` | `SMarket API` | Nome da aplicação |
+| `APP_NAME` | `Mercado Esperto API` | Nome da aplicação |
 
 ### Portas
 
