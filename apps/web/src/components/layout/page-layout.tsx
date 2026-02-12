@@ -77,8 +77,10 @@ export function PageLayout({
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Desktop Sidebar */}
-      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+      {/* Desktop Sidebar - Hidden on mobile */}
+      <div className="hidden lg:block">
+        <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+      </div>
 
       {/* Main Content Area */}
       <div className="lg:pl-[280px]">
@@ -89,7 +91,6 @@ export function PageLayout({
           showBackButton={showBackButton}
           onBack={onBack}
           actions={actions}
-          onMenuClick={() => setIsSidebarOpen(true)}
         />
 
         {/* Page Content */}
@@ -151,7 +152,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10 backdrop-blur-sm border border-white/20">
                 <Receipt className="w-6 h-6 text-white" />
               </div>
-              <span className="text-2xl font-bold text-white">SMarket</span>
+              <span className="text-2xl font-bold text-white">Mercado Esperto</span>
             </div>
           </div>
 
@@ -170,7 +171,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
 
           {/* Footer */}
           <div className="relative z-10 text-sm text-emerald-100/40">
-            © 2024 SMarket. Todos os direitos reservados.
+            © 2024 Mercado Esperto. Todos os direitos reservados.
           </div>
         </div>
 
@@ -182,7 +183,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
                 <Receipt className="w-5 h-5" />
               </div>
-              <span className="text-xl font-bold text-foreground">SMarket</span>
+              <span className="text-xl font-bold text-foreground">Mercado Esperto</span>
             </div>
           </div>
 

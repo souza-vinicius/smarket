@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Manrope } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
+import { ClientOnly } from "@/components/client-only";
 
 const manrope = Manrope({
   subsets: ["latin"],
@@ -119,7 +120,9 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
       <body className={`${manrope.className} antialiased`}>
-        <Providers>{children}</Providers>
+        <ClientOnly>
+          <Providers>{children}</Providers>
+        </ClientOnly>
       </body>
     </html>
   );
