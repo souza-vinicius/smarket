@@ -48,7 +48,14 @@ export function useAuth(): UseAuthReturn {
     mutationFn: (data: LoginRequest) => apiClient.login(data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: AUTH_KEYS.user });
-      router.push("/dashboard");
+      // Check if there's a return URL saved from before redirect to login
+      const returnUrl = typeof window !== "undefined" ? localStorage.getItem("returnUrl") : null;
+      if (returnUrl) {
+        localStorage.removeItem("returnUrl");
+        router.push(returnUrl);
+      } else {
+        router.push("/dashboard");
+      }
     },
   });
 

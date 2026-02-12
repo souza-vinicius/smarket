@@ -40,6 +40,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const handleUnauthorized = () => {
       queryClient.clear();
+      // Save current URL to redirect back after login
+      if (typeof window !== "undefined") {
+        const currentPath = window.location.pathname;
+        // Don't save login/register pages as return URL
+        if (currentPath !== "/login" && currentPath !== "/register") {
+          localStorage.setItem("returnUrl", currentPath);
+        }
+      }
       router.push("/login");
     };
 
