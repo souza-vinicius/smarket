@@ -78,6 +78,9 @@ services:
       STRIPE_BASIC_YEARLY_PRICE_ID: ${STRIPE_BASIC_YEARLY_PRICE_ID:-}
       STRIPE_PREMIUM_MONTHLY_PRICE_ID: ${STRIPE_PREMIUM_MONTHLY_PRICE_ID:-}
       STRIPE_PREMIUM_YEARLY_PRICE_ID: ${STRIPE_PREMIUM_YEARLY_PRICE_ID:-}
+      # Admin Bootstrap
+      ADMIN_BOOTSTRAP_EMAIL: ${ADMIN_BOOTSTRAP_EMAIL:-}
+      ADMIN_BOOTSTRAP_ROLE: ${ADMIN_BOOTSTRAP_ROLE:-super_admin}
     depends_on:
       postgres:
         condition: service_healthy
@@ -128,4 +131,4 @@ networks:
   internal:
     driver: bridge
   dokploy-network:
-    external: true
+    # external: true
