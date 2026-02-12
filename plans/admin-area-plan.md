@@ -542,74 +542,74 @@ class CouponUsage(Base):
 
 ## 5. Fases de Implementacao
 
-### FASE 1: Fundacao (Backend + Frontend base)
+### FASE 1: Fundacao (Backend + Frontend base) ✅ COMPLETO
 
 **Backend:**
-- [ ] Adicionar `admin_role` (String, nullable) e `deleted_at` ao modelo User
-- [ ] Criar migration para alteracao do User
-- [ ] Criar enum `AdminRole` e mapeamento de permissoes (`src/core/roles.py`)
-- [ ] Criar dependencies `get_current_admin` e `require_permission` (`src/dependencies.py`)
-- [ ] Implementar bootstrap de admin via `ADMIN_BOOTSTRAP_EMAIL` env var
-- [ ] Criar modelo `AuditLog` + migration
-- [ ] Criar schemas Pydantic para area admin (`src/schemas/admin.py`)
-- [ ] Criar router base `/api/v1/admin/` com middleware RBAC
-- [ ] **Bloqueio nativo (backend):** No middleware admin (`routers/admin/__init__.py`), rejeitar requests com header `X-Platform: ios` ou `X-Platform: android` com HTTP 403 + registrar tentativa no AuditLog
+- [x] Adicionar `admin_role` (String, nullable) e `deleted_at` ao modelo User
+- [x] Criar migration para alteracao do User
+- [x] Criar enum `AdminRole` e mapeamento de permissoes (`src/core/roles.py`)
+- [x] Criar dependencies `get_current_admin` e `require_permission` (`src/dependencies.py`)
+- [x] Implementar bootstrap de admin via `ADMIN_BOOTSTRAP_EMAIL` env var
+- [x] Criar modelo `AuditLog` + migration
+- [x] Criar schemas Pydantic para area admin (`src/schemas/admin.py`)
+- [x] Criar router base `/api/v1/admin/` com middleware RBAC
+- [x] **Bloqueio nativo (backend):** No middleware admin (`routers/admin/__init__.py`), rejeitar requests com header `X-Platform: ios` ou `X-Platform: android` com HTTP 403 + registrar tentativa no AuditLog
 
 **Frontend:**
-- [ ] Instalar `@tanstack/react-table`
-- [ ] Criar componente generico `data-table.tsx` (sorting, filtering, pagination)
-- [ ] Criar layout admin (`app/admin/layout.tsx`) com sidebar e guard de acesso
-- [ ] Adicionar interceptor Axios para 403 -> redirect `/dashboard` com toast
-- [ ] Criar `lib/admin-api.ts` (cliente API admin com header `X-Platform` via `getPlatform()`)
-- [ ] Criar hooks base (`use-admin-users.ts`, etc.)
+- [x] Instalar `@tanstack/react-table`
+- [x] Criar componente generico `data-table.tsx` (sorting, filtering, pagination)
+- [x] Criar layout admin (`app/admin/layout.tsx`) com sidebar e guard de acesso
+- [x] Adicionar interceptor Axios para 403 -> redirect `/dashboard` com toast
+- [x] Criar `lib/admin-api.ts` (cliente API admin com header `X-Platform` via `getPlatform()`)
+- [x] Criar hooks base (`use-admin-users.ts`, etc.)
 
 **Frontend — Bloqueio Nativo (WEB ONLY — OBRIGATORIO):**
-- [ ] No `app/admin/layout.tsx`: verificar `isNative()` no mount — se `true`, redirect para `/dashboard` com toast "Area disponivel apenas no navegador"
-- [ ] Criar middleware Next.js (`src/middleware.ts`): interceptar rotas `/admin/*` e retornar redirect se User-Agent indicar WebView/Capacitor
-- [ ] Na sidebar principal (`components/layout/sidebar.tsx`): renderizar link "Admin" apenas se `user.admin_role && !isNative()`
-- [ ] Na mobile-nav (`components/layout/mobile-nav.tsx`): NUNCA renderizar link admin (contexto mobile = potencialmente nativo)
-- [ ] Avaliar exclusao de `/admin` do build estatico Capacitor (via script pos-build ou `next.config.js`)
+- [x] No `app/admin/layout.tsx`: verificar `isNative()` no mount — se `true`, redirect para `/dashboard` com toast "Area disponivel apenas no navegador"
+- [x] Criar middleware Next.js (`src/middleware.ts`): interceptar rotas `/admin/*` e retornar redirect se User-Agent indicar WebView/Capacitor
+- [x] Na sidebar principal (`components/layout/sidebar.tsx`): renderizar link "Admin" apenas se `user.admin_role && !isNative()`
+- [x] Na mobile-nav (`components/layout/mobile-nav.tsx`): NUNCA renderizar link admin (contexto mobile = potencialmente nativo)
+- [x] Avaliar exclusao de `/admin` do build estatico Capacitor (via script pos-build ou `next.config.js`)
 
-### FASE 2: Gestao de Usuarios
+### FASE 2: Gestao de Usuarios ✅ COMPLETO
 
 **Backend:**
-- [ ] Endpoint: Listar usuarios com paginacao/filtros (incluindo soft-deleted)
-- [ ] Endpoint: Detalhes do usuario (+ subscription + usage_record + invoices count)
-- [ ] Endpoint: Atualizar usuario
-- [ ] Endpoint: Desativar usuario (soft delete: set `deleted_at`, `is_active=False`)
-- [ ] Endpoint: Reativar usuario
-- [ ] Endpoint: Impersonacao V1 (gerar JWT com claim `impersonated_by`)
-- [ ] Endpoint: Historico de atividades (audit_logs filtrado por user)
-- [ ] Registrar todas acoes no AuditLog
+- [x] Endpoint: Listar usuarios com paginacao/filtros (incluindo soft-deleted)
+- [x] Endpoint: Detalhes do usuario (+ subscription + usage_record + invoices count)
+- [x] Endpoint: Atualizar usuario
+- [x] Endpoint: Desativar usuario (soft delete: set `deleted_at`, `is_active=False`)
+- [x] Endpoint: Reativar usuario
+- [x] Endpoint: Impersonacao V1 (gerar JWT com claim `impersonated_by`)
+- [x] Endpoint: Historico de atividades (audit_logs filtrado por user)
+- [x] Registrar todas acoes no AuditLog
 
 **Frontend:**
-- [ ] Pagina: Lista de usuarios (data-table com busca, filtros por status/plano)
-- [ ] Pagina: Detalhes do usuario (perfil + subscription + usage + atividade)
-- [ ] Barra de impersonacao (banner amarelo fixo no topo)
+- [x] Pagina: Lista de usuarios (data-table com busca, filtros por status/plano)
+- [x] Pagina: Detalhes do usuario (perfil + subscription + usage + atividade)
+- [x] Barra de impersonacao (banner amarelo fixo no topo)
 
-### FASE 3: Gestao de Assinaturas + Pagamentos
+### FASE 3: Gestao de Assinaturas + Pagamentos ✅ COMPLETO
 
 > Reaproveitamento: `stripe_service.py` (checkout, cancel), `subscription_service.py` (webhooks), modelos Subscription e Payment ja existem.
 
 **Backend — Assinaturas:**
-- [ ] Endpoint: Listar assinaturas (com filtros status/plano/periodo)
-- [ ] Endpoint: Detalhes da assinatura (+ historico de pagamentos)
-- [ ] Endpoint: Modificar assinatura (via Stripe API — upgrade/downgrade)
-- [ ] Endpoint: Cancelar assinatura (via `stripe_service.cancel_subscription`)
-- [ ] Endpoint: Estender trial (update `trial_end` no Stripe + DB)
+- [x] Endpoint: Listar assinaturas (com filtros status/plano/periodo)
+- [x] Endpoint: Detalhes da assinatura (+ historico de pagamentos)
+- [x] Endpoint: Modificar assinatura (via Stripe API — upgrade/downgrade)
+- [x] Endpoint: Cancelar assinatura (via `stripe_service.cancel_subscription`)
+- [x] Endpoint: Estender trial (update `trial_end` no Stripe + DB)
 
 **Backend — Pagamentos:**
-- [ ] Endpoint: Listar pagamentos (com filtros status/periodo/valor)
-- [ ] Endpoint: Detalhes do pagamento
-- [ ] Endpoint: Processar reembolso via Stripe (`stripe.Refund.create`)
+- [x] Endpoint: Listar pagamentos (com filtros status/periodo/valor)
+- [x] Endpoint: Detalhes do pagamento
+- [x] Endpoint: Processar reembolso via Stripe (`stripe.Refund.create`)
 
 **Frontend:**
-- [ ] Pagina: Lista de assinaturas (data-table)
-- [ ] Pagina: Detalhes da assinatura
-- [ ] Pagina: Lista de pagamentos (data-table)
-- [ ] Modal de reembolso com confirmacao
+- [x] Pagina: Lista de assinaturas (data-table)
+- [x] Pagina: Detalhes da assinatura
+- [x] Pagina: Lista de pagamentos (data-table)
+- [x] Modal de reembolso com confirmacao
 
-### FASE 4: Cupons e Promocoes
+### FASE 4: Cupons e Promocoes ⏳ PENDENTE
 
 **Backend:**
 - [ ] Criar modelos `Coupon` e `CouponUsage` + migration
@@ -631,31 +631,31 @@ class CouponUsage(Base):
 - [ ] Pagina: Formulario de criacao/edicao de cupom
 - [ ] Aplicar cupom na pagina de pricing/checkout
 
-### FASE 5: Dashboard e Metricas
+### FASE 5: Dashboard e Metricas ✅ COMPLETO
 
 > Agora que ha dados de usuarios, assinaturas, pagamentos e cupons, o dashboard tem conteudo real para mostrar.
 
 **Backend:**
-- [ ] Criar `MetricsService` com queries SQL diretas:
+- [x] Criar `MetricsService` com queries SQL diretas:
   - MRR: `SUM(amount) FROM payments WHERE status='succeeded' AND period=current_month`
   - Churn: `COUNT cancelamentos / COUNT inicio_do_mes`
   - Trial conversion: `COUNT converted / COUNT trial_ended`
   - ARPU: MRR / paying users count
   - Growth: novos usuarios por periodo
-- [ ] Endpoint: `/dashboard/stats` — KPIs principais
-- [ ] Endpoint: `/dashboard/revenue` — MRR ao longo do tempo
-- [ ] Endpoint: `/dashboard/growth` — Crescimento de usuarios
-- [ ] Endpoint: `/dashboard/operations` — Metricas operacionais (OCR success rate, invoices/dia, avg processing time, provider breakdown)
-- [ ] Endpoint: `/system/health` — Status DB, Redis, Stripe, LLM providers
+- [x] Endpoint: `/dashboard/stats` — KPIs principais
+- [x] Endpoint: `/dashboard/revenue` — MRR ao longo do tempo
+- [x] Endpoint: `/dashboard/growth` — Crescimento de usuarios
+- [x] Endpoint: `/dashboard/operations` — Metricas operacionais (OCR success rate, invoices/dia, avg processing time, provider breakdown)
+- [x] Endpoint: `/system/health` — Status DB, Redis, Stripe, LLM providers
 
 **Frontend:**
-- [ ] Dashboard: Cards de KPIs (MRR, users, churn, trial conversion)
-- [ ] Dashboard: Grafico de receita (Recharts — ja instalado)
-- [ ] Dashboard: Grafico de crescimento
-- [ ] Dashboard: Secao de metricas operacionais
-- [ ] System health: Indicadores de status dos servicos
+- [x] Dashboard: Cards de KPIs (MRR, users, churn, trial conversion)
+- [x] Dashboard: Grafico de receita (Recharts — ja instalado)
+- [x] Dashboard: Grafico de crescimento
+- [x] Dashboard: Secao de metricas operacionais
+- [x] System health: Indicadores de status dos servicos
 
-### FASE 6: Relatorios e Exportacao
+### FASE 6: Relatorios e Exportacao ⏳ PENDENTE
 
 **Backend:**
 - [ ] Endpoint: Relatorio de churn (motivos, timeline, por plano)
@@ -666,18 +666,18 @@ class CouponUsage(Base):
 - [ ] Pagina: Relatorios com filtros de periodo
 - [ ] Funcionalidade: Download CSV
 
-### FASE 7: Configuracoes e Auditoria
+### FASE 7: Configuracoes e Auditoria ✅ COMPLETO
 
 **Backend:**
-- [ ] Endpoint: Listar/alterar configuracoes (feature flags)
-- [ ] Endpoint: Listar logs de auditoria (com filtros por admin, acao, recurso, periodo)
-- [ ] Endpoint: Listar papeis administrativos
+- [x] Endpoint: Listar/alterar configuracoes (feature flags)
+- [x] Endpoint: Listar logs de auditoria (com filtros por admin, acao, recurso, periodo)
+- [x] Endpoint: Listar papeis administrativos
 
 **Frontend:**
-- [ ] Pagina: Configuracoes gerais
-- [ ] Pagina: Logs de auditoria (data-table com filtros avancados)
+- [x] Pagina: Configuracoes gerais
+- [x] Pagina: Logs de auditoria (data-table com filtros avancados)
 
-### FASE 8: Testes e Qualidade
+### FASE 8: Testes e Qualidade ⏳ PENDENTE
 
 - [ ] Testes unitarios para `MetricsService` (calculos de MRR, churn, conversion)
 - [ ] Testes unitarios para `CouponService` (todos os edge cases de validacao)
@@ -1001,9 +1001,73 @@ async def test_refund_calls_stripe(client, admin_user, payment, mock_stripe):
 
 ---
 
-## 11. Proximos Passos
+---
 
-1. **Aprovar este plano**
-2. Adicionar `ADMIN_BOOTSTRAP_EMAIL` ao `.env`
-3. Instalar `@tanstack/react-table` no frontend
-4. Iniciar FASE 1 (Fundacao)
+## 11. Status Geral de Implementacao
+
+| Fase | Descricao | Status | Conclusao |
+|------|-----------|--------|-----------|
+| **FASE 1** | Fundacao (Auth RBAC, modelo User, AuditLog) | ✅ | Completo (13 fev 2026) |
+| **FASE 2** | Gestao de Usuarios | ✅ | Completo (13 fev 2026) |
+| **FASE 3** | Gestao de Assinaturas + Pagamentos | ✅ | Completo (13 fev 2026) |
+| **FASE 4** | Cupons e Promocoes | ⏳ | **Proximo** |
+| **FASE 5** | Dashboard e Metricas | ✅ | Completo (13 fev 2026) |
+| **FASE 6** | Relatorios e Exportacao CSV | ⏳ | Pendente |
+| **FASE 7** | Configuracoes + Auditoria | ✅ | Completo (13 fev 2026) |
+| **FASE 8** | Testes e Qualidade | ⏳ | Pendente |
+
+**Resumo:** 5 de 8 fases implementadas (62.5%). Infra de admin totalmente funcional.
+
+### Arquivos Implementados
+
+**Backend:**
+- `src/models/user.py` — Adicoes: `admin_role`, `deleted_at`, `is_admin` property
+- `src/core/roles.py` — Enum AdminRole + mapeamento de permissoes
+- `src/dependencies.py` — `get_current_admin`, `require_permission`
+- `src/models/audit_log.py` — Modelo AuditLog com indices
+- `src/schemas/admin.py` — Todos os schemas Pydantic
+- `src/routers/admin/__init__.py` — Router base + endpoints dashboard/users/system
+- `src/routers/admin/subscriptions.py` — Endpoints de assinaturas
+- `src/routers/admin/payments.py` — Endpoints de pagamentos
+- `src/routers/admin/settings.py` — Feature flags + roles + audit logs
+- `src/services/admin_service.py` — Logica de negocio admin
+- `src/services/metrics_service.py` — Calculos de metricas SaaS
+- `src/config.py` — `ADMIN_BOOTSTRAP_EMAIL` config var
+- Migrations Alembic — User, AuditLog tables
+
+**Frontend:**
+- `src/middleware.ts` — Bloqueio nativo em `/admin/*`
+- `src/lib/admin-api.ts` — Cliente Axios com retry + header `X-Platform` + token refresh
+- `src/app/admin/layout.tsx` — Guard de acesso + sidebar com links
+- `src/app/admin/page.tsx` — Dashboard com Recharts (MRR, growth) + operational metrics + system health
+- `src/app/admin/users/page.tsx` — Lista usuarios
+- `src/app/admin/users/[id]/page.tsx` — Detalhes usuario + impersonacao
+- `src/app/admin/subscriptions/page.tsx` — Lista assinaturas
+- `src/app/admin/subscriptions/[id]/page.tsx` — Detalhes assinatura
+- `src/app/admin/payments/page.tsx` — Lista pagamentos
+- `src/app/admin/settings/page.tsx` — Feature flags + roles
+- `src/app/admin/settings/audit-logs/page.tsx` — Audit logs com filtros
+- `src/hooks/use-admin-analytics.ts` — Hooks para metricas + health
+- `src/hooks/use-admin-users.ts` — Hooks para usuarios
+- `src/hooks/use-admin-subscriptions.ts` — Hooks para assinaturas
+- `src/hooks/use-admin-payments.ts` — Hooks para pagamentos
+- `src/hooks/use-admin-settings.ts` — Hooks para settings + audit logs
+- `src/types/admin.ts` — TypeScript interfaces
+
+### Proximos Passos
+
+1. **FASE 4: Cupons e Promocoes** (~2-3 horas)
+   - Criar modelos `Coupon` + `CouponUsage`
+   - `CouponService` com validacoes
+   - Endpoints CRUD admin + validacao publica
+   - Frontend: lista, criacao, edicao, aplicacao no checkout
+
+2. **FASE 6: Relatorios** (~4-5 horas)
+   - Relatorio de churn (timeline, motivos, por plano)
+   - Relatorio de conversao (funil trial -> paid)
+   - Exportacao CSV com streaming
+
+3. **FASE 8: Testes** (~6-8 horas)
+   - Cobertura de MetricsService, CouponService, endpoints admin
+   - Testes de seguranca (RBAC, bloqueio nativo)
+   - Documentacao OpenAPI/Swagger
