@@ -21,7 +21,7 @@ export const adminApi = axios.create({
 adminApi.interceptors.request.use(
   (config) => {
     // Add JWT token
-    const token = localStorage.getItem("accessToken");
+    const token = localStorage.getItem("access_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -36,10 +36,22 @@ adminApi.interceptors.request.use(
   }
 );
 
-// Response interceptor - Handle 403 (forbidden) and other errors
+// Response interceptor - Handle 401/403 errors
 adminApi.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
+    if (error.response?.status === 401) {
+      // Unauthorized - token expired or invalid
+      console.error("[Admin API] Unauthorized:", error.response.data);
+
+      // Clear tokens and redirect to login
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+        window.location.href = "/login";
+      }
+    }
+
     if (error.response?.status === 403) {
       // Forbidden - either not admin or native platform blocked
       console.error("[Admin API] Access forbidden:", error.response.data);
