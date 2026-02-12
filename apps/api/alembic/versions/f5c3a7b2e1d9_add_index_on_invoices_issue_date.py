@@ -1,7 +1,7 @@
 """add index on invoices issue_date for query optimization
 
 Revision ID: f5c3a7b2e1d9
-Revises: d41e5ed75a55
+Revises: e8f2b7c9d6a3
 Create Date: 2026-02-11 12:00:00.000000
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = 'f5c3a7b2e1d9'
-down_revision: Union[str, None] = 'd41e5ed75a55'
+down_revision: Union[str, None] = 'e8f2b7c9d6a3'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
