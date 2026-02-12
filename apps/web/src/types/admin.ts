@@ -254,6 +254,21 @@ export interface RefundResponse {
   message: string;
 }
 
+// System Health
+export interface ServiceHealth {
+  status: "healthy" | "unhealthy" | "degraded" | "configured" | "not_configured";
+  latency_ms?: number;
+  used_memory_mb?: number;
+  error?: string;
+  http_status?: number;
+}
+
+export interface SystemHealth {
+  status: "healthy" | "unhealthy" | "degraded";
+  services: Record<string, ServiceHealth>;
+  checked_at: string;
+}
+
 // Audit Logs
 export interface AuditLogsResponse {
   logs: AuditLogEntry[];

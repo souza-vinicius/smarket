@@ -7,6 +7,7 @@ import type {
   RevenueChartData,
   GrowthChartData,
   OperationalMetrics,
+  SystemHealth,
 } from "@/types/admin";
 
 const ADMIN_ANALYTICS_KEYS = {
@@ -17,6 +18,7 @@ const ADMIN_ANALYTICS_KEYS = {
   growth: (months: number) =>
     [...ADMIN_ANALYTICS_KEYS.all, "growth", months] as const,
   operations: () => [...ADMIN_ANALYTICS_KEYS.all, "operations"] as const,
+  health: () => [...ADMIN_ANALYTICS_KEYS.all, "health"] as const,
 };
 
 interface UseAdminDashboardStatsReturn {
@@ -114,5 +116,31 @@ export function useAdminOperationalMetrics(): UseAdminOperationalMetricsReturn {
     metrics: data || null,
     isLoading,
     error: error as Error | null,
+  };
+}
+
+interface UseSystemHealthReturn {
+  health: SystemHealth | null;
+  isLoading: boolean;
+  error: Error | null;
+  refetch: () => void;
+}
+
+export function useSystemHealth(): UseSystemHealthReturn {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ADMIN_ANALYTICS_KEYS.health(),
+    queryFn: async () => {
+      const response = await adminApi.get<SystemHealth>("/system/health");
+      return response.data;
+    },
+    staleTime: 60 * 1000, // 1 minute
+    refetchInterval: 5 * 60 * 1000, // auto-refresh every 5 minutes
+  });
+
+  return {
+    health: data || null,
+    isLoading,
+    error: error as Error | null,
+    refetch,
   };
 }

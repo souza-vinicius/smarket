@@ -6,6 +6,7 @@ Native platform (iOS/Android) access is blocked for security.
 """
 
 import uuid
+from datetime import datetime
 from typing import Optional
 
 import structlog
@@ -368,6 +369,134 @@ async def list_audit_logs(
     """List audit logs with optional filters."""
     metrics = MetricsService(db)
     return await metrics.get_audit_logs(page, per_page, resource_type, action)
+
+
+# ============================================================================
+# System Health Endpoint
+# ============================================================================
+
+
+@admin_router.get(
+    "/system/health",
+    dependencies=[Depends(require_permission("user:read"))],
+)
+async def get_system_health(
+    db: AsyncSession = Depends(get_db),
+):
+    """Check health of all dependent services (DB, Redis, Stripe, LLM providers)."""
+    import time
+
+    import httpx
+    from src.config import settings
+
+    results = {}
+
+    # 1. Database
+    try:
+        start = time.monotonic()
+        await db.execute(select(func.now()))
+        latency = round((time.monotonic() - start) * 1000, 1)
+        results["database"] = {"status": "healthy", "latency_ms": latency}
+    except Exception as e:
+        results["database"] = {"status": "unhealthy", "error": str(e)}
+
+    # 2. Redis
+    try:
+        import redis.asyncio as aioredis
+
+        start = time.monotonic()
+        r = aioredis.from_url(settings.REDIS_URL, socket_timeout=3)
+        await r.ping()
+        latency = round((time.monotonic() - start) * 1000, 1)
+        info = await r.info("memory")
+        used_memory_mb = round(info.get("used_memory", 0) / (1024 * 1024), 1)
+        await r.aclose()
+        results["redis"] = {
+            "status": "healthy",
+            "latency_ms": latency,
+            "used_memory_mb": used_memory_mb,
+        }
+    except Exception as e:
+        results["redis"] = {"status": "unhealthy", "error": str(e)}
+
+    # 3. Stripe
+    if settings.STRIPE_SECRET_KEY:
+        try:
+            import stripe
+
+            start = time.monotonic()
+            stripe.api_key = settings.STRIPE_SECRET_KEY
+            await stripe.Balance.retrieve_async()
+            latency = round((time.monotonic() - start) * 1000, 1)
+            results["stripe"] = {"status": "healthy", "latency_ms": latency}
+        except Exception as e:
+            results["stripe"] = {"status": "unhealthy", "error": str(e)}
+    else:
+        results["stripe"] = {"status": "not_configured"}
+
+    # 4. LLM Providers
+    async def check_url(name: str, url: str, api_key: str):
+        if not api_key:
+            return name, {"status": "not_configured"}
+        try:
+            start = time.monotonic()
+            async with httpx.AsyncClient(timeout=5) as client:
+                resp = await client.get(
+                    url, headers={"Authorization": f"Bearer {api_key}"}
+                )
+                latency = round((time.monotonic() - start) * 1000, 1)
+                if resp.status_code < 500:
+                    return name, {"status": "healthy", "latency_ms": latency}
+                return name, {
+                    "status": "degraded",
+                    "latency_ms": latency,
+                    "http_status": resp.status_code,
+                }
+        except Exception as e:
+            return name, {"status": "unhealthy", "error": str(e)}
+
+    import asyncio
+
+    llm_checks = await asyncio.gather(
+        check_url(
+            "openrouter",
+            "https://openrouter.ai/api/v1/models",
+            settings.OPENROUTER_API_KEY,
+        ),
+        check_url(
+            "openai",
+            "https://api.openai.com/v1/models",
+            settings.OPENAI_API_KEY,
+        ),
+        check_url(
+            "anthropic",
+            "https://api.anthropic.com/v1/messages",
+            settings.ANTHROPIC_API_KEY,
+        ),
+    )
+
+    for name, result in llm_checks:
+        results[name] = result
+
+    if settings.GEMINI_API_KEY:
+        results["gemini"] = {"status": "configured"}
+    else:
+        results["gemini"] = {"status": "not_configured"}
+
+    # Overall status
+    statuses = [s["status"] for s in results.values()]
+    if all(s in ("healthy", "configured", "not_configured") for s in statuses):
+        overall = "healthy"
+    elif any(s == "unhealthy" for s in statuses):
+        overall = "unhealthy"
+    else:
+        overall = "degraded"
+
+    return {
+        "status": overall,
+        "services": results,
+        "checked_at": datetime.utcnow().isoformat(),
+    }
 
 
 # ============================================================================
