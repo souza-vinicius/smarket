@@ -41,7 +41,14 @@ interface EditableInvoice {
 export default function InvoiceEditClient() {
   const params = useParams();
   const router = useRouter();
-  const invoiceId = params.invoiceId as string;
+
+  // In static export, extract real ID from URL pathname
+  const invoiceId = (() => {
+    if (typeof window === 'undefined') return params.invoiceId as string;
+    const pathname = window.location.pathname;
+    const match = pathname.match(/^\/invoices\/([^/]+)/);
+    return match ? match[1] : params.invoiceId as string;
+  })();
 
   const { data: invoice, isLoading, error: fetchError } = useInvoice(invoiceId);
   const updateMutation = useUpdateInvoice();

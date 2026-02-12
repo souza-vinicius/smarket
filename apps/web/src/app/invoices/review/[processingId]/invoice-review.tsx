@@ -43,7 +43,14 @@ interface DuplicateErrorData {
 export default function InvoiceReviewClient() {
   const params = useParams();
   const router = useRouter();
-  const processingId = params.processingId as string;
+
+  // In static export, extract real ID from URL pathname
+  const processingId = (() => {
+    if (typeof window === 'undefined') return params.processingId as string;
+    const pathname = window.location.pathname;
+    const match = pathname.match(/^\/invoices\/review\/([^/]+)/);
+    return match ? match[1] : params.processingId as string;
+  })();
 
   const { data: processingData, isLoading, error: fetchError } = useProcessingStatus(processingId);
   const confirmMutation = useConfirmInvoice();

@@ -5,8 +5,8 @@
   "scripts": {
     "dev": "next dev -H 0.0.0.0",
     "build": "next build",
-    "build:mobile": "cross-env BUILD_TARGET=capacitor next build && npx cap sync",
-    "build:mobile:prod": "cross-env BUILD_TARGET=capacitor NEXT_PUBLIC_API_URL=https://smarket-api.n8nvinicius.cloud next build && npx cap sync",
+    "build:mobile": "cross-env NODE_ENV=production BUILD_TARGET=capacitor next build && npx cap sync",
+    "build:mobile:prod": "cross-env NODE_ENV=production BUILD_TARGET=capacitor NEXT_PUBLIC_API_URL=https://smarket-api.n8nvinicius.cloud next build && npx cap sync",
     "start": "next start",
     "cap:ios": "npx cap open ios",
     "cap:android": "npx cap open android",

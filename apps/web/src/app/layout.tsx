@@ -105,6 +105,16 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className={manrope.variable} suppressHydrationWarning>
       <head>
+        {/* Register service worker for dynamic route handling in Capacitor static export */}
+        <script dangerouslySetInnerHTML={{ __html: `
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+              .then(function(reg) { console.log('[App] SW registered:', reg.scope); })
+              .catch(function(err) { console.error('[App] SW registration failed:', err); });
+          } else {
+            console.log('[App] Service workers not supported');
+          }
+        `}} />
         {/* PWA Meta Tags */}
         <meta name="application-name" content="Mercado Esperto" />
         <meta name="apple-mobile-web-app-capable" content="yes" />

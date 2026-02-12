@@ -74,7 +74,18 @@ function ProductItem({
 export default function InvoiceDetailClient() {
   const router = useRouter();
   const params = useParams();
-  const invoiceId = params.invoiceId as string;
+  const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+
+  // In static export, params.invoiceId will be "_" from generateStaticParams
+  // Get the real ID from the actual URL pathname
+  const invoiceId = (() => {
+    if (typeof window === 'undefined') return params.invoiceId as string;
+
+    const pathname = window.location.pathname;
+    const match = pathname.match(/^\/invoices\/([^/]+)/);
+    return match ? match[1] : params.invoiceId as string;
+  })();
+
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
