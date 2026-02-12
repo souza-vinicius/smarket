@@ -85,6 +85,12 @@ export default function AdminLayout({
           >
             💰 Pagamentos
           </Link>
+          <Link
+            href="/admin/settings"
+            className="block px-6 py-3 text-gray-700 hover:bg-gray-100 transition-colors"
+          >
+            ⚙️ Configurações
+          </Link>
 
           <div className="mt-8 border-t border-gray-200 pt-4">
             <Link

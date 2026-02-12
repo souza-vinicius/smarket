@@ -277,3 +277,36 @@ export interface AuditLogsResponse {
   per_page: number;
   pages: number;
 }
+
+// Settings / Feature Flags
+export interface FeatureFlags {
+  subscription: Record<string, boolean | number>;
+  cnpj: Record<string, boolean>;
+  ai_analysis: Record<string, boolean>;
+  image_optimization: Record<string, boolean | number>;
+  providers: Record<string, boolean | string>;
+}
+
+export interface SettingsResponse {
+  feature_flags: FeatureFlags;
+}
+
+export interface FeatureFlagsUpdate {
+  [key: string]: boolean | number;
+}
+
+export interface FeatureFlagsUpdateResponse {
+  message: string;
+  changes: Record<string, { old: unknown; new: unknown }>;
+}
+
+// Roles
+export interface RoleInfo {
+  role: string;
+  label: string;
+  permissions: string[];
+}
+
+export interface RolesResponse {
+  roles: RoleInfo[];
+}
