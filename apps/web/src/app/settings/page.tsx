@@ -492,13 +492,18 @@ export default function SettingsPage() {
                   <Crown className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <h3 className="font-semibold text-foreground">
                       Plano {subscription.plan === "free" ? "Gratuito" : subscription.plan === "basic" ? "Básico" : "Premium"}
                     </h3>
                     <Badge variant={subscription.status === "trial" ? "warning" : subscription.status === "active" ? "success" : "default"}>
                       {subscription.status === "trial" ? "Trial" : subscription.status === "active" ? "Ativo" : subscription.status}
                     </Badge>
+                    {subscription.status === "trial" && (
+                      <Badge variant="success" className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
+                        ✨ 30 Dias Ilimitados
+                      </Badge>
+                    )}
                   </div>
                   {subscription.status === "trial" && (
                     <p className="text-sm text-muted-foreground flex items-center gap-1">

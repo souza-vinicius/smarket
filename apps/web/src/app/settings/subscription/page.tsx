@@ -106,7 +106,7 @@ export default function SubscriptionSettingsPage() {
             <h2 className="text-xl font-semibold text-slate-900 mb-1">
               Plano {planLabels[subscription.plan as keyof typeof planLabels]}
             </h2>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span
                 className={`text-xs font-semibold px-2 py-1 rounded-full ${
                   statusColors[subscription.status as keyof typeof statusColors]
@@ -114,6 +114,11 @@ export default function SubscriptionSettingsPage() {
               >
                 {statusLabels[subscription.status as keyof typeof statusLabels]}
               </span>
+              {subscription.status === "trial" && (
+                <span className="text-xs font-semibold px-2 py-1 rounded-full bg-emerald-100 text-emerald-700">
+                  ✨ Ilimitado
+                </span>
+              )}
               {subscription.billing_cycle && (
                 <span className="text-xs text-slate-600">
                   •{" "}
@@ -140,17 +145,32 @@ export default function SubscriptionSettingsPage() {
 
         {/* Trial Info */}
         {subscription.status === "trial" && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-            <div className="flex items-start gap-3">
-              <CheckCircle2 className="w-5 h-5 text-blue-600 flex-shrink-0" />
-              <div className="flex-1">
-                <p className="text-sm text-blue-900 font-medium mb-1">
-                  Trial Premium Ativo
-                </p>
-                <p className="text-xs text-blue-700">
-                  Válido até{" "}
-                  {formatDate(new Date(subscription.trial_end), "pt-BR")}
-                </p>
+          <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3 flex-1">
+                <CheckCircle2 className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="text-sm text-blue-900 font-semibold">
+                      Trial Premium Ativo
+                    </p>
+                  </div>
+                  <p className="text-xs text-blue-700 leading-relaxed">
+                    Aproveite 30 dias com acesso ilimitado a todas as funcionalidades. Válido até{" "}
+                    <strong>
+                      {formatDate(new Date(subscription.trial_end), "pt-BR")}
+                    </strong>
+                  </p>
+                </div>
+              </div>
+              <div className="flex-shrink-0">
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-600 text-white text-xs font-semibold whitespace-nowrap">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-200"></span>
+                  </span>
+                  30 dias ilimitados
+                </span>
               </div>
             </div>
           </div>
