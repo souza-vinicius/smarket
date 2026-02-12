@@ -316,3 +316,22 @@ Copy `.env.example` to `.env` at the repo root.
 - `STRIPE_PRICE_ID_PREMIUM_YEARLY` — Stripe price ID for Premium yearly plan
 
 **Frontend:** `NEXT_PUBLIC_API_URL` (set in `apps/web/.env.local` or via `docker-compose.yml`).
+
+### ⚠️ Environment Variables Management
+
+**Critical**: Every new environment variable added to the codebase MUST be configured in three places:
+
+1. **`.env.example`** — Document the variable with comments explaining its purpose
+2. **`docker-compose.yml`** — Add to the `api` (or `web`) service's `environment:` section to make it available in the container:
+   ```yaml
+   environment:
+     NEW_VAR: ${NEW_VAR:-default_value}
+   ```
+3. **`Dockerfile`** (if applicable) — If the variable is needed at build time or in the Dockerfile entrypoint
+
+**Why?** Variables in `.env` are NOT automatically passed to Docker containers. They must be explicitly referenced in `docker-compose.yml`'s `environment:` block. Without this, the app will not see the variable even if it's set in `.env`.
+
+**Example workflow:**
+- Add `ADMIN_BOOTSTRAP_EMAIL=admin@example.com` to `.env.example` and `.env`
+- Add `ADMIN_BOOTSTRAP_EMAIL: ${ADMIN_BOOTSTRAP_EMAIL:-}` to `docker-compose.yml` under the `api` service's `environment:` block
+- Run `docker-compose up -d api` to recreate the container with the new variable
