@@ -310,3 +310,92 @@ export interface RoleInfo {
 export interface RolesResponse {
   roles: RoleInfo[];
 }
+
+// Coupons
+export type CouponType = "percentage" | "fixed";
+
+export interface CouponListItem {
+  id: string;
+  code: string;
+  description: string | null;
+  discount_type: CouponType;
+  discount_value: number;
+  valid_from: string;
+  valid_until: string | null;
+  is_active: boolean;
+  usage_count: number;
+  created_at: string;
+}
+
+export interface CouponResponse {
+  id: string;
+  code: string;
+  description: string | null;
+  discount_type: CouponType;
+  discount_value: number;
+  max_uses: number | null;
+  max_uses_per_user: number;
+  min_purchase_amount: number | null;
+  first_time_only: boolean;
+  allow_reuse_after_cancel: boolean;
+  is_stackable: boolean;
+  applicable_plans: string[];
+  applicable_cycles: string[];
+  valid_from: string;
+  valid_until: string | null;
+  is_active: boolean;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  usage_count: number;
+}
+
+export interface CouponCreate {
+  code: string;
+  description?: string | null;
+  discount_type: CouponType;
+  discount_value: number;
+  max_uses?: number | null;
+  max_uses_per_user?: number;
+  min_purchase_amount?: number | null;
+  first_time_only?: boolean;
+  allow_reuse_after_cancel?: boolean;
+  is_stackable?: boolean;
+  applicable_plans?: string[];
+  applicable_cycles?: string[];
+  valid_from: string;
+  valid_until?: string | null;
+  is_active?: boolean;
+}
+
+export interface CouponUpdate {
+  description?: string | null;
+  max_uses?: number | null;
+  max_uses_per_user?: number;
+  min_purchase_amount?: number | null;
+  valid_until?: string | null;
+  is_active?: boolean;
+}
+
+export interface CouponUsageResponse {
+  id: string;
+  user_id: string;
+  subscription_id: string;
+  original_amount: number;
+  discount_amount: number;
+  final_amount: number;
+  is_active: boolean;
+  canceled_at: string | null;
+  used_at: string;
+}
+
+export interface CouponStatsResponse {
+  coupon_id: string;
+  code: string;
+  total_uses: number;
+  active_uses: number;
+  total_revenue: number;
+  total_discount: number;
+  unique_users: number;
+  most_recent_use: string | null;
+}

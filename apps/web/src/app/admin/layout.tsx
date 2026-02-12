@@ -86,6 +86,12 @@ export default function AdminLayout({
             💰 Pagamentos
           </Link>
           <Link
+            href="/admin/coupons"
+            className="block px-6 py-3 text-gray-700 hover:bg-gray-100 transition-colors"
+          >
+            🎟️ Cupons
+          </Link>
+          <Link
             href="/admin/settings"
             className="block px-6 py-3 text-gray-700 hover:bg-gray-100 transition-colors"
           >

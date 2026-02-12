@@ -13,6 +13,7 @@ from src.routers import (
     analysis,
     auth,
     categories,
+    coupons,
     debug,
     invoice_items,
     invoices,
@@ -154,6 +155,7 @@ app.include_router(debug.router, prefix="/api/v1/debug", tags=["debug"])
 app.include_router(
     subscriptions.router, prefix="/api/v1", tags=["subscriptions"]
 )
+app.include_router(coupons.coupons_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1")
 
 

@@ -27,6 +27,7 @@ from src.services.metrics_service import MetricsService
 from src.routers.admin.subscriptions import subscriptions_router
 from src.routers.admin.payments import payments_router
 from src.routers.admin.settings import settings_router
+from src.routers.admin.coupons import coupons_router
 
 logger = structlog.get_logger()
 
@@ -507,3 +508,4 @@ async def get_system_health(
 admin_router.include_router(subscriptions_router)
 admin_router.include_router(payments_router)
 admin_router.include_router(settings_router)
+admin_router.include_router(coupons_router)
