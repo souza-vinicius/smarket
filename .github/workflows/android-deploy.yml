@@ -82,7 +82,7 @@ jobs:
         run: |
           if [ -n "$ANDROID_SIGNING_KEY" ]; then
             mkdir -p android/keystore
-            echo "$ANDROID_SIGNING_KEY" | base64 -d > android/keystore/mercado-esperto-release.p12
+            echo "$ANDROID_SIGNING_KEY" | tr -d '\n\r ' | base64 -d > android/keystore/mercado-esperto-release.p12
             ls -la android/keystore/
           else
             echo "No signing key configured, skipping..."
