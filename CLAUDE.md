@@ -70,7 +70,7 @@ src/
 ├── config.py          # Pydantic Settings (reads .env); 47+ config vars
 ├── database.py        # Async SQLAlchemy engine + get_db() dependency
 ├── dependencies.py    # Shared FastAPI Depends (get_current_user)
-├── exceptions.py      # Custom exception hierarchy (SMarketException base)
+├── exceptions.py      # Custom exception hierarchy (MercadoEspertoException base)
 ├── models/            # SQLAlchemy ORM — one file per entity (9 models)
 ├── schemas/           # Pydantic request/response models (Base/Create/Response pattern)
 ├── routers/           # One router file per resource (10 routers, 29+ endpoints)
@@ -82,11 +82,11 @@ src/
 
 Each resource follows a consistent three-layer pattern: **model → schema → router**. Schemas use a `Base / Create / Response` inheritance hierarchy with `from_attributes = True` for ORM compatibility. All DB access is async (`AsyncSession`). Routers receive the session via `Depends(get_db)` and the authenticated user via a dependency in `dependencies.py`.
 
-### Data model (9 entities)
+### Data model (12 entities)
 
 | Entity             | Table                | Key relationships                                      |
 |--------------------|----------------------|--------------------------------------------------------|
-| **User**           | users                | Has invoices, categories, analyses, merchants, products|
+| **User**           | users                | Has invoices, categories, analyses, merchants, products, subscription|
 | **Invoice**        | invoices             | Belongs to user + merchant; has items                  |
 | **InvoiceItem**    | invoice_items        | Belongs to invoice + product + category                |
 | **Product**        | products             | Has price tracking (avg, min, max, trend)              |
@@ -95,8 +95,11 @@ Each resource follows a consistent three-layer pattern: **model → schema → r
 | **Analysis**       | analyses             | AI-generated insights per invoice                      |
 | **PurchasePattern**| purchase_patterns    | Detected recurring patterns with predictions           |
 | **InvoiceProcessing**| invoice_processing | Tracks photo extraction workflow (status machine)      |
+| **Subscription**   | subscriptions        | User's plan (Free/Basic/Premium), status, trial dates, Stripe IDs |
+| **Payment**        | payments             | Payment history linked to subscription                 |
+| **UsageRecord**    | usage_records        | Monthly counters (invoices, AI analyses) per user      |
 
-Relationships use `selectin` lazy loading. Unique constraint on `(access_key, user_id)` for invoices.
+Relationships use `selectin` lazy loading. Unique constraint on `(access_key, user_id)` for invoices. One subscription per user (unique constraint on `user_id`).
 
 ### API routes (all under `/api/v1`)
 
@@ -111,7 +114,39 @@ Relationships use `selectin` lazy loading. Unique constraint on `(access_key, us
 | **analysis**      | /analysis            | List AI insights                                       |
 | **purchase_patterns** | /purchase-patterns| List detected patterns                                |
 | **users**         | /users               | Get/update profile (household data for AI)             |
+| **subscriptions** | /subscriptions       | Get subscription + usage, checkout, portal, cancel, payments, webhooks |
 | **debug**         | /debug               | List available LLM providers                           |
+
+### HTTP Status Codes & Error Handling
+
+The API uses standard HTTP status codes with custom headers for subscription errors:
+
+| Code | Meaning | When Used | Custom Headers |
+|------|---------|-----------|----------------|
+| **200** | OK | Successful GET requests | - |
+| **201** | Created | Successful POST creating a resource | - |
+| **204** | No Content | Successful DELETE requests | - |
+| **400** | Bad Request | Invalid input data, validation errors | - |
+| **401** | Unauthorized | Missing or invalid JWT token | `WWW-Authenticate: Bearer` |
+| **402** | Payment Required | Subscription inactive, trial expired, or not found | `X-Subscription-Error`, `X-Limit-Type`, `X-Current-Plan` |
+| **403** | Forbidden | User inactive or insufficient permissions | - |
+| **404** | Not Found | Resource doesn't exist | - |
+| **409** | Conflict | Duplicate invoice (same access_key + user_id) | - |
+| **422** | Unprocessable Entity | Semantic validation errors (e.g., invalid date format) | - |
+| **429** | Too Many Requests | Monthly usage limit reached (invoices or AI analyses) | `X-Subscription-Error`, `X-Limit-Type`, `X-Current-Plan` |
+| **500** | Internal Server Error | Unexpected server errors | `X-Request-ID` |
+
+**Subscription Error Headers** (402 & 429):
+- `X-Subscription-Error`: Error type (`no_subscription`, `trial_expired`, `subscription_inactive`, `invoice_limit_reached`, `analysis_limit_reached`)
+- `X-Limit-Type`: Resource type (`invoice` or `analysis`)
+- `X-Current-Plan`: User's current plan (`free`, `basic`, `premium`)
+
+**CORS Exposed Headers**: `X-Request-ID`, `X-Subscription-Error`, `X-Limit-Type`, `X-Current-Plan`
+
+**Frontend Error Handling**:
+- **401**: Auto-refresh JWT token via Axios interceptor, redirect to login if refresh fails
+- **402/429**: Display `UpgradeModal` with plan upgrade options
+- **500**: Display generic error message with request ID for support
 
 ### Services layer
 
@@ -124,6 +159,8 @@ Relationships use `selectin` lazy loading. Unique constraint on `(access_key, us
 | **cnpj_enrichment**          | Fetch company data from BrasilAPI/ReceitaWS (Redis cache)|
 | **token_callback**           | LangChain callback to log token usage across providers   |
 | **cached_prompts**           | Redis-based LLM prompt caching by image hash             |
+| **stripe_service**           | Stripe Checkout, Customer Portal, webhook verification   |
+| **subscription_service**     | Webhook handlers (payment succeeded/failed, subscription updated/deleted) |
 
 ### Background tasks
 
@@ -140,19 +177,21 @@ Provider fallback chain: **OpenRouter (Gemini 2.0 Flash)** → Gemini Direct →
 
 ```
 src/
-├── app/                    # Next.js App Router — 11 routes
+├── app/                    # Next.js App Router — 13 routes
 │   ├── login/, register/   # Auth pages
 │   ├── dashboard/          # Main dashboard + analytics
 │   ├── invoices/           # List, add, detail, edit, review
 │   ├── insights/           # AI insights
 │   ├── products/           # Product catalog
-│   └── settings/           # User profile + preferences
+│   ├── pricing/            # Subscription plans comparison
+│   └── settings/           # User profile + preferences + subscription management
 ├── components/
 │   ├── ui/                 # Primitives: card, button, input, badge, modal, skeleton
 │   ├── dashboard/          # summary-card, spending-chart, insight-card
 │   ├── invoices/           # invoice-list, pending-list, upload-modal, delete-modal, category-donut-chart
+│   ├── subscription/       # upgrade-modal, usage-banner, trial-banner
 │   └── layout/             # header, sidebar, mobile-nav, page-layout
-├── hooks/                  # 9 React Query hooks (auth, invoices, insights, analytics, products, settings, cnpj)
+├── hooks/                  # 10 React Query hooks (auth, invoices, insights, analytics, products, settings, cnpj, subscription)
 ├── lib/
 │   ├── api.ts              # Axios client with JWT interceptor + auto-refresh
 │   ├── utils.ts            # formatCurrency (BRL), formatDate (pt-BR), cn()
@@ -167,13 +206,39 @@ State is fetched via TanStack React Query. The root layout wraps children in a `
 ### Key cross-cutting concerns
 
 - **Auth flow**: JWT access (30min) + refresh (7d) tokens. Backend issues both on login; frontend stores in localStorage and auto-refreshes on 401 via Axios interceptor.
+
+- **Subscription system** (feature-flagged via `ENABLE_SUBSCRIPTION_SYSTEM`):
+  - **Plans & Limits**:
+
+    | Plan | Price | Invoices/Month | AI Analyses/Month |
+    |------|-------|----------------|-------------------|
+    | **Gratuito (Trial)** | R$ 0 | **Ilimitado** (30 dias) | **Ilimitado** (30 dias) |
+    | **Gratuito (Expired)** | R$ 0 | 1 | 2 |
+    | **Básico** | R$ 9,90/mês · R$ 99/ano | 5 | 5 |
+    | **Premium** | R$ 19,90/mês · R$ 199/ano | Ilimitado | Ilimitado |
+
+  - **Trial behavior**: First 30 days after registration are **unlimited** regardless of plan (status: `trial`). After trial expires without payment, user remains on Free plan with limits (1 invoice, 2 analyses/month).
+  - **Billing**: Monthly/yearly via Stripe (web only). Mobile IAP support planned.
+  - **State machine**: `trial` (unlimited) → `active` (after payment) → `past_due` (payment failed) → `cancelled`/`expired`
+  - **Enforcement**: `check_invoice_limit` and `check_analysis_limit` dependencies use `subscription.invoice_limit` and `subscription.analysis_limit` properties (which return `None` = unlimited during trial). Returns 402 (subscription inactive) or 429 (limit reached).
+  - **Usage tracking**: Monthly counters in `usage_records` table (unique per user/year/month). Incremented on invoice creation and AI analysis completion.
+  - **Webhooks**: Idempotent handlers for Stripe events (checkout completed, payment succeeded/failed, subscription updated/deleted). Signature verification via `stripe_service`.
+  - **Frontend**: `UploadModal` shared across Dashboard, Invoices list, and Add invoice. On 402/429 errors, displays `UpgradeModal` with plan comparison.
+
 - **Invoice ingestion**: Three paths — (1) Photo upload → LLM OCR → review → confirm, (2) XML upload → parse → create, (3) QR code → Sefaz API → parse → create. All paths trigger AI analysis on confirmation.
+
 - **AI analysis**: GPT-4o-mini generates price alerts, category insights, merchant patterns, and spending summaries. Results persisted in `analyses` table.
+
 - **CNPJ features**: Feature-flagged. Validation (checksum), enrichment (BrasilAPI/ReceitaWS with 24h Redis cache), auto-populate issuer name on confirmation.
+
 - **Image optimization**: Server-side resize to 1536px + JPEG conversion before LLM. Configurable via `IMAGE_OPTIMIZATION_ENABLED`, `IMAGE_MAX_DIMENSION`, `IMAGE_JPEG_QUALITY`.
+
 - **Duplicate detection**: Composite unique constraint `(access_key, user_id)`. Early check in background task shows warning banner (non-blocking).
+
 - **Date handling**: `dateutil.parser.parse(dayfirst=True)` in Pydantic validators. Supports DD/MM/YYYY (Brazilian), ISO 8601, and US formats.
-- **Database migrations**: 7 Alembic migrations in `apps/api/alembic/versions/`. Docker entrypoint runs `alembic upgrade head` before starting uvicorn.
+  - **⚠️ AsyncPG timezone mismatch**: DB columns are `TIMESTAMP WITHOUT TIME ZONE` (naive). AsyncPG rejects timezone-aware datetimes (`datetime.now(timezone.utc)`) with error `can't subtract offset-naive and offset-aware datetimes`. Always use `datetime.utcnow()` (naive) when storing/comparing timestamps. When reading from DB for comparisons, use `datetime.utcnow()` not `datetime.now(timezone.utc)`.
+
+- **Database migrations**: 8 Alembic migrations in `apps/api/alembic/versions/`. Docker entrypoint runs `alembic upgrade head` before starting uvicorn.
 
 ## Code style (backend)
 
@@ -183,7 +248,7 @@ State is fetched via TanStack React Query. The root layout wraps children in a `
 - Imports grouped: stdlib → third-party → local (absolute only, e.g. `from src.models.user import User`)
 - Naming: `snake_case` for modules/functions/variables, `PascalCase` for classes, `UPPER_SNAKE_CASE` for constants
 - Pydantic schemas: `<Entity>Base` → `<Entity>Create` → `<Entity>Response`
-- Custom exceptions via `SMarketException` hierarchy in `exceptions.py`; converted to `HTTPException` by handler
+- Custom exceptions via `MercadoEspertoException` hierarchy in `exceptions.py`; converted to `HTTPException` by handler
 
 ## Code style (frontend)
 
@@ -192,6 +257,36 @@ State is fetched via TanStack React Query. The root layout wraps children in a `
 - Tailwind CSS for styling (shadcn-inspired component library in `components/ui/`)
 - Brazilian locale: `pt-BR` for dates, `BRL` for currency formatting
 - Recharts for data visualization
+
+### Subscription Error Handling (Frontend Pattern)
+
+All upload flows (Dashboard, Invoices list, Add invoice) use the same pattern:
+
+```typescript
+const handleSubscriptionError = (error: any) => {
+  const status = error?.response?.status;
+  if (status === 402 || status === 429) {
+    const headers = error?.response?.headers;
+    const limitType = headers?.["x-limit-type"] || "invoice";
+    const currentPlan = headers?.["x-current-plan"] || "free";
+
+    setSubscriptionError({ limitType, currentPlan });
+    setIsUploadModalOpen(false);
+  }
+};
+
+// Applied to all mutation onError callbacks
+uploadPhotosMutation.mutate(files, {
+  onSuccess: (data) => { /* handle success */ },
+  onError: handleSubscriptionError,
+});
+```
+
+**Key points**:
+- Check for both 402 (subscription inactive) and 429 (limit reached)
+- Extract custom headers for contextual error display
+- Close upload modal and show `UpgradeModal` with plan details
+- Same `UploadModal` component shared across all upload locations
 
 ## Environment
 
@@ -210,4 +305,33 @@ Copy `.env.example` to `.env` at the repo root.
 - `ENABLE_CNPJ_FEATURES` — Master toggle for CNPJ validation/enrichment
 - `IMAGE_OPTIMIZATION_ENABLED` — Toggle image preprocessing (default: true)
 
+**Subscription system** (optional, disabled by default):
+- `ENABLE_SUBSCRIPTION_SYSTEM` — Master toggle (default: `false`)
+- `TRIAL_DURATION_DAYS` — Trial period in days (default: `30`)
+- `STRIPE_SECRET_KEY` — Stripe API secret key
+- `STRIPE_WEBHOOK_SECRET` — Stripe webhook signing secret
+- `STRIPE_PRICE_ID_BASIC_MONTHLY` — Stripe price ID for Basic monthly plan
+- `STRIPE_PRICE_ID_BASIC_YEARLY` — Stripe price ID for Basic yearly plan
+- `STRIPE_PRICE_ID_PREMIUM_MONTHLY` — Stripe price ID for Premium monthly plan
+- `STRIPE_PRICE_ID_PREMIUM_YEARLY` — Stripe price ID for Premium yearly plan
+
 **Frontend:** `NEXT_PUBLIC_API_URL` (set in `apps/web/.env.local` or via `docker-compose.yml`).
+
+### ⚠️ Environment Variables Management
+
+**Critical**: Every new environment variable added to the codebase MUST be configured in three places:
+
+1. **`.env.example`** — Document the variable with comments explaining its purpose
+2. **`docker-compose.yml`** — Add to the `api` (or `web`) service's `environment:` section to make it available in the container:
+   ```yaml
+   environment:
+     NEW_VAR: ${NEW_VAR:-default_value}
+   ```
+3. **`Dockerfile`** (if applicable) — If the variable is needed at build time or in the Dockerfile entrypoint
+
+**Why?** Variables in `.env` are NOT automatically passed to Docker containers. They must be explicitly referenced in `docker-compose.yml`'s `environment:` block. Without this, the app will not see the variable even if it's set in `.env`.
+
+**Example workflow:**
+- Add `ADMIN_BOOTSTRAP_EMAIL=admin@example.com` to `.env.example` and `.env`
+- Add `ADMIN_BOOTSTRAP_EMAIL: ${ADMIN_BOOTSTRAP_EMAIL:-}` to `docker-compose.yml` under the `api` service's `environment:` block
+- Run `docker-compose up -d api` to recreate the container with the new variable

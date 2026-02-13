@@ -1,4 +1,4 @@
-# Análise do Modelo de Dados - SMarket
+# Análise do Modelo de Dados - Mercado Esperto
 
 ## Visão Geral
 

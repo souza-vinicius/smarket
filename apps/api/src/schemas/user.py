@@ -23,6 +23,8 @@ class UserUpdate(BaseModel):
 class UserResponse(UserBase):
     id: uuid.UUID
     is_active: bool
+    is_admin: bool = False  # Computed property from model
+    admin_role: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 

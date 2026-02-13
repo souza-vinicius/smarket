@@ -9,7 +9,7 @@ import {
   type UserProfileUpdate,
 } from "@/types";
 
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "").replace(/\/api\/v1$/, "") + "/api/v1";
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/$/, "").replace(/\/api\/v1$/, "") + "/api/v1";
 
 interface RetryableRequest extends InternalAxiosRequestConfig {
   _retry?: boolean;
@@ -63,7 +63,8 @@ class ApiClient {
             return this.client(originalRequest);
           } catch (refreshError) {
             this.logout();
-            window.location.href = "/login";
+            // Dispatch unauthorized event instead of forcing reload
+            window.dispatchEvent(new Event("auth:unauthorized"));
             return Promise.reject(
               refreshError instanceof Error ? refreshError : new Error(String(refreshError))
             );
@@ -153,6 +154,10 @@ class ApiClient {
   async getMe(): Promise<User> {
     const response = await this.client.get<User>("/auth/me");
     return response.data;
+  }
+
+  async changePassword(data: { current_password: string; new_password: string }): Promise<void> {
+    await this.client.post("/auth/change-password", data);
   }
 
   // Profile methods

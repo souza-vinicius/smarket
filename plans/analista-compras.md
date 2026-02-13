@@ -1,4 +1,4 @@
-# Plano de Implementação: Analista de Compras SMarket
+# Plano de Implementação: Analista de Compras Mercado Esperto
 
 ## Visão Geral
 

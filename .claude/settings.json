@@ -1,5 +1,11 @@
 {
   "enabledPlugins": {
     "posthog@claude-plugins-official": true
+  },
+  "permissions": {
+    "allow": [
+      "Edit",
+      "Bash"
+    ]
   }
 }

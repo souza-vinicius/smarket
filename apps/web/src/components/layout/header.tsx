@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Bell,
-  Menu,
   Search,
   ArrowLeft,
   Plus,
@@ -26,7 +25,6 @@ interface HeaderProps {
   showBackButton?: boolean;
   onBack?: () => void;
   actions?: React.ReactNode;
-  onMenuClick?: () => void;
 }
 
 export function Header({
@@ -35,7 +33,6 @@ export function Header({
   showBackButton = false,
   onBack,
   actions,
-  onMenuClick,
 }: HeaderProps) {
   const router = useRouter();
   const { user, logout } = useAuth();
@@ -54,7 +51,7 @@ export function Header({
     <>
       <header
         className={cn(
-          "sticky top-0 z-30",
+          "sticky top-0 z-30 pt-safe",
           "bg-background/95 backdrop-blur-lg",
           "border-b border-border"
         )}
@@ -62,17 +59,6 @@ export function Header({
         <div className="flex h-16 items-center justify-between px-4 lg:px-6">
           {/* Left Section */}
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            {/* Menu button - mobile only */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onMenuClick}
-              className="lg:hidden flex-shrink-0"
-              aria-label="Abrir menu"
-            >
-              <Menu className="w-5 h-5" />
-            </Button>
-
             {/* Back button */}
             {showBackButton && (
               <Button
@@ -323,7 +309,7 @@ export function Header({
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-foreground">
-                  Bem-vindo ao SMarket!
+                  Bem-vindo ao Mercado Esperto!
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Comece adicionando sua primeira nota fiscal.

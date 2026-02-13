@@ -1,4 +1,4 @@
-# Plano do Backend - SMarket API
+# Plano do Backend - Mercado Esperto API
 
 ## Visão Geral
 
@@ -431,7 +431,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(
-    title="SMarket API",
+    title="Mercado Esperto API",
     description="API para análise de notas fiscais",
     version="1.0.0"
 )
@@ -464,11 +464,11 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     # App
-    APP_NAME: str = "SMarket API"
+    APP_NAME: str = "Mercado Esperto API"
     DEBUG: bool = False
     
     # Database
-    DATABASE_URL: str = "postgresql+asyncpg://user:pass@localhost/smarket"
+    DATABASE_URL: str = "postgresql+asyncpg://user:pass@localhost/mercadoesperto"
     
     # JWT
     SECRET_KEY: str
@@ -495,7 +495,7 @@ settings = Settings()
 DEBUG=true
 
 # Database
-DATABASE_URL=postgresql+asyncpg://postgres:password@localhost:5432/smarket
+DATABASE_URL=postgresql+asyncpg://postgres:password@localhost:5432/mercadoesperto
 
 # JWT
 SECRET_KEY=your-secret-key-here

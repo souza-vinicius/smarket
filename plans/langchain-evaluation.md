@@ -145,7 +145,7 @@ class LangChainExtractor:
 
 ## Recomendação
 
-### Para Este Projeto (SMarket)
+### Para Este Projeto (Mercado Esperto)
 
 **Recomendação: Manter SDK Nativo**
 
@@ -189,4 +189,4 @@ class LangChainOpenAIExtractor(InvoiceExtractor):
 | Manutenção | ✅ Diretamente do Google | ✅ Comunidade ativa |
 | Recomendação | **Sim** | Só se precisar multi-provider |
 
-**Decisão Final**: Para o SMarket, **SDK Nativo é a escolha correta** pelo menor overhead e simplicidade. LangChain seria justificado apenas se houvesse necessidade real de suportar múltiplos provedores de LLM.
+**Decisão Final**: Para o Mercado Esperto, **SDK Nativo é a escolha correta** pelo menor overhead e simplicidade. LangChain seria justificado apenas se houvesse necessidade real de suportar múltiplos provedores de LLM.

@@ -5,13 +5,13 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     # App
-    APP_NAME: str = "SMarket API"
+    APP_NAME: str = "Mercado Esperto API"
     DEBUG: bool = False
 
     # Database
     DATABASE_URL: (
         str
-    ) = "postgresql+asyncpg://smarket:smarket_password@postgres:5432/smarket"
+    ) = "postgresql+asyncpg://mercadoesperto:mercadoesperto_password@postgres:5432/mercadoesperto"
     DB_ECHO: bool = False
 
     # JWT
@@ -45,7 +45,7 @@ class Settings(BaseSettings):
     SEFAZ_API_URL: str = "https://www.nfce.fazenda.sp.gov.br/NFCeConsultaPublica"
 
     # CORS
-    ALLOWED_ORIGINS: str = "http://localhost:3000"
+    ALLOWED_ORIGINS: str = "http://localhost:3000,capacitor://localhost,https://localhost"
 
     # Uploads
     UPLOAD_DIR: str = "uploads"
@@ -78,6 +78,30 @@ class Settings(BaseSettings):
     ENABLE_CNPJ_ENRICHMENT: bool = True
     CNPJ_API_TIMEOUT: int = 5  # seconds
     CNPJ_CACHE_TTL: int = 86400  # 24 hours in seconds
+
+    # Subscription System - Master flag to enable subscription limits gradually
+    ENABLE_SUBSCRIPTION_SYSTEM: bool = False
+    TRIAL_DURATION_DAYS: int = 30
+
+    # Admin System - Bootstrap first admin user
+    ADMIN_BOOTSTRAP_EMAIL: str = ""  # Email of user to make admin on startup
+    ADMIN_BOOTSTRAP_ROLE: str = "super_admin"  # Role to assign (super_admin, admin, support, finance, read_only)
+
+    # Stripe Payment Integration
+    STRIPE_SECRET_KEY: str = ""
+    STRIPE_WEBHOOK_SECRET: str = ""
+    STRIPE_BASIC_MONTHLY_PRICE_ID: str = ""
+    STRIPE_BASIC_YEARLY_PRICE_ID: str = ""
+    STRIPE_PREMIUM_MONTHLY_PRICE_ID: str = ""
+    STRIPE_PREMIUM_YEARLY_PRICE_ID: str = ""
+
+    # Apple IAP (for future Fase 3)
+    APPLE_SHARED_SECRET: str = ""
+    APPLE_BUNDLE_ID: str = "com.mercadoesperto.app"
+
+    # Google Play (for future Fase 3)
+    GOOGLE_PLAY_PACKAGE_NAME: str = "com.mercadoesperto.app"
+    GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: str = ""  # path to JSON key
 
     @property
     def allowed_origins_list(self) -> list[str]:
@@ -118,6 +142,11 @@ class Settings(BaseSettings):
     def cnpj_enrichment_enabled(self) -> bool:
         """Check if CNPJ enrichment is enabled (respects master flag)."""
         return self.ENABLE_CNPJ_FEATURES and self.ENABLE_CNPJ_ENRICHMENT
+
+    @property
+    def subscription_enabled(self) -> bool:
+        """Check if subscription system is enabled."""
+        return self.ENABLE_SUBSCRIPTION_SYSTEM
 
     class Config:
         env_file = ".env"

@@ -1,4 +1,4 @@
-# Levantamento de Telas e Rotas - Frontend SMarket
+# Levantamento de Telas e Rotas - Frontend Mercado Esperto
 
 ## Telas Implementadas
 

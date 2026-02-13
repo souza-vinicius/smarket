@@ -1,4 +1,4 @@
-# SMarket - Codebase Improvements Analysis
+# Mercado Esperto - Codebase Improvements Analysis
 
 **Analysis Date:** 2025-02-07  
 **Branch:** feature/eslint  
@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-This document presents 10 well-founded improvements for the SMarket codebase, identified through a comprehensive analysis of both backend (FastAPI/Python) and frontend (Next.js/TypeScript) components. Each improvement includes a relevance percentage based on impact, urgency, and alignment with production best practices.
+This document presents 10 well-founded improvements for the Mercado Esperto codebase, identified through a comprehensive analysis of both backend (FastAPI/Python) and frontend (Next.js/TypeScript) components. Each improvement includes a relevance percentage based on impact, urgency, and alignment with production best practices.
 
 ---
 
@@ -602,30 +602,30 @@ Create custom exception classes:
 # apps/api/src/exceptions.py
 from fastapi import HTTPException, status
 
-class SMarketException(Exception):
-    """Base exception for SMarket application."""
+class MercadoEspertoException(Exception):
+    """Base exception for Mercado Esperto application."""
     def __init__(self, message: str, detail: str = None):
         self.message = message
         self.detail = detail
         super().__init__(message)
 
-class InvoiceProcessingError(SMarketException):
+class InvoiceProcessingError(MercadoEspertoException):
     """Raised when invoice processing fails."""
     pass
 
-class InvoiceAlreadyExistsError(SMarketException):
+class InvoiceAlreadyExistsError(MercadoEspertoException):
     """Raised when trying to add a duplicate invoice."""
     pass
 
-class InvalidInvoiceFormatError(SMarketException):
+class InvalidInvoiceFormatError(MercadoEspertoException):
     """Raised when invoice format is invalid."""
     pass
 
-class ExternalServiceError(SMarketException):
+class ExternalServiceError(MercadoEspertoException):
     """Raised when external service (Sefaz, OpenAI) fails."""
     pass
 
-class AIServiceError(SMarketException):
+class AIServiceError(MercadoEspertoException):
     """Raised when AI analysis fails."""
     pass
 
@@ -666,7 +666,7 @@ Add exception handler to FastAPI app:
 # apps/api/src/main.py
 from src.exceptions import handle_exception
 
-@app.exception_handler(SMarketException)
+@app.exception_handler(MercadoEspertoException)
 async def smarket_exception_handler(request, exc):
     return handle_exception(exc)
 ```

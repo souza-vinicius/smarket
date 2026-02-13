@@ -524,8 +524,8 @@ class OpenRouterExtractor(BaseInvoiceExtractor):
             temperature=0.0,
             max_tokens=4096,
             default_headers={
-                "HTTP-Referer": "https://smarket.app",
-                "X-Title": "SMarket Invoice Extractor",
+                "HTTP-Referer": "https://mercadoesperto.app",
+                "X-Title": "Mercado Esperto Invoice Extractor",
             },
         )
 

@@ -1,4 +1,4 @@
-# SMarket - Analisador de Notas Fiscais
+# Mercado Esperto - Analisador de Notas Fiscais
 
 ## Visão Geral
 
@@ -57,7 +57,7 @@ Aplicativo web que permite aos usuários adicionar notas fiscais e receber anál
 ## Estrutura do Monorepo
 
 ```
-smarket/
+mercadoesperto/
 ├── apps/
 │   ├── web/                    # Next.js frontend
 │   │   ├── src/

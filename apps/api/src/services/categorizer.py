@@ -166,8 +166,8 @@ def _get_categorization_llm() -> Optional[ChatOpenAI]:
             temperature=0.0,
             max_tokens=2048,
             default_headers={
-                "HTTP-Referer": "https://smarket.app",
-                "X-Title": "SMarket Categorizer",
+                "HTTP-Referer": "https://mercadoesperto.app",
+                "X-Title": "Mercado Esperto Categorizer",
             },
         )
 

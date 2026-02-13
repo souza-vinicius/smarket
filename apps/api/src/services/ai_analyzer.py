@@ -1383,29 +1383,6 @@ class AIAnalyzer:
         """Analisa frequência de visitas e custos ocultos das compras picadas."""
         month_start = invoice.issue_date.replace(day=1)
 
-        # Count invoices this month
-        result = await db.execute(
-            select(
-                func.count(Invoice.id).label("count"),
-                func.avg(Invoice.total_value).label("avg_ticket"),
-                func.avg(
-                    func.array_length(
-                        select(func.count(InvoiceItem.id))
-                        .where(InvoiceItem.invoice_id == Invoice.id)
-                        .correlate(Invoice)
-                        .scalar_subquery(),
-                        1,
-                    )
-                ).label("avg_items"),
-            ).where(
-                and_(
-                    Invoice.user_id == invoice.user_id,
-                    Invoice.issue_date >= month_start,
-                )
-            )
-        )
-        stats = result.first()
-
         # Simpler approach: count invoices and get item counts
         result = await db.execute(
             select(Invoice.id, Invoice.total_value, Invoice.issue_date)

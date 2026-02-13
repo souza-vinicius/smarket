@@ -13,15 +13,20 @@ import {
   Bell,
   Shield,
   HelpCircle,
+  Crown,
+  Calendar,
 } from "lucide-react";
 import { PageLayout } from "@/components/layout/page-layout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal, ConfirmModal } from "@/components/ui/modal";
-import { useAuth } from "@/hooks/use-auth";
+import { Badge } from "@/components/ui/badge";
+import { useAuth, useChangePassword } from "@/hooks/use-auth";
 import { useSettings, useUpdateSettings } from "@/hooks/use-settings";
+import { useSubscription } from "@/hooks/use-subscription";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 
 interface SettingsSectionProps {
   title: string;
@@ -141,6 +146,166 @@ function ProfileModal({
   );
 }
 
+function ChangePasswordModal({
+  isOpen,
+  onClose,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+}) {
+  const changePasswordMutation = useChangePassword();
+  const [formData, setFormData] = useState({
+    current_password: "",
+    new_password: "",
+    confirm_password: "",
+  });
+  const [errors, setErrors] = useState({
+    current_password: "",
+    new_password: "",
+    confirm_password: "",
+  });
+
+  const validateForm = () => {
+    const newErrors = {
+      current_password: "",
+      new_password: "",
+      confirm_password: "",
+    };
+
+    if (!formData.current_password) {
+      newErrors.current_password = "Senha atual é obrigatória";
+    }
+
+    if (!formData.new_password) {
+      newErrors.new_password = "Nova senha é obrigatória";
+    } else if (formData.new_password.length < 8) {
+      newErrors.new_password = "A senha deve ter no mínimo 8 caracteres";
+    }
+
+    if (!formData.confirm_password) {
+      newErrors.confirm_password = "Confirme a nova senha";
+    } else if (formData.new_password !== formData.confirm_password) {
+      newErrors.confirm_password = "As senhas não coincidem";
+    }
+
+    setErrors(newErrors);
+    return !Object.values(newErrors).some((error) => error !== "");
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!validateForm()) {
+      return;
+    }
+
+    changePasswordMutation.mutate(
+      {
+        current_password: formData.current_password,
+        new_password: formData.new_password,
+      },
+      {
+        onSuccess: () => {
+          toast.success("Senha alterada com sucesso!");
+          setFormData({
+            current_password: "",
+            new_password: "",
+            confirm_password: "",
+          });
+          setErrors({
+            current_password: "",
+            new_password: "",
+            confirm_password: "",
+          });
+          onClose();
+        },
+        onError: (error: any) => {
+          const message = error?.response?.data?.detail || "Erro ao alterar senha";
+          toast.error(message);
+        },
+      }
+    );
+  };
+
+  const handleClose = () => {
+    if (!changePasswordMutation.isPending) {
+      setFormData({
+        current_password: "",
+        new_password: "",
+        confirm_password: "",
+      });
+      setErrors({
+        current_password: "",
+        new_password: "",
+        confirm_password: "",
+      });
+      onClose();
+    }
+  };
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title="Alterar Senha"
+      footer={
+        <>
+          <Button
+            variant="outline"
+            onClick={handleClose}
+            disabled={changePasswordMutation.isPending}
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            isLoading={changePasswordMutation.isPending}
+          >
+            Alterar Senha
+          </Button>
+        </>
+      }
+    >
+      <form className="space-y-4" onSubmit={handleSubmit}>
+        <Input
+          label="Senha atual"
+          type="password"
+          value={formData.current_password}
+          onChange={(e) => {
+            setFormData({ ...formData, current_password: e.target.value });
+            setErrors({ ...errors, current_password: "" });
+          }}
+          error={errors.current_password}
+          disabled={changePasswordMutation.isPending}
+        />
+        <Input
+          label="Nova senha"
+          type="password"
+          value={formData.new_password}
+          onChange={(e) => {
+            setFormData({ ...formData, new_password: e.target.value });
+            setErrors({ ...errors, new_password: "" });
+          }}
+          error={errors.new_password}
+          hint="Mínimo de 8 caracteres"
+          disabled={changePasswordMutation.isPending}
+        />
+        <Input
+          label="Confirmar nova senha"
+          type="password"
+          value={formData.confirm_password}
+          onChange={(e) => {
+            setFormData({ ...formData, confirm_password: e.target.value });
+            setErrors({ ...errors, confirm_password: "" });
+          }}
+          error={errors.confirm_password}
+          disabled={changePasswordMutation.isPending}
+        />
+      </form>
+    </Modal>
+  );
+}
+
 function HouseholdModal({
   isOpen,
   onClose,
@@ -241,9 +406,14 @@ export default function SettingsPage() {
   const router = useRouter();
   const { logout, user } = useAuth();
   const { data: settings, isLoading } = useSettings();
+  const { data: subscriptionData, isLoading: isSubscriptionLoading } = useSubscription();
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isHouseholdModalOpen, setIsHouseholdModalOpen] = useState(false);
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+
+  const subscription = subscriptionData?.subscription;
+  const usage = subscriptionData?.usage;
 
   const handleLogout = () => {
     logout();
@@ -309,12 +479,93 @@ export default function SettingsPage() {
         />
       </SettingsSection>
 
+      {/* Subscription Section */}
+      <SettingsSection title="Assinatura">
+        {isSubscriptionLoading ? (
+          <Skeleton className="h-32" />
+        ) : subscription ? (
+          <Card className="p-4">
+            {/* Header */}
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center">
+                  <Crown className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    <h3 className="font-semibold text-foreground">
+                      Plano {subscription.plan === "free" ? "Gratuito" : subscription.plan === "basic" ? "Básico" : "Premium"}
+                    </h3>
+                    <Badge variant={subscription.status === "trial" ? "warning" : subscription.status === "active" ? "success" : "default"}>
+                      {subscription.status === "trial" ? "Trial" : subscription.status === "active" ? "Ativo" : subscription.status}
+                    </Badge>
+                    {subscription.status === "trial" && (
+                      <Badge variant="success" className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
+                        ✨ 30 Dias Ilimitados
+                      </Badge>
+                    )}
+                  </div>
+                  {subscription.status === "trial" && (
+                    <p className="text-sm text-muted-foreground flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      Trial até {new Date(subscription.trial_end).toLocaleDateString("pt-BR")}
+                    </p>
+                  )}
+                  {subscription.billing_cycle && (
+                    <p className="text-sm text-muted-foreground">
+                      Cobrança {subscription.billing_cycle === "monthly" ? "mensal" : "anual"}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Usage Stats */}
+            {usage && (
+              <div className="grid grid-cols-2 gap-3 mb-4 p-3 bg-muted rounded-lg">
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Notas Fiscais</p>
+                  <p className="text-sm font-semibold text-foreground">
+                    {usage.invoices_used} / {usage.invoices_limit === null ? "∞" : usage.invoices_limit}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Análises de IA</p>
+                  <p className="text-sm font-semibold text-foreground">
+                    {usage.ai_analyses_used} / {usage.ai_analyses_limit === null ? "∞" : usage.ai_analyses_limit}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Actions */}
+            <Button
+              fullWidth
+              variant="outline"
+              onClick={() => router.push("/settings/subscription")}
+              rightIcon={<ChevronRight className="w-4 h-4" />}
+            >
+              Gerenciar Assinatura
+            </Button>
+          </Card>
+        ) : (
+          <Card className="p-4 text-center">
+            <p className="text-muted-foreground mb-3">
+              Nenhuma assinatura encontrada
+            </p>
+            <Button onClick={() => router.push("/pricing")}>
+              Ver Planos
+            </Button>
+          </Card>
+        )}
+      </SettingsSection>
+
       {/* Security Section */}
       <SettingsSection title="Segurança">
         <SettingsItem
           icon={<Shield className="w-5 h-5" />}
           label="Alterar senha"
-          onClick={() => {}}
+          onClick={() => setIsChangePasswordModalOpen(true)}
         />
       </SettingsSection>
 
@@ -347,6 +598,10 @@ export default function SettingsPage() {
       <HouseholdModal
         isOpen={isHouseholdModalOpen}
         onClose={() => setIsHouseholdModalOpen(false)}
+      />
+      <ChangePasswordModal
+        isOpen={isChangePasswordModalOpen}
+        onClose={() => setIsChangePasswordModalOpen(false)}
       />
       <ConfirmModal
         isOpen={isLogoutModalOpen}

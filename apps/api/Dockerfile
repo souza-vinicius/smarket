@@ -44,6 +44,7 @@ RUN pip install --no-cache-dir /tmp/wheels/* && rm -rf /tmp/wheels
 COPY src/ ./src/
 COPY alembic/ ./alembic/
 COPY alembic.ini .
+COPY scripts/ ./scripts/
 
 # Create uploads directory and set ownership
 RUN mkdir -p /app/uploads && chown -R appuser:appuser /app
@@ -52,8 +53,8 @@ USER appuser
 
 EXPOSE 8000
 
-HEALTHCHECK --interval=120s --timeout=10s --start-period=20s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://127.0.0.1:8000/health || exit 1
 
 # Run migrations then start uvicorn with:
 # - Multiple workers for concurrency

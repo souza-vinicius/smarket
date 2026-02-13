@@ -1,10 +1,10 @@
-# AGENTS.md - SMarket API
+# AGENTS.md - Mercado Esperto API
 
 Guidelines for AI agents working on this repository.
 
 ## Project Overview
 
-SMarket is a Brazilian invoice (NF-e/NFC-e) analysis API built with FastAPI, SQLAlchemy, and PostgreSQL. It parses XML invoices, extracts product data, and provides spending analysis using AI.
+Mercado Esperto is a Brazilian invoice (NF-e/NFC-e) analysis API built with FastAPI, SQLAlchemy, and PostgreSQL. It parses XML invoices, extracts product data, and provides spending analysis using AI.
 
 ## Build/Test/Lint Commands
 

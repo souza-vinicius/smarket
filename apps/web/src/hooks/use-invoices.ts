@@ -234,7 +234,11 @@ export function usePendingProcessing(
         `/invoices/processing?skip=${String(skip)}&limit=${String(limit)}`
       );
     },
-    refetchInterval: 5000, // Refresh every 5 seconds while processing is active
+    refetchInterval: (query) => {
+      // Only poll if there are processing records. Stop polling when list is empty.
+      const hasProcessing = query.state.data && query.state.data.length > 0;
+      return hasProcessing ? 5000 : false;
+    },
   });
 }
 

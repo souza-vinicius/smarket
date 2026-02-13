@@ -15,6 +15,9 @@ import {
   Receipt,
 } from "lucide-react";
 import { InvoiceCard } from "@/components/invoices/invoice-card";
+import { UploadModal } from "@/components/invoices/upload-modal";
+import { UpgradeModal } from "@/components/subscription/upgrade-modal";
+import { VirtualizedInvoiceList } from "@/components/invoices/virtualized-invoice-list";
 import { PageLayout } from "@/components/layout/page-layout";
 import { Button } from "@/components/ui/button";
 import { Card, StatCard } from "@/components/ui/card";
@@ -31,176 +34,8 @@ import {
   useDeleteProcessing,
 } from "@/hooks/use-invoices";
 import { useInvoicesSummary } from "@/hooks/use-invoices-summary";
+import { useGroupedInvoices } from "@/hooks/use-grouped-invoices";
 import { formatCurrency, formatDate } from "@/lib/utils";
-
-// Upload Modal Component
-function UploadModal({
-  isOpen,
-  onClose,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-}) {
-  const [activeTab, setActiveTab] = useState<"photo" | "xml" | "qrcode">("photo");
-  const [qrCode, setQrCode] = useState("");
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-
-  const router = useRouter();
-  const uploadXMLMutation = useUploadXML();
-  const uploadPhotosMutation = useUploadPhotos();
-  const processQRCodeMutation = useProcessQRCode();
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setSelectedFiles(Array.from(e.target.files));
-    }
-  };
-
-  const handleSubmit = () => {
-    if (activeTab === "photo" && selectedFiles.length > 0) {
-      uploadPhotosMutation.mutate(selectedFiles, {
-        onSuccess: (data) => {
-          onClose();
-          router.push(`/invoices/review/${data.processing_id}`);
-        },
-      });
-    } else if (activeTab === "xml") {
-      const input = document.createElement("input");
-      input.type = "file";
-      input.accept = ".xml";
-      input.onchange = (e) => {
-        const file = (e.target as HTMLInputElement).files?.[0];
-        if (file) {
-          uploadXMLMutation.mutate(file, {
-            onSuccess: () => {
-              onClose();
-              router.push("/invoices");
-            },
-          });
-        }
-      };
-      input.click();
-    } else if (activeTab === "qrcode" && qrCode) {
-      processQRCodeMutation.mutate(
-        { qrcode_url: qrCode },
-        {
-          onSuccess: () => {
-            onClose();
-            router.push("/invoices");
-          },
-        }
-      );
-    }
-  };
-
-  const isUploading =
-    uploadXMLMutation.isPending ||
-    uploadPhotosMutation.isPending ||
-    processQRCodeMutation.isPending;
-
-  return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Adicionar Nota Fiscal"
-      size="md"
-      footer={
-        <>
-          <Button variant="outline" onClick={onClose}>
-            Cancelar
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            isLoading={isUploading}
-            disabled={
-              (activeTab === "photo" && selectedFiles.length === 0) ||
-              (activeTab === "qrcode" && !qrCode)
-            }
-          >
-            Enviar
-          </Button>
-        </>
-      }
-    >
-      <div className="space-y-4">
-        {/* Tabs */}
-        <div className="flex gap-2 p-1 bg-muted rounded-lg">
-          {[
-            { id: "photo", label: "Foto" },
-            { id: "xml", label: "XML" },
-            { id: "qrcode", label: "QR Code" },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as typeof activeTab)}
-              className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all ${activeTab === tab.id
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-                }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Content */}
-        {activeTab === "photo" && (
-          <div className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary/50 transition-colors">
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleFileSelect}
-              className="hidden"
-              id="photo-upload"
-            />
-            <label
-              htmlFor="photo-upload"
-              className="cursor-pointer flex flex-col items-center gap-3"
-            >
-              <div className="w-16 h-16 rounded-full bg-primary-subtle flex items-center justify-center">
-                <Receipt className="w-8 h-8 text-primary" />
-              </div>
-              <div>
-                <p className="font-medium text-foreground">
-                  Clique para selecionar fotos
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {selectedFiles.length > 0
-                    ? `${selectedFiles.length} arquivo(s) selecionado(s)`
-                    : "Suporte para múltiplas fotos"}
-                </p>
-              </div>
-            </label>
-          </div>
-        )}
-
-        {activeTab === "xml" && (
-          <div className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary/50 transition-colors">
-            <p className="text-muted-foreground">
-              Clique em "Enviar" para selecionar o arquivo XML
-            </p>
-          </div>
-        )}
-
-        {activeTab === "qrcode" && (
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Cole a URL do QR Code:
-            </p>
-            <textarea
-              value={qrCode}
-              onChange={(e) => setQrCode(e.target.value)}
-              placeholder="https://www.sefaz..."
-              className="w-full h-32 p-4 rounded-lg border border-border bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/20"
-            />
-          </div>
-        )}
-      </div>
-    </Modal>
-  );
-}
-
 
 // Pending Item - Mobile optimized
 function PendingItem({
@@ -261,9 +96,15 @@ function PendingItem({
   );
 }
 
+interface SubscriptionError {
+  limitType: "invoice" | "analysis";
+  currentPlan: string;
+}
+
 export default function InvoicesPage() {
   const router = useRouter();
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [subscriptionError, setSubscriptionError] = useState<SubscriptionError | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [processingToDelete, setProcessingToDelete] = useState<string | null>(null);
@@ -272,6 +113,63 @@ export default function InvoicesPage() {
   const { data: pendingProcessing, isLoading: isPendingLoading } = usePendingProcessing();
   const { data: summary, isLoading: isSummaryLoading } = useInvoicesSummary();
   const deleteProcessingMutation = useDeleteProcessing();
+
+  // Upload hooks
+  const uploadXMLMutation = useUploadXML();
+  const uploadPhotosMutation = useUploadPhotos();
+  const processQRCodeMutation = useProcessQRCode();
+
+  const handleSubscriptionError = (error: any) => {
+    const status = error?.response?.status;
+    if (status === 402 || status === 429) {
+      const headers = error?.response?.headers;
+      const limitType = (headers?.["x-limit-type"] as "invoice" | "analysis") || "invoice";
+      const currentPlan = (headers?.["x-current-plan"] as string) || "free";
+
+      setSubscriptionError({ limitType, currentPlan });
+      setIsUploadModalOpen(false);
+    }
+  };
+
+  const handleUploadXML = (file: File) => {
+    uploadXMLMutation.mutate(file, {
+      onSuccess: () => {
+        setIsUploadModalOpen(false);
+        router.push("/invoices");
+      },
+      onError: handleSubscriptionError,
+    });
+  };
+
+  const handleUploadImages = (files: File[]) => {
+    uploadPhotosMutation.mutate(files, {
+      onSuccess: (data) => {
+        setIsUploadModalOpen(false);
+        if (data.processing_id) {
+          router.push(`/invoices/review/${data.processing_id}`);
+        }
+      },
+      onError: handleSubscriptionError,
+    });
+  };
+
+  const handleProcessQRCode = (url: string) => {
+    processQRCodeMutation.mutate(
+      { qrcode_url: url },
+      {
+        onSuccess: () => {
+          setIsUploadModalOpen(false);
+          router.push("/invoices");
+        },
+        onError: handleSubscriptionError,
+      }
+    );
+  };
+
+  const isUploading =
+    uploadXMLMutation.isPending ||
+    uploadPhotosMutation.isPending ||
+    processQRCodeMutation.isPending;
 
   // Filter invoices
   const filteredInvoices = React.useMemo(() => {
@@ -287,6 +185,9 @@ export default function InvoicesPage() {
       return issuerName.includes(query) || accessKey.includes(query);
     });
   }, [invoices, searchQuery]);
+
+  // Group invoices by month for virtualized rendering
+  const groupedItems = useGroupedInvoices(filteredInvoices);
 
   const handleDelete = () => {
     if (processingToDelete) {
@@ -410,15 +311,7 @@ export default function InvoicesPage() {
             <SkeletonListItem />
           </div>
         ) : filteredInvoices.length > 0 ? (
-          <div className="space-y-3">
-            {filteredInvoices.map((invoice) => (
-              <InvoiceCard
-                key={invoice.id}
-                invoice={invoice}
-                onClick={() => router.push(`/invoices/${invoice.id}`)}
-              />
-            ))}
-          </div>
+          <VirtualizedInvoiceList items={groupedItems} />
         ) : (
           <Card className="text-center py-12">
             <div className="w-16 h-16 rounded-full bg-muted mx-auto mb-4 flex items-center justify-center">
@@ -445,7 +338,21 @@ export default function InvoicesPage() {
       <UploadModal
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
+        onUploadXML={handleUploadXML}
+        onUploadImages={handleUploadImages}
+        onProcessQRCode={handleProcessQRCode}
+        isUploading={isUploading}
       />
+
+      {/* Upgrade Modal */}
+      {subscriptionError && (
+        <UpgradeModal
+          isOpen={true}
+          onClose={() => setSubscriptionError(null)}
+          limitType={subscriptionError.limitType}
+          currentPlan={subscriptionError.currentPlan}
+        />
+      )}
 
       {/* Delete Confirmation */}
       <ConfirmModal

@@ -1,6 +1,6 @@
 {
-  "name": "SMarket - Analista de Compras Inteligente",
-  "short_name": "SMarket",
+  "name": "Mercado Esperto - Analista de Compras Inteligente",
+  "short_name": "Mercado Esperto",
   "description": "Analise suas notas fiscais e economize dinheiro com insights inteligentes",
   "start_url": "/dashboard",
   "display": "standalone",

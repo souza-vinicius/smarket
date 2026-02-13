@@ -9,6 +9,7 @@ import { FileText, Calendar, Store, ChevronRight } from "lucide-react";
 
 import { AddInvoiceOptions } from "@/components/invoices/add-invoice-options";
 import { UploadModal } from "@/components/invoices/upload-modal";
+import { UpgradeModal } from "@/components/subscription/upgrade-modal";
 import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Button } from "@/components/ui/button";
@@ -18,13 +19,20 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 
 type UploadMode = "qrcode" | "xml" | "photo" | null;
 
+interface SubscriptionError {
+  limitType: "invoice" | "analysis";
+  currentPlan: string;
+}
+
 export default function AddInvoicePage() {
   const router = useRouter();
   const [uploadMode, setUploadMode] = useState<UploadMode>(null);
+  const [subscriptionError, setSubscriptionError] = useState<SubscriptionError | null>(null);
   const { data: invoices, isLoading: isLoadingInvoices } = useInvoices();
   const uploadXMLMutation = useUploadXML();
-  const uploadPhotosMutation = useUploadPhotos();
   const processQRCodeMutation = useProcessQRCode();
+
+  const uploadPhotosMutation = useUploadPhotos();
 
   // Get last 3 invoices
   const recentInvoices = invoices?.slice(0, 3) || [];
@@ -34,6 +42,17 @@ export default function AddInvoicePage() {
       onSuccess: () => {
         setUploadMode(null);
         router.push("/invoices");
+      },
+      onError: (error: any) => {
+        const status = error?.response?.status;
+        if (status === 402 || status === 429) {
+          const headers = error?.response?.headers;
+          const limitType = (headers?.["x-limit-type"] as "invoice" | "analysis") || "invoice";
+          const currentPlan = (headers?.["x-current-plan"] as string) || "free";
+
+          setSubscriptionError({ limitType, currentPlan });
+          setUploadMode(null);
+        }
       },
     });
   };
@@ -46,6 +65,17 @@ export default function AddInvoicePage() {
           router.push(`/invoices/review/${data.processing_id}`);
         }
       },
+      onError: (error: any) => {
+        const status = error?.response?.status;
+        if (status === 402 || status === 429) {
+          const headers = error?.response?.headers;
+          const limitType = (headers?.["x-limit-type"] as "invoice" | "analysis") || "invoice";
+          const currentPlan = (headers?.["x-current-plan"] as string) || "free";
+
+          setSubscriptionError({ limitType, currentPlan });
+          setUploadMode(null);
+        }
+      },
     });
   };
 
@@ -56,6 +86,17 @@ export default function AddInvoicePage() {
         onSuccess: () => {
           setUploadMode(null);
           router.push("/invoices");
+        },
+        onError: (error: any) => {
+          const status = error?.response?.status;
+          if (status === 402 || status === 429) {
+            const headers = error?.response?.headers;
+            const limitType = (headers?.["x-limit-type"] as "invoice" | "analysis") || "invoice";
+            const currentPlan = (headers?.["x-current-plan"] as string) || "free";
+
+            setSubscriptionError({ limitType, currentPlan });
+            setUploadMode(null);
+          }
         },
       }
     );
@@ -82,7 +123,7 @@ export default function AddInvoicePage() {
         <main className="p-6">
           {/* Welcome Section */}
           <div className="mb-8 text-center">
-            <h1 className="mb-2 text-2xl font-bold text-slate-900">Bem-vindo ao SMarket, João</h1>
+            <h1 className="mb-2 text-2xl font-bold text-slate-900">Bem-vindo ao Mercado Esperto, João</h1>
             <p className="text-slate-600">Onde você quer economizar hoje?</p>
           </div>
 
@@ -154,7 +195,7 @@ export default function AddInvoicePage() {
 
           {/* Footer */}
           <div className="text-center text-xs text-slate-400">
-            © 2024 SMarket - Gestão Inteligente de Economia
+            © 2024 Mercado Esperto - Gestão Inteligente de Economia
           </div>
         </main>
       </div>
@@ -175,6 +216,18 @@ export default function AddInvoicePage() {
         }
         initialTab={uploadMode === "qrcode" ? "qrcode" : "images"}
       />
+
+      {/* Upgrade Modal */}
+      {subscriptionError && (
+        <UpgradeModal
+          isOpen={true}
+          onClose={() => {
+            setSubscriptionError(null);
+          }}
+          limitType={subscriptionError.limitType}
+          currentPlan={subscriptionError.currentPlan}
+        />
+      )}
     </div>
   );
 }

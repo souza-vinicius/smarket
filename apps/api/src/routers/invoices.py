@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config import settings
 from src.database import get_db
-from src.dependencies import get_current_user
+from src.dependencies import check_invoice_limit, get_current_user
 from src.models.invoice import Invoice
 from src.models.invoice_item import InvoiceItem
 from src.models.invoice_processing import InvoiceProcessing
@@ -61,7 +61,7 @@ logger_stdlib = logging.getLogger(__name__)
 @router.get("/", response_model=list[InvoiceList])
 async def list_invoices(
     skip: int = 0,
-    limit: int = 100,
+    limit: int = 1000,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -79,7 +79,7 @@ async def list_invoices(
         .outerjoin(InvoiceItem, InvoiceItem.invoice_id == Invoice.id)
         .where(Invoice.user_id == current_user.id)
         .group_by(Invoice.id)
-        .order_by(Invoice.created_at.desc())
+        .order_by(Invoice.issue_date.desc())
         .offset(skip)
         .limit(limit)
     )
@@ -421,7 +421,7 @@ async def process_qrcode(
 async def upload_xml(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(check_invoice_limit),
     db: AsyncSession = Depends(get_db),
 ):
     """Upload and process XML invoice file."""
@@ -511,7 +511,7 @@ async def upload_xml(
 async def upload_invoice_photos(
     background_tasks: BackgroundTasks,
     files: list[UploadFile] = File(...),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(check_invoice_limit),
     db: AsyncSession = Depends(get_db),
 ):
     """Upload photos of invoices for LLM processing.
@@ -842,6 +842,14 @@ async def confirm_extracted_invoice(
 
         await db.commit()
         await db.refresh(invoice)
+
+        # Increment usage counter (only if subscription system is enabled)
+        if settings.subscription_enabled:
+            from src.dependencies import _get_or_create_usage
+            now = datetime.utcnow()
+            usage = await _get_or_create_usage(current_user.id, now.year, now.month, db)
+            usage.invoices_count += 1
+            await db.commit()
 
         # Generate AI analyses in background
         background_tasks.add_task(

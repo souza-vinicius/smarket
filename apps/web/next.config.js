@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
+  output: process.env.BUILD_TARGET === 'capacitor' ? 'export' : 'standalone',
   images: {
     unoptimized: true,
   },
@@ -12,6 +12,10 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  // For Capacitor: disable prerendering of pages that use client hooks
+  ...(process.env.BUILD_TARGET === 'capacitor' && {
+    trailingSlash: true,
+  }),
 }
 
 module.exports = nextConfig

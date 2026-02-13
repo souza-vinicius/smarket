@@ -1,6 +1,6 @@
 # Deploy no Dokploy
 
-Este guia explica como fazer o deploy da aplicação SMarket no Dokploy.
+Este guia explica como fazer o deploy da aplicação Mercado Esperto no Dokploy.
 
 ## Pré-requisitos
 
@@ -14,7 +14,7 @@ Este guia explica como fazer o deploy da aplicação SMarket no Dokploy.
 
 1. Acesse o painel do Dokploy
 2. Clique em "Create Project"
-3. Nome: `SMarket`
+3. Nome: `Mercado Esperto`
 4. Descrição: `Analisador de Notas Fiscais`
 
 ### 2. Criar Aplicação (Backend)
@@ -35,7 +35,7 @@ No painel da aplicação, vá em "Environment" e adicione:
 
 ```env
 DEBUG=false
-APP_NAME=SMarket API
+APP_NAME=Mercado Esperto API
 DATABASE_URL=postgresql+asyncpg://user:pass@host:5432/smarket
 SECRET_KEY=sua-chave-secreta-super-segura
 ALGORITHM=HS256
@@ -82,7 +82,7 @@ ALLOWED_ORIGINS=https://seu-frontend.com
 ## Estrutura de Deploy
 
 ```
-Dokploy Project: SMarket
+Dokploy Project: Mercado Esperto
 ├── Service: smarket-api (Docker)
 │   ├── Port: 8000
 │   ├── Domain: api.seudominio.com
