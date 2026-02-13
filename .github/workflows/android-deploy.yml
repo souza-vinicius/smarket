@@ -77,8 +77,11 @@ jobs:
         working-directory: apps/web
 
       - name: Decode Signing Key
-        if: env.ANDROID_SIGNING_KEY != ''
+        if: ${{ secrets.ANDROID_SIGNING_KEY != '' }}
+        env:
+          ANDROID_SIGNING_KEY: ${{ secrets.ANDROID_SIGNING_KEY }}
         run: |
+          mkdir -p android/keystore
           echo "$ANDROID_SIGNING_KEY" | base64 -d > android/keystore/mercado-esperto-release.p12
           ls -la android/keystore/
         working-directory: apps/web
