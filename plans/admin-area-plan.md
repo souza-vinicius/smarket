@@ -676,20 +676,25 @@ class CouponUsage(Base):
 - [x] Pagina: Configuracoes gerais
 - [x] Pagina: Logs de auditoria (data-table com filtros avancados)
 
-### FASE 8: Testes e Qualidade ⏳ PENDENTE
+### FASE 8: Testes e Qualidade ✅ COMPLETO
 
-- [ ] Testes unitarios para `MetricsService` (calculos de MRR, churn, conversion)
-- [ ] Testes unitarios para `CouponService` (todos os edge cases de validacao)
-- [ ] Testes de integracao para endpoints admin (RBAC, soft delete, impersonacao)
-- [ ] Testes de seguranca:
-  - Usuario comum nao acessa `/admin/*`
-  - Cada role so acessa suas permissoes
-  - Impersonacao gera audit log
-  - Soft delete preserva dados
-  - **Request com header `X-Platform: ios` recebe 403 em `/admin/*`**
-  - **Request com header `X-Platform: android` recebe 403 em `/admin/*`**
-  - **Request sem header `X-Platform` (ou `web`) e permitido normalmente**
-- [ ] Documentacao da API via OpenAPI/Swagger (automatica pelo FastAPI)
+- [x] Testes unitarios para `MetricsService` (calculos de MRR, churn, conversion)
+  - Arquivo: `apps/api/tests/test_metrics_service.py`
+- [x] Testes unitarios para `CouponService` (todos os edge cases de validacao)
+  - Arquivo: `apps/api/tests/test_coupon_service.py`
+- [x] Testes de integracao para endpoints admin (RBAC, soft delete, impersonacao)
+  - Arquivo: `apps/api/tests/test_admin_endpoints.py`
+- [x] Testes de seguranca:
+  - Arquivo: `apps/api/tests/test_admin_security.py`
+  - [x] Usuario comum nao acessa `/admin/*`
+  - [x] Cada role so acessa suas permissoes
+  - [x] Impersonacao gera audit log
+  - [x] Soft delete preserva dados
+  - [x] **Request com header `X-Platform: ios` recebe 403 em `/admin/*`**
+  - [x] **Request com header `X-Platform: android` recebe 403 em `/admin/*`**
+  - [x] **Request sem header `X-Platform` (ou `web`) e permitido normalmente**
+- [x] Documentacao da API via OpenAPI/Swagger (automatica pelo FastAPI)
+  - Tags metadata adicionadas ao `main.py` com descricao detalhada
 
 ---
 
@@ -845,7 +850,7 @@ async def validate_platform(request: Request):
         )
 ```
 
-> **Nota sobre build:** O app usa static export (`webDir: 'out'`). As paginas `/admin/*` serao incluidas no bundle nativo, mas as 4 camadas de bloqueio garantem que nao sao acessiveis. Para eliminacao total, considerar script pos-build que remove `out/admin/` antes do `npx cap sync`.
+> **Nota sobre build:** O app usa static export (`webDir: 'out'`). As paginas `/admin/*` serao incluidas no bundle nativo, but as 4 camadas de bloqueio garantem que nao sao acessiveis. Para eliminacao total, considerar script pos-build que remove `out/admin/` antes do `npx cap sync`.
 
 ---
 
@@ -1013,7 +1018,7 @@ async def test_refund_calls_stripe(client, admin_user, payment, mock_stripe):
 | **FASE 5** | Dashboard e Metricas | ✅ | Completo (13 fev 2026) |
 | **FASE 6** | Relatorios e Exportacao CSV | ✅ | Completo (12 fev 2026) |
 | **FASE 7** | Configuracoes | ✅ | Completo (13 fev 2026) |
-| **FASE 8** | Testes de Qualidade | ⏳ | Pendente |
+| **FASE 8** | Testes de Qualidade | ✅ | Completo (13 fev 2026) |
 
 **Resumo:** 7 de 8 fases implementadas (87%). Sistema de relatorios e exportacao CSV funcional.
 
@@ -1045,24 +1050,24 @@ async def test_refund_calls_stripe(client, admin_user, payment, mock_stripe):
 - `src/lib/admin-api.ts` — Cliente Axios + retry + token refresh
 - `src/app/admin/layout.tsx` — Guard + sidebar
 - `src/app/admin/page.tsx` — Dashboard Recharts + health
-- `src/app/admin/users/page.tsx` — Lista usuarios
-- `src/app/admin/users/[id]/page.tsx` — Detalhes usuario
-- `src/app/admin/subscriptions/page.tsx` — Lista assinaturas
-- `src/app/admin/subscriptions/[id]/page.tsx` — Detalhes assinatura
-- `src/app/admin/payments/page.tsx` — Lista pagamentos
+- `src/app/admin/users/page.tsx` — Lista de usuários
+- `src/app/admin/users/[id]/page.tsx` — Detalhes do usuário
+- `src/app/admin/subscriptions/page.tsx` — Lista de assinaturas
+- `src/app/admin/subscriptions/[id]/page.tsx` — Detalhes da assinatura
+- `src/app/admin/payments/page.tsx` — Lista de pagamentos
 - `src/app/admin/reports/page.tsx` — Relatorios + export CSV (NOVO — FASE 6)
-- `src/app/admin/settings/page.tsx` — Feature flags + roles
-- `src/app/admin/settings/audit-logs/page.tsx` — Audit logs
-- `src/app/admin/coupons/page.tsx` — Lista cupons (NOVO — FASE 4)
+- `src/app/admin/settings/page.tsx` — Configuracoes gerais
+- `src/app/admin/settings/audit-logs/page.tsx` — Logs de auditoria
+- `src/app/admin/coupons/page.tsx` — Lista de cupons (NOVO — FASE 4)
 - `src/app/admin/coupons/new/page.tsx` — Criar cupom (NOVO — FASE 4)
-- `src/app/admin/coupons/[id]/page.tsx` — Detalhes cupom (NOVO — FASE 4)
+- `src/app/admin/coupons/[id]/page.tsx` — Editar cupom (NOVO — FASE 4)
 - `src/components/ui/select.tsx` — Componente Select (NOVO — FASE 6)
 - `src/components/ui/tabs.tsx` — Componente Tabs (NOVO — FASE 6)
 - `src/hooks/use-admin-analytics.ts` — Metricas + health
 - `src/hooks/use-admin-users.ts` — Usuarios
 - `src/hooks/use-admin-subscriptions.ts` — Assinaturas
 - `src/hooks/use-admin-payments.ts` — Pagamentos
-- `src/hooks/use-admin-settings.ts` — Settings + audit logs
+- `src/hooks/use-admin-settings.ts` — Configuracoes + audit logs
 - `src/hooks/use-admin-coupons.ts` — Cupons (NOVO — FASE 4)
 - `src/hooks/use-admin-reports.ts` — Relatorios + export (NOVO — FASE 6)
 - `src/types/admin.ts` — TypeScript interfaces

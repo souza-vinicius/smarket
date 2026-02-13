@@ -44,10 +44,153 @@ logging.getLogger("src.tasks.process_invoice_photos").setLevel(logging.DEBUG)
 # Log CORS origins at startup so we can verify on the server
 logger.info("CORS allowed origins: %s", settings.allowed_origins_list)
 
+# API documentation tags metadata
+tags_metadata = [
+    {
+        "name": "auth",
+        "description": (
+            "Authentication operations. User registration, login, and token "
+            "management."
+        ),
+    },
+    {
+        "name": "invoices",
+        "description": (
+            "Invoice management. Upload, parse, and analyze Brazilian fiscal "
+            "documents (NF-e/NFC-e)."
+        ),
+    },
+    {
+        "name": "merchants",
+        "description": (
+            "Merchant management. Store/establishment information with CNPJ "
+            "enrichment."
+        ),
+    },
+    {
+        "name": "categories",
+        "description": (
+            "Product category management. System and user-defined categories."
+        ),
+    },
+    {
+        "name": "products",
+        "description": "Product catalog. Generic product database for analysis.",
+    },
+    {
+        "name": "invoice-items",
+        "description": "Invoice line items. Individual products within invoices.",
+    },
+    {
+        "name": "analysis",
+        "description": (
+            "AI-powered analysis. Spending insights, price alerts, and "
+            "recommendations."
+        ),
+    },
+    {
+        "name": "purchase-patterns",
+        "description": "Recurring purchase pattern detection and analysis.",
+    },
+    {
+        "name": "users",
+        "description": "User profile management. Household settings and preferences.",
+    },
+    {
+        "name": "subscriptions",
+        "description": "Subscription management. Plans, billing, and usage tracking.",
+    },
+    {
+        "name": "admin",
+        "description": (
+            "**Admin Area** - Administrative operations. Requires admin role. "
+            "Blocked on native mobile platforms (iOS/Android)."
+        ),
+    },
+    {
+        "name": "admin-users",
+        "description": (
+            "Admin: User management. List, update, delete, and impersonate users."
+        ),
+    },
+    {
+        "name": "admin-subscriptions",
+        "description": (
+            "Admin: Subscription management. Modify, cancel, extend trials."
+        ),
+    },
+    {
+        "name": "admin-payments",
+        "description": (
+            "Admin: Payment management. View transactions and process refunds."
+        ),
+    },
+    {
+        "name": "admin-coupons",
+        "description": (
+            "Admin: Coupon management. Create, update, and track coupon usage."
+        ),
+    },
+    {
+        "name": "admin-dashboard",
+        "description": (
+            "Admin: Dashboard metrics. MRR, churn, conversion, and operational "
+            "KPIs."
+        ),
+    },
+    {
+        "name": "admin-reports",
+        "description": (
+            "Admin: Reports and exports. Churn analysis, conversion funnel, "
+            "CSV exports."
+        ),
+    },
+    {
+        "name": "admin-settings",
+        "description": "Admin: System settings. Feature flags and configuration.",
+    },
+    {
+        "name": "debug",
+        "description": "Debug endpoints. Only available in development.",
+    },
+]
+
 app = FastAPI(
     title=settings.APP_NAME,
-    description="API para análise de notas fiscais",
+    description="""
+# Mercado Esperto API
+
+API para análise de notas fiscais brasileiras (NF-e/NFC-e) com insights de IA.
+
+## Recursos Principais
+
+- **Upload de Notas**: XML, QR Code, ou foto da nota fiscal
+- **Processamento OCR**: Extração automática de dados via LLM vision
+- **Análise de Gastos**: Insights personalizados com IA
+- **Sistema de Assinatura**: Planos FREE, BASIC e PREMIUM
+- **Área Administrativa**: Dashboard SaaS com métricas e gestão
+
+## Autenticação
+
+Todos os endpoints (exceto `/auth/*`) requerem token JWT no header:
+```
+Authorization: Bearer <token>
+```
+
+## Área Administrativa
+
+Endpoints em `/api/v1/admin/*` são restritos a usuários com role administrativa.
+**Bloqueados em plataformas nativas (iOS/Android).**
+    """,
     version="1.0.0",
+    openapi_tags=tags_metadata,
+    contact={
+        "name": "Mercado Esperto",
+        "email": "contato@mercadoesperto.com.br",
+    },
+    license_info={
+        "name": "Proprietary",
+    },
 )
 
 

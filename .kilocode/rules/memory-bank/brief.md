@@ -168,6 +168,7 @@ User ─┬─► Subscription ─► Payment ─► CouponUsage
 - ✅ User impersonation for support
 - ✅ SaaS metrics (MRR, ARR, ARPU, churn, trial conversion)
 - ✅ Reports (churn, conversion, MRR) with CSV export
+- ✅ Admin area tests (unit + integration + security)
 
 ### Planned Features
 - [ ] Price comparison page
