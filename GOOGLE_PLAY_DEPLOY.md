@@ -42,7 +42,54 @@ Copie o resultado - você precisará dele como secret no GitHub.
 
 ---
 
-## Passo 3: Configurar Secrets no GitHub
+## Passo 3: Criar Service Account do Google Cloud
+
+Para fazer upload automático para a Google Play Store via CI/CD, você precisa criar uma Service Account:
+
+### 3.1 Acessar Google Cloud Console
+
+1. Acesse [Google Cloud Console](https://console.cloud.google.com/)
+2. Selecione seu projeto (ou crie um novo)
+3. Vá para **IAM e Admin > Contas de Serviço**
+4. Clique em **+ CRIAR CONTA DE SERVIÇO**
+
+### 3.2 Criar a Service Account
+
+1. **Nome da conta de serviço**: `play-store-uploader`
+2. **ID da conta de serviço**: `play-store-uploader@seu-projeto.iam.gserviceaccount.com`
+3. **Descrição**: Service account para upload automatizado na Play Store
+4. Clique em **CRIAR E CONTINUAR**
+
+### 3.3 Atribuir Permissões
+
+1. Na etapa "Conceder acesso a esta conta de serviço", adicione o papel:
+   - **Editor de Apps do Google Play**
+2. Clique em **CONCLUIR**
+
+### 3.4 Gerar Chave JSON
+
+1. Na lista de contas de serviço, clique na conta que você criou
+2. Vá para a aba **CHAVES**
+3. Clique em **ADICIONAR CHAVE > Criar nova chave**
+4. Selecione **JSON**
+5. Clique em **CRIAR**
+6. O arquivo JSON será baixado automaticamente
+
+### 3.5 Conceder Acesso na Play Console
+
+1. Acesse [Google Play Console](https://play.google.com/console/)
+2. Vá para **Configurações > Usuários e permissões**
+3. Clique em **Convidar novos usuários**
+4. Adicione o email da service account: `play-store-uploader@seu-projeto.iam.gserviceaccount.com`
+5. Selecione as permissões:
+   - **Acesso ao app** (selecione o app)
+   - **Gerenciar Apps e Versões**
+   - **Acesso de teste**
+6. Clique em **Convidar usuário**
+
+---
+
+## Passo 4: Configurar Secrets no GitHub
 
 Navegue até: `Settings > Secrets and variables > Actions`
 
