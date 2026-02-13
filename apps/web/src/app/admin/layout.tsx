@@ -92,6 +92,12 @@ export default function AdminLayout({
             🎟️ Cupons
           </Link>
           <Link
+            href="/admin/reports"
+            className="block px-6 py-3 text-gray-700 hover:bg-gray-100 transition-colors"
+          >
+            📈 Relatórios
+          </Link>
+          <Link
             href="/admin/settings"
             className="block px-6 py-3 text-gray-700 hover:bg-gray-100 transition-colors"
           >

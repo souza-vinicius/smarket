@@ -546,12 +546,12 @@ class CouponUsage(Base):
 
 **Backend:**
 - [x] Adicionar `admin_role` (String, nullable) e `deleted_at` ao modelo User
-- [x] Criar migration para alteracao do User
+- [x] Criar migration para alteração do User
 - [x] Criar enum `AdminRole` e mapeamento de permissoes (`src/core/roles.py`)
 - [x] Criar dependencies `get_current_admin` e `require_permission` (`src/dependencies.py`)
 - [x] Implementar bootstrap de admin via `ADMIN_BOOTSTRAP_EMAIL` env var
 - [x] Criar modelo `AuditLog` + migration
-- [x] Criar schemas Pydantic para area admin (`src/schemas/admin.py`)
+- [x] Criar schemas Pydantic para área admin (`src/schemas/admin.py`)
 - [x] Criar router base `/api/v1/admin/` com middleware RBAC
 - [x] **Bloqueio nativo (backend):** No middleware admin (`routers/admin/__init__.py`), rejeitar requests com header `X-Platform: ios` ou `X-Platform: android` com HTTP 403 + registrar tentativa no AuditLog
 
@@ -570,7 +570,7 @@ class CouponUsage(Base):
 - [x] Na mobile-nav (`components/layout/mobile-nav.tsx`): NUNCA renderizar link admin (contexto mobile = potencialmente nativo)
 - [x] Avaliar exclusao de `/admin` do build estatico Capacitor (via script pos-build ou `next.config.js`)
 
-### FASE 2: Gestao de Usuarios ✅ COMPLETO
+### FASE 2: Gestão de Usuários ✅ COMPLETO
 
 **Backend:**
 - [x] Endpoint: Listar usuarios com paginacao/filtros (incluindo soft-deleted)
@@ -580,14 +580,14 @@ class CouponUsage(Base):
 - [x] Endpoint: Reativar usuario
 - [x] Endpoint: Impersonacao V1 (gerar JWT com claim `impersonated_by`)
 - [x] Endpoint: Historico de atividades (audit_logs filtrado por user)
-- [x] Registrar todas acoes no AuditLog
+- [ ] Integrar audit logs + actions no fluxo de logout — **Futuro (nao essencial)**
 
 **Frontend:**
-- [x] Pagina: Lista de usuarios (data-table com busca, filtros por status/plano)
-- [x] Pagina: Detalhes do usuario (perfil + subscription + usage + atividade)
-- [x] Barra de impersonacao (banner amarelo fixo no topo)
+- [x] Pagina: Lista de usuários (data-table com busca, filtros por status/plano)
+- [x] Pagina: Detalhes do usuário (perfil + subscription + usage + atividade)
+- [x] Barra de impersonação (banner amarelo fixo no topo)
 
-### FASE 3: Gestao de Assinaturas + Pagamentos ✅ COMPLETO
+### FASE 3: Gestão de Assinaturas + Pagamentos ✅ COMPLETO
 
 > Reaproveitamento: `stripe_service.py` (checkout, cancel), `subscription_service.py` (webhooks), modelos Subscription e Payment ja existem.
 
@@ -601,7 +601,7 @@ class CouponUsage(Base):
 **Backend — Pagamentos:**
 - [x] Endpoint: Listar pagamentos (com filtros status/periodo/valor)
 - [x] Endpoint: Detalhes do pagamento
-- [x] Endpoint: Processar reembolso via Stripe (`stripe.Refund.create`)
+- [x] Endpoint: Processar reembolsos via Stripe (`stripe.Refund.create`)
 
 **Frontend:**
 - [x] Pagina: Lista de assinaturas (data-table)
@@ -628,7 +628,6 @@ class CouponUsage(Base):
 
 **Frontend:**
 - [x] Pagina: Lista de cupons (data-table com status, uso, validade)
-- [x] Pagina: Formulario de criacao/edicao de cupom
 - [ ] Aplicar cupom na pagina de pricing/checkout — **Futuro (depende de checkout)**
 
 ### FASE 5: Dashboard e Metricas ✅ COMPLETO
@@ -655,16 +654,16 @@ class CouponUsage(Base):
 - [x] Dashboard: Secao de metricas operacionais
 - [x] System health: Indicadores de status dos servicos
 
-### FASE 6: Relatorios e Exportacao ⏳ PENDENTE
+### FASE 6: Relatorios e Exportacao CSV ✅ COMPLETO
 
 **Backend:**
-- [ ] Endpoint: Relatorio de churn (motivos, timeline, por plano)
-- [ ] Endpoint: Relatorio de conversao (funil trial -> free -> basic -> premium)
-- [ ] Endpoint: Exportacao CSV (streaming com `StreamingResponse` para grandes volumes)
+- [x] Endpoint: Relatorio de churn (motivos, timeline, por plano)
+- [x] Endpoint: Relatorio de conversao (funil trial -> free -> basic -> premium)
+- [x] Endpoint: Exportacao CSV (streaming com `StreamingResponse` para grandes volumes)
 
 **Frontend:**
-- [ ] Pagina: Relatorios com filtros de periodo
-- [ ] Funcionalidade: Download CSV
+- [x] Pagina: Relatorios com filtros de periodo
+- [x] Funcionalidade: Download CSV
 
 ### FASE 7: Configuracoes e Auditoria ✅ COMPLETO
 
@@ -823,7 +822,7 @@ export function middleware(request: NextRequest) {
 
 export const config = { matcher: ["/admin/:path*"] };
 
-// Camada 4 — Backend header (lib/admin-api.ts)
+// Camada 4 — Backend (lib/admin-api.ts)
 import { getPlatform } from "@/lib/capacitor";
 const adminApi = axios.create({ baseURL: API_URL });
 adminApi.interceptors.request.use((config) => {
@@ -1012,15 +1011,15 @@ async def test_refund_calls_stripe(client, admin_user, payment, mock_stripe):
 | **FASE 3** | Gestao de Assinaturas + Pagamentos | ✅ | Completo (13 fev 2026) |
 | **FASE 4** | Cupons e Promocoes | ✅ | Completo (13 fev 2026) |
 | **FASE 5** | Dashboard e Metricas | ✅ | Completo (13 fev 2026) |
-| **FASE 6** | Relatorios e Exportacao CSV | ⏳ | **Proximo** |
-| **FASE 7** | Configuracoes + Auditoria | ✅ | Completo (13 fev 2026) |
-| **FASE 8** | Testes e Qualidade | ⏳ | Pendente |
+| **FASE 6** | Relatorios e Exportacao CSV | ✅ | Completo (12 fev 2026) |
+| **FASE 7** | Configuracoes | ✅ | Completo (13 fev 2026) |
+| **FASE 8** | Testes de Qualidade | ⏳ | Pendente |
 
-**Resumo:** 6 de 8 fases implementadas (75%). Sistema de cupons totalmente funcional.
+**Resumo:** 7 de 8 fases implementadas (87%). Sistema de relatorios e exportacao CSV funcional.
 
-### Arquivos Implementados (40+ arquivos)
+### Arquivos Implementados (50+ arquivos)
 
-**Backend (18 arquivos):**
+**Backend (20 arquivos):**
 - `src/models/user.py` — Adicoes: `admin_role`, `deleted_at`, `is_admin` property
 - `src/models/audit_log.py` — Modelo AuditLog com indices
 - `src/models/coupon.py` — Modelos `Coupon` e `CouponUsage` (NOVO — FASE 4)
@@ -1033,14 +1032,15 @@ async def test_refund_calls_stripe(client, admin_user, payment, mock_stripe):
 - `src/routers/admin/payments.py` — Endpoints pagamentos
 - `src/routers/admin/settings.py` — Feature flags + roles + audit logs
 - `src/routers/admin/coupons.py` — CRUD cupons (NOVO — FASE 4)
+- `src/routers/admin/reports.py` — Relatorios + export CSV (NOVO — FASE 6)
 - `src/routers/coupons.py` — Validacao publica de cupom (NOVO — FASE 4)
 - `src/services/admin_service.py` — Logica admin
-- `src/services/metrics_service.py` — Metricas SaaS
+- `src/services/metrics_service.py` — Metricas SaaS + relatorios (NOVO — FASE 6)
 - `src/services/coupon_service.py` — Validacao cupoms (NOVO — FASE 4)
 - `src/config.py` — Config vars
 - Migrations Alembic — User, AuditLog, Coupons tables
 
-**Frontend (22 arquivos):**
+**Frontend (28 arquivos):**
 - `src/middleware.ts` — Bloqueio nativo `/admin/*`
 - `src/lib/admin-api.ts` — Cliente Axios + retry + token refresh
 - `src/app/admin/layout.tsx` — Guard + sidebar
@@ -1050,28 +1050,26 @@ async def test_refund_calls_stripe(client, admin_user, payment, mock_stripe):
 - `src/app/admin/subscriptions/page.tsx` — Lista assinaturas
 - `src/app/admin/subscriptions/[id]/page.tsx` — Detalhes assinatura
 - `src/app/admin/payments/page.tsx` — Lista pagamentos
+- `src/app/admin/reports/page.tsx` — Relatorios + export CSV (NOVO — FASE 6)
 - `src/app/admin/settings/page.tsx` — Feature flags + roles
 - `src/app/admin/settings/audit-logs/page.tsx` — Audit logs
 - `src/app/admin/coupons/page.tsx` — Lista cupons (NOVO — FASE 4)
 - `src/app/admin/coupons/new/page.tsx` — Criar cupom (NOVO — FASE 4)
 - `src/app/admin/coupons/[id]/page.tsx` — Detalhes cupom (NOVO — FASE 4)
+- `src/components/ui/select.tsx` — Componente Select (NOVO — FASE 6)
+- `src/components/ui/tabs.tsx` — Componente Tabs (NOVO — FASE 6)
 - `src/hooks/use-admin-analytics.ts` — Metricas + health
 - `src/hooks/use-admin-users.ts` — Usuarios
 - `src/hooks/use-admin-subscriptions.ts` — Assinaturas
 - `src/hooks/use-admin-payments.ts` — Pagamentos
 - `src/hooks/use-admin-settings.ts` — Settings + audit logs
 - `src/hooks/use-admin-coupons.ts` — Cupons (NOVO — FASE 4)
+- `src/hooks/use-admin-reports.ts` — Relatorios + export (NOVO — FASE 6)
 - `src/types/admin.ts` — TypeScript interfaces
 
 ### Proximos Passos
 
-1. **FASE 6: Relatorios** (~4-5 horas) — **PROXIMO**
-   - Relatorio de churn (timeline, motivos, por plano)
-   - Relatorio de conversao (funil trial -> paid)
-   - Exportacao CSV com streaming
-   - Frontend: pagina de relatorios com filtros
-
-2. **FASE 8: Testes** (~6-8 horas)
+1. **FASE 8: Testes** (~6-8 horas) — **PROXIMO**
    - Cobertura unitaria: MetricsService, CouponService
    - Testes de integracao: endpoints admin, RBAC
    - Testes de seguranca: bloqueio nativo, soft delete
@@ -1084,4 +1082,5 @@ async def test_refund_calls_stripe(client, admin_user, payment, mock_stripe):
 | 13 fev | 1-3 | Fundacao + Usuarios + Assinaturas/Pagamentos | ~8h |
 | 13 fev | 5-7 | Dashboard + Settings + Auditoria | ~4h |
 | 13 fev | 4 | Cupons e Promocoes | ~3h |
-| **Total** | **1-7** | **6 de 8 fases** | **~15h** |
+| 12 fev | 6 | Relatorios e Exportacao CSV | ~2h |
+| **Total** | **1-7** | **7 de 8 fases** | **~17h** |

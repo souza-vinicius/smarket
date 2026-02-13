@@ -399,3 +399,84 @@ export interface CouponStatsResponse {
   unique_users: number;
   most_recent_use: string | null;
 }
+
+// Reports - Churn
+export interface ChurnTimelineEntry {
+  month: string;
+  cancelled: number;
+  subscribers_at_start: number;
+  churn_rate: number;
+}
+
+export interface ChurnByPlan {
+  plan: string;
+  cancelled: number;
+  total: number;
+  churn_rate: number;
+}
+
+export interface ChurnReport {
+  timeline: ChurnTimelineEntry[];
+  by_plan: ChurnByPlan[];
+  summary: {
+    total_cancelled: number;
+    average_churn_rate: number;
+  };
+}
+
+// Reports - Conversion
+export interface TrialFunnelEntry {
+  month: string;
+  trials_started: number;
+  converted: number;
+  conversion_rate: number;
+}
+
+export interface PlanDistribution {
+  plan: string;
+  count: number;
+}
+
+export interface PlanFlow {
+  from_plan: string;
+  to_plan: string;
+  count: number;
+}
+
+export interface ConversionReport {
+  trial_funnel: TrialFunnelEntry[];
+  plan_distribution: PlanDistribution[];
+  plan_flows: PlanFlow[];
+  summary: {
+    total_trials: number;
+    total_converted: number;
+    overall_conversion_rate: number;
+  };
+}
+
+// Reports - MRR
+export interface MRRTimelineEntry {
+  month: string;
+  mrr: number;
+  monthly_mrr: number;
+  yearly_mrr_equivalent: number;
+  premium_mrr: number;
+  basic_mrr: number;
+  active_subscribers: number;
+}
+
+export interface MRRByPlan {
+  plan: string;
+  billing_cycle: string;
+  mrr: number;
+  subscribers: number;
+}
+
+export interface MRRReport {
+  timeline: MRRTimelineEntry[];
+  by_plan: MRRByPlan[];
+  summary: {
+    current_mrr: number;
+    arr: number;
+  };
+}

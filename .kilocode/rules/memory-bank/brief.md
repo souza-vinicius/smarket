@@ -132,6 +132,12 @@ User ─┬─► Subscription ─► Payment ─► CouponUsage
 - `PUT /coupons/{id}` - Update coupon
 - `GET /audit-logs` - System audit logs
 - `GET /settings` - System settings
+- `GET /reports/churn` - Churn analysis report
+- `GET /reports/conversion` - Conversion funnel report
+- `GET /reports/mrr` - MRR breakdown report
+- `GET /reports/export/users` - Export users to CSV
+- `GET /reports/export/subscriptions` - Export subscriptions to CSV
+- `GET /reports/export/payments` - Export payments to CSV
 
 ## Key Features
 
@@ -161,11 +167,11 @@ User ─┬─► Subscription ─► Payment ─► CouponUsage
 - ✅ Audit logging for admin actions
 - ✅ User impersonation for support
 - ✅ SaaS metrics (MRR, ARR, ARPU, churn, trial conversion)
+- ✅ Reports (churn, conversion, MRR) with CSV export
 
 ### Planned Features
 - [ ] Price comparison page
 - [ ] Advanced filters
-- [ ] Data export (CSV/PDF)
 - [ ] Dark mode
 - [ ] Push/email notifications
 - [ ] Recurring purchase predictions

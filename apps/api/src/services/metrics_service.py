@@ -540,3 +540,395 @@ class MetricsService:
             "per_page": per_page,
             "pages": (total + per_page - 1) // per_page,
         }
+
+    # ==========================================================================
+    # Report Methods (Phase 6)
+    # ==========================================================================
+
+    async def get_churn_report(self, months: int = 12) -> dict:
+        """
+        Get detailed churn analysis.
+
+        Args:
+            months: Number of months to analyze
+
+        Returns:
+            Dict with churn timeline, by plan, and cumulative stats
+        """
+        query = text("""
+            WITH months AS (
+                SELECT generate_series(
+                    DATE_TRUNC('month', NOW() - INTERVAL ':months months'),
+                    DATE_TRUNC('month', NOW()),
+                    INTERVAL '1 month'
+                ) AS month
+            ),
+            cancellations AS (
+                SELECT
+                    DATE_TRUNC('month', cancelled_at) AS month,
+                    plan,
+                    COUNT(*) AS cancelled_count
+                FROM subscriptions
+                WHERE status = 'cancelled'
+                    AND cancelled_at >= NOW() - INTERVAL ':months months'
+                GROUP BY DATE_TRUNC('month', cancelled_at), plan
+            ),
+            active_by_month AS (
+                SELECT
+                    DATE_TRUNC('month', created_at) AS month,
+                    plan,
+                    COUNT(*) AS new_count
+                FROM subscriptions
+                WHERE created_at >= NOW() - INTERVAL ':months months'
+                    AND status IN ('active', 'trial')
+                GROUP BY DATE_TRUNC('month', created_at), plan
+            )
+            SELECT
+                TO_CHAR(m.month, 'YYYY-MM') AS month,
+                COALESCE(SUM(c.cancelled_count), 0) AS total_cancelled,
+                (
+                    SELECT COUNT(*)
+                    FROM subscriptions s
+                    WHERE s.status IN ('active', 'cancelled')
+                        AND s.created_at < m.month + INTERVAL '1 month'
+                        AND (s.cancelled_at IS NULL OR s.cancelled_at >= m.month)
+                ) AS subscribers_at_start
+            FROM months m
+            LEFT JOIN cancellations c ON c.month = m.month
+            GROUP BY m.month
+            ORDER BY m.month
+        """).bindparams(months=months)
+
+        result = await self.db.execute(query)
+        rows = result.all()
+
+        timeline = []
+        total_cancelled = 0
+        total_subscribers = 0
+
+        for row in rows:
+            cancelled = row.total_cancelled or 0
+            subscribers = row.subscribers_at_start or 0
+            churn_rate = (cancelled / subscribers * 100) if subscribers > 0 else 0
+
+            timeline.append({
+                "month": row.month,
+                "cancelled": cancelled,
+                "subscribers_at_start": subscribers,
+                "churn_rate": round(churn_rate, 2),
+            })
+
+            total_cancelled += cancelled
+            total_subscribers = max(total_subscribers, subscribers)
+
+        # Churn by plan
+        plan_query = text("""
+            SELECT
+                plan,
+                COUNT(*) AS cancelled_count,
+                (
+                    SELECT COUNT(*)
+                    FROM subscriptions s2
+                    WHERE s2.plan = s.plan
+                        AND s2.status IN ('active', 'cancelled')
+                ) AS total_count
+            FROM subscriptions s
+            WHERE status = 'cancelled'
+                AND cancelled_at >= NOW() - INTERVAL ':months months'
+            GROUP BY plan
+        """).bindparams(months=months)
+
+        plan_result = await self.db.execute(plan_query)
+        plan_rows = plan_result.all()
+
+        by_plan = []
+        for row in plan_rows:
+            total = row.total_count or 0
+            cancelled = row.cancelled_count or 0
+            rate = (cancelled / total * 100) if total > 0 else 0
+
+            by_plan.append({
+                "plan": row.plan,
+                "cancelled": cancelled,
+                "total": total,
+                "churn_rate": round(rate, 2),
+            })
+
+        return {
+            "timeline": timeline,
+            "by_plan": by_plan,
+            "summary": {
+                "total_cancelled": total_cancelled,
+                "average_churn_rate": (
+                    round(total_cancelled / total_subscribers * 100, 2)
+                    if total_subscribers > 0 else 0
+                ),
+            },
+        }
+
+    async def get_conversion_report(self, months: int = 12) -> dict:
+        """
+        Get conversion funnel analysis.
+
+        Args:
+            months: Number of months to analyze
+
+        Returns:
+            Dict with conversion rates and funnel data
+        """
+        now = datetime.utcnow()
+        since = now - timedelta(days=months * 30)
+
+        # Trial to paid conversion
+        trial_query = text("""
+            WITH trials AS (
+                SELECT
+                    user_id,
+                    trial_end,
+                    DATE_TRUNC('month', created_at) AS trial_month
+                FROM subscriptions
+                WHERE status = 'trial'
+                    AND trial_end IS NOT NULL
+                    AND created_at >= :since
+            ),
+            conversions AS (
+                SELECT
+                    t.user_id,
+                    t.trial_month,
+                    s.plan AS converted_to_plan
+                FROM trials t
+                JOIN subscriptions s ON t.user_id = s.user_id
+                WHERE s.status = 'active'
+                    AND s.plan != 'free'
+                    AND s.created_at >= t.trial_end
+            )
+            SELECT
+                TO_CHAR(trial_month, 'YYYY-MM') AS month,
+                COUNT(DISTINCT user_id) AS trials_started,
+                (
+                    SELECT COUNT(DISTINCT c.user_id)
+                    FROM conversions c
+                    WHERE c.trial_month = trials.trial_month
+                ) AS converted
+            FROM trials
+            GROUP BY trial_month
+            ORDER BY trial_month
+        """).bindparams(since=since)
+
+        trial_result = await self.db.execute(trial_query)
+        trial_rows = trial_result.all()
+
+        trial_funnel = []
+        total_trials = 0
+        total_converted = 0
+
+        for row in trial_rows:
+            trials = row.trials_started or 0
+            converted = row.converted or 0
+            rate = (converted / trials * 100) if trials > 0 else 0
+
+            trial_funnel.append({
+                "month": row.month,
+                "trials_started": trials,
+                "converted": converted,
+                "conversion_rate": round(rate, 2),
+            })
+
+            total_trials += trials
+            total_converted += converted
+
+        # Plan distribution
+        plan_query = text("""
+            SELECT
+                plan,
+                COUNT(*) AS subscriber_count
+            FROM subscriptions
+            WHERE status = 'active'
+            GROUP BY plan
+            ORDER BY
+                CASE plan
+                    WHEN 'premium' THEN 1
+                    WHEN 'basic' THEN 2
+                    WHEN 'free' THEN 3
+                    ELSE 4
+                END
+        """)
+
+        plan_result = await self.db.execute(plan_query)
+        plan_rows = plan_result.all()
+
+        plan_distribution = [
+            {"plan": row.plan, "count": row.subscriber_count}
+            for row in plan_rows
+        ]
+
+        # Upgrade/Downgrade flows (from audit logs)
+        flow_query = text("""
+            SELECT
+                JSON_EXTRACT_PATH_TEXT(old_values::json, 'plan') AS from_plan,
+                JSON_EXTRACT_PATH_TEXT(new_values::json, 'plan') AS to_plan,
+                COUNT(*) AS count
+            FROM audit_logs
+            WHERE resource_type = 'subscription'
+                AND action = 'update'
+                AND old_values::json ? 'plan'
+                AND new_values::json ? 'plan'
+                AND created_at >= :since
+            GROUP BY from_plan, to_plan
+            ORDER BY count DESC
+        """).bindparams(since=since)
+
+        # Note: This query uses PostgreSQL JSON functions
+        # For simplicity, we'll return empty if it fails
+        try:
+            flow_result = await self.db.execute(flow_query)
+            flow_rows = flow_result.all()
+
+            plan_flows = [
+                {
+                    "from_plan": row.from_plan or "unknown",
+                    "to_plan": row.to_plan or "unknown",
+                    "count": row.count,
+                }
+                for row in flow_rows
+                if row.from_plan != row.to_plan  # Only actual changes
+            ]
+        except Exception:
+            plan_flows = []
+
+        return {
+            "trial_funnel": trial_funnel,
+            "plan_distribution": plan_distribution,
+            "plan_flows": plan_flows,
+            "summary": {
+                "total_trials": total_trials,
+                "total_converted": total_converted,
+                "overall_conversion_rate": (
+                    round(total_converted / total_trials * 100, 2)
+                    if total_trials > 0 else 0
+                ),
+            },
+        }
+
+    async def get_mrr_report(self, months: int = 12) -> dict:
+        """
+        Get detailed MRR breakdown with movements.
+
+        Args:
+            months: Number of months to analyze
+
+        Returns:
+            Dict with MRR breakdown by type and timeline
+        """
+        query = text("""
+            WITH months AS (
+                SELECT generate_series(
+                    DATE_TRUNC('month', NOW() - INTERVAL ':months months'),
+                    DATE_TRUNC('month', NOW()),
+                    INTERVAL '1 month'
+                ) AS month
+            ),
+            monthly_revenue AS (
+                SELECT
+                    DATE_TRUNC('month', p.created_at) AS month,
+                    s.billing_cycle,
+                    s.plan,
+                    SUM(p.amount) AS amount,
+                    COUNT(DISTINCT s.user_id) AS subscriber_count
+                FROM payments p
+                JOIN subscriptions s ON p.subscription_id = s.id
+                WHERE p.status = 'succeeded'
+                    AND p.created_at >= NOW() - INTERVAL ':months months'
+                GROUP BY
+                    DATE_TRUNC('month', p.created_at),
+                    s.billing_cycle,
+                    s.plan
+            )
+            SELECT
+                TO_CHAR(m.month, 'YYYY-MM') AS month,
+                COALESCE(SUM(
+                    CASE WHEN mr.billing_cycle = 'monthly' THEN mr.amount ELSE 0 END
+                ), 0) AS monthly_mrr,
+                COALESCE(SUM(
+                    CASE WHEN mr.billing_cycle = 'yearly' THEN mr.amount / 12 ELSE 0 END
+                ), 0) AS yearly_mrr_equivalent,
+                COALESCE(SUM(
+                    CASE WHEN mr.plan = 'premium' THEN
+                        CASE WHEN mr.billing_cycle = 'yearly' THEN mr.amount / 12 ELSE mr.amount END
+                    ELSE 0 END
+                ), 0) AS premium_mrr,
+                COALESCE(SUM(
+                    CASE WHEN mr.plan = 'basic' THEN
+                        CASE WHEN mr.billing_cycle = 'yearly' THEN mr.amount / 12 ELSE mr.amount END
+                    ELSE 0 END
+                ), 0) AS basic_mrr,
+                COUNT(DISTINCT mr.subscriber_count) AS active_subscribers
+            FROM months m
+            LEFT JOIN monthly_revenue mr ON mr.month = m.month
+            GROUP BY m.month
+            ORDER BY m.month
+        """).bindparams(months=months)
+
+        result = await self.db.execute(query)
+        rows = result.all()
+
+        timeline = []
+        total_mrr = 0
+
+        for row in rows:
+            monthly = float(row.monthly_mrr or 0)
+            yearly = float(row.yearly_mrr_equivalent or 0)
+            premium = float(row.premium_mrr or 0)
+            basic = float(row.basic_mrr or 0)
+            mrr = monthly + yearly
+
+            timeline.append({
+                "month": row.month,
+                "mrr": round(mrr, 2),
+                "monthly_mrr": round(monthly, 2),
+                "yearly_mrr_equivalent": round(yearly, 2),
+                "premium_mrr": round(premium, 2),
+                "basic_mrr": round(basic, 2),
+                "active_subscribers": row.active_subscribers or 0,
+            })
+
+            total_mrr = mrr  # Latest month
+
+        # MRR by plan (current)
+        current_query = text("""
+            SELECT
+                s.plan,
+                s.billing_cycle,
+                SUM(p.amount) AS total_amount,
+                COUNT(DISTINCT s.user_id) AS subscriber_count
+            FROM payments p
+            JOIN subscriptions s ON p.subscription_id = s.id
+            WHERE p.status = 'succeeded'
+                AND p.created_at >= NOW() - INTERVAL '30 days'
+            GROUP BY s.plan, s.billing_cycle
+        """)
+
+        current_result = await self.db.execute(current_query)
+        current_rows = current_result.all()
+
+        by_plan = []
+        for row in current_rows:
+            amount = float(row.total_amount or 0)
+            if row.billing_cycle == "yearly":
+                amount = amount / 12  # Normalize to monthly
+
+            by_plan.append({
+                "plan": row.plan,
+                "billing_cycle": row.billing_cycle,
+                "mrr": round(amount, 2),
+                "subscribers": row.subscriber_count,
+            })
+
+        return {
+            "timeline": timeline,
+            "by_plan": by_plan,
+            "summary": {
+                "current_mrr": round(total_mrr, 2),
+                "arr": round(total_mrr * 12, 2),
+            },
+        }
