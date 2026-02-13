@@ -18,11 +18,6 @@ export interface Product {
   invoice_id: string;
 }
 
-interface ProductsResponse {
-  items: Product[];
-  total: number;
-}
-
 // Get all invoice items (product purchases) for the current user
 export function useProducts(search?: string) {
   return useQuery({

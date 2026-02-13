@@ -9,11 +9,9 @@ import {
   Bell,
   Search,
   ArrowLeft,
-  Plus,
   ChevronDown,
   LogOut,
   Settings,
-  User,
 } from "lucide-react";
 
 import { CountBadge } from "@/components/ui/badge";

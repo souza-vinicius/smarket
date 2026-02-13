@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import Link from "next/link";
 
-import { Eye, EyeOff, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 import { AuthLayout } from "@/components/layout/page-layout";
 import { Button } from "@/components/ui/button";

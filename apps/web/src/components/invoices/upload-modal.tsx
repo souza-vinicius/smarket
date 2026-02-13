@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 
-import { Upload, X, FileText, ImagePlus, Trash2, Camera, Loader2, Send, Plus } from "lucide-react";
+import { Upload, X, ImagePlus, Camera, Loader2, Send, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -135,12 +135,6 @@ export function UploadModal({
     }
     if (imageInputRef.current) {
       imageInputRef.current.value = "";
-    }
-  };
-
-  const handleXMLFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) {
-      onUploadXML(e.target.files[0]);
     }
   };
 

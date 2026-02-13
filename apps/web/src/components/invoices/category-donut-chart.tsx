@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import { X } from "lucide-react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
 import { Card } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";

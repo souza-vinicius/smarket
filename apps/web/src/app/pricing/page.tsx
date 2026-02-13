@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 
-import { useRouter } from "next/navigation";
-
 import { CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -68,7 +66,6 @@ const plans = [
 ];
 
 export default function PricingPage() {
-  const router = useRouter();
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
   const { data: subData } = useSubscription();
   const checkoutMutation = useCheckout();

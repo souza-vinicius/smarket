@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 
 import {
   User,
-  Mail,
   Users,
   DollarSign,
   LogOut,
@@ -408,7 +407,7 @@ function HouseholdModal({
 export default function SettingsPage() {
   const router = useRouter();
   const { logout, user } = useAuth();
-  const { data: settings, isLoading } = useSettings();
+  const { data: settings } = useSettings();
   const { data: subscriptionData, isLoading: isSubscriptionLoading } = useSubscription();
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isHouseholdModalOpen, setIsHouseholdModalOpen] = useState(false);

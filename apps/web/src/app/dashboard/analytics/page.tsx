@@ -6,7 +6,6 @@ import {
   TrendingUp,
   TrendingDown,
   DollarSign,
-  Calendar,
   PieChart,
   BarChart3,
   Store,

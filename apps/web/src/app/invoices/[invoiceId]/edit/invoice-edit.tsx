@@ -7,26 +7,22 @@ import { useParams, useRouter } from "next/navigation";
 import { type AxiosError } from "axios";
 import {
   FileText,
-  Calendar,
-  Package,
   AlertTriangle,
   Plus,
   X,
   Check,
   Loader2,
   Search,
-  Hash,
 } from "lucide-react";
 
 import { PageLayout } from "@/components/layout/page-layout";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCNPJEnrichment, type CNPJEnrichmentError } from "@/hooks/use-cnpj-enrichment";
 import { useInvoice, useUpdateInvoice } from "@/hooks/use-invoices";
 import { CATEGORY_NAMES, getSubcategories } from "@/lib/category-options";
-import { formatCNPJInput, getCNPJErrorMessage, isValidCNPJ } from "@/lib/cnpj";
+import { formatCNPJInput, getCNPJErrorMessage } from "@/lib/cnpj";
 import { formatCurrency } from "@/lib/utils";
 import { type InvoiceItem, type InvoiceUpdateRequest } from "@/types";
 
@@ -61,7 +57,6 @@ export default function InvoiceEditClient() {
   const [cnpjError, setCnpjError] = useState<string | null>(null);
   const [dateError, setDateError] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
-  const [enrichmentSuccess, setEnrichmentSuccess] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   // Initialize editedData from fetched invoice

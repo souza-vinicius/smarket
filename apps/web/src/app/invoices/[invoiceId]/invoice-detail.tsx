@@ -7,10 +7,8 @@ import { useRouter , useParams } from "next/navigation";
 import {
   FileText,
   Calendar,
-  Store,
   CreditCard,
   Package,
-  ArrowLeft,
   Trash2,
   Edit,
 } from "lucide-react";
@@ -19,9 +17,9 @@ import { CategoryDonutChart } from "@/components/invoices/category-donut-chart";
 import { PageLayout } from "@/components/layout/page-layout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, StatCard } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { ConfirmModal } from "@/components/ui/modal";
-import { Skeleton, SkeletonListItem } from "@/components/ui/skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useInvoice, useDeleteInvoice } from "@/hooks/use-invoices";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
@@ -76,7 +74,6 @@ function ProductItem({
 export default function InvoiceDetailClient() {
   const router = useRouter();
   const params = useParams();
-  const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
 
   // In static export, params.invoiceId will be "_" from generateStaticParams
   // Get the real ID from the actual URL pathname

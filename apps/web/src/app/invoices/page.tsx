@@ -5,28 +5,17 @@ import * as React from "react";
 
 import { useRouter } from "next/navigation";
 
-import {
-  Plus,
-  Search,
-  FileText,
-  Calendar,
-  Store,
-  MoreVertical,
-  Filter,
-  ChevronRight,
-  Receipt,
-} from "lucide-react";
+import { FileText, Calendar, Store, Filter, Receipt } from "lucide-react";
 
-import { InvoiceCard } from "@/components/invoices/invoice-card";
 import { UploadModal } from "@/components/invoices/upload-modal";
 import { VirtualizedInvoiceList } from "@/components/invoices/virtualized-invoice-list";
 import { PageLayout } from "@/components/layout/page-layout";
 import { UpgradeModal } from "@/components/subscription/upgrade-modal";
-import { Badge, StatusBadge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, StatCard } from "@/components/ui/card";
 import { SearchInput } from "@/components/ui/input";
-import { Modal, ConfirmModal } from "@/components/ui/modal";
+import { ConfirmModal } from "@/components/ui/modal";
 import { Skeleton, SkeletonListItem } from "@/components/ui/skeleton";
 import { useGroupedInvoices } from "@/hooks/use-grouped-invoices";
 import {
@@ -38,7 +27,7 @@ import {
   useDeleteProcessing,
 } from "@/hooks/use-invoices";
 import { useInvoicesSummary } from "@/hooks/use-invoices-summary";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 
 // Pending Item - Mobile optimized
 function PendingItem({

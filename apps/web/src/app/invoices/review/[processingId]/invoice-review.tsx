@@ -7,11 +7,7 @@ import { useParams, useRouter } from "next/navigation";
 import { type AxiosError } from "axios";
 import {
   FileText,
-  Calendar,
-  Store,
-  Package,
   AlertTriangle,
-  ArrowLeft,
   Plus,
   X,
   Check,
@@ -20,7 +16,6 @@ import {
 } from "lucide-react";
 
 import { PageLayout } from "@/components/layout/page-layout";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,7 +26,7 @@ import {
   type ExtractedInvoiceData,
 } from "@/hooks/use-invoices";
 import { CATEGORY_NAMES, getSubcategories } from "@/lib/category-options";
-import { formatCNPJInput, getCNPJErrorMessage, isValidCNPJ } from "@/lib/cnpj";
+import { formatCNPJInput, getCNPJErrorMessage } from "@/lib/cnpj";
 import { formatCurrency } from "@/lib/utils";
 import { type InvoiceItem } from "@/types";
 

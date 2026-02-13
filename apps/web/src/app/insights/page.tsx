@@ -2,16 +2,12 @@
 
 import { useState } from "react";
 
-import { useRouter } from "next/navigation";
-
 import {
   Sparkles,
   Check,
   TrendingUp,
-  TrendingDown,
   AlertTriangle,
   Info,
-  Filter,
 } from "lucide-react";
 
 import { PageLayout } from "@/components/layout/page-layout";
@@ -161,7 +157,6 @@ function InsightSkeleton() {
 }
 
 export default function InsightsPage() {
-  const router = useRouter();
   const [filter, setFilter] = useState<"all" | "unread" | "read">("all");
   const { data: insights, isLoading } = useInsights();
   const markAsReadMutation = useMarkInsightAsRead();

@@ -18,7 +18,6 @@ import { InvoiceCard } from "@/components/invoices/invoice-card";
 import { UploadModal } from "@/components/invoices/upload-modal";
 import { PageLayout } from "@/components/layout/page-layout";
 import { UpgradeModal } from "@/components/subscription/upgrade-modal";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, StatCard } from "@/components/ui/card";
 import { Skeleton, SkeletonCard } from "@/components/ui/skeleton";
