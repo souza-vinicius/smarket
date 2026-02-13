@@ -104,6 +104,12 @@ environment:
 - Use `async`/`await` for all database operations
 - Line length: 88 characters (Black-compatible)
 
+### Date and Time Handling
+- always use **timezone-aware** datetimes in Python to avoid `sqlalchemy.exc.DBAPIError` (mixing naive and aware datetimes).
+- Use `datetime.now(timezone.utc)` for current time.
+- Avoid `datetime.utcnow()` as it returns a naive datetime.
+- Ensure all SQLAlchemy model defaults use timezone-aware factories (e.g., `default=lambda: datetime.now(timezone.utc)`).
+
 ### Imports (isort-style grouping)
 
 ```python
@@ -165,7 +171,7 @@ class User(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
-    
+
     # Relationships with type hints
     invoices: Mapped[List["Invoice"]] = relationship(back_populates="user")
 ```

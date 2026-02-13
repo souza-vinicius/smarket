@@ -4,7 +4,7 @@ Coupon and CouponUsage models for discount management.
 
 import enum
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional
 
@@ -83,9 +83,12 @@ class Coupon(Base):
 
     # Metadados
     created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
-    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        default=lambda: datetime.now(timezone.utc)
+    )
     updated_at: Mapped[datetime] = mapped_column(
-        default=datetime.utcnow, onupdate=datetime.utcnow
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
     )
 
     # Relacionamentos
@@ -120,7 +123,9 @@ class CouponUsage(Base):
     # Status
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     canceled_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
-    used_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    used_at: Mapped[datetime] = mapped_column(
+        default=lambda: datetime.now(timezone.utc)
+    )
 
     # Relacionamentos
     coupon: Mapped["Coupon"] = relationship(back_populates="usages")
