@@ -79,7 +79,7 @@ export function getCNPJErrorMessage(cnpj: string): string | null {
   }
 
   if (cleaned.length !== 14) {
-    return `CNPJ deve ter 14 dígitos (${cleaned.length} informado${cleaned.length !== 1 ? "s" : ""})`;
+    return `CNPJ deve ter 14 dígitos (${String(cleaned.length)} informado${cleaned.length !== 1 ? "s" : ""})`;
   }
 
   if (/^(\d)\1{13}$/.test(cleaned)) {

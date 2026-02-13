@@ -48,7 +48,7 @@ function Skeleton({
 // Skeleton Card - For loading states in lists/grids
 function SkeletonCard({ className }: { className?: string }) {
   return (
-    <div className={cn("rounded-xl border border-border bg-card p-4 space-y-4", className)}>
+    <div className={cn("space-y-4 rounded-xl border border-border bg-card p-4", className)}>
       <div className="flex items-center gap-4">
         <Skeleton variant="avatar" />
         <div className="flex-1 space-y-2">
@@ -71,7 +71,7 @@ function SkeletonStatCard({ className }: { className?: string }) {
           <Skeleton className="h-8 w-32" />
           <Skeleton className="h-3 w-20" />
         </div>
-        <Skeleton variant="avatar" className="h-12 w-12" />
+        <Skeleton variant="avatar" className="size-12" />
       </div>
     </div>
   );

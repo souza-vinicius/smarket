@@ -1,4 +1,5 @@
 import * as React from "react";
+
 import { cn } from "@/lib/utils";
 
 interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
@@ -28,7 +29,7 @@ const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
       <span
         ref={ref}
         className={cn(
-          "inline-flex items-center gap-1.5 rounded-full font-medium whitespace-nowrap",
+          "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full font-medium",
           variants[variant],
           sizes[size],
           className
@@ -37,7 +38,7 @@ const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
       >
         {dot && (
           <span className={cn(
-            "w-1.5 h-1.5 rounded-full",
+            "size-1.5 rounded-full",
             variant === "default" && "bg-muted-foreground",
             variant === "primary" && "bg-primary",
             variant === "success" && "bg-success",
@@ -111,13 +112,13 @@ const CountBadge = React.forwardRef<HTMLSpanElement, CountBadgeProps>(
       md: "min-w-[1.5rem] h-6 text-sm",
     };
 
-    if (count <= 0) return null;
+    if (count <= 0) {return null;}
 
     return (
       <span
         ref={ref}
         className={cn(
-          "inline-flex items-center justify-center px-1 rounded-full font-bold",
+          "inline-flex items-center justify-center rounded-full px-1 font-bold",
           variants[variant],
           sizes[size],
           className

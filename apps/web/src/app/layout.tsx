@@ -1,8 +1,11 @@
 import type { Metadata, Viewport } from "next";
+
 import { Manrope } from "next/font/google";
+
 import "./globals.css";
-import { Providers } from "./providers";
 import { ClientOnly } from "@/components/client-only";
+
+import { Providers } from "./providers";
 
 const manrope = Manrope({
   subsets: ["latin"],

@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+
 import { useRouter } from "next/navigation";
+
 import {
   Sparkles,
   Check,
@@ -11,10 +13,11 @@ import {
   Info,
   Filter,
 } from "lucide-react";
+
 import { PageLayout } from "@/components/layout/page-layout";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useInsights, useMarkInsightAsRead } from "@/hooks/use-insights";
 import { formatDate } from "@/lib/utils";
@@ -87,22 +90,22 @@ function InsightCard({
     >
       {/* Unread indicator */}
       {!insight.is_read && (
-        <div className="absolute top-4 right-4 flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-primary" />
+        <div className="absolute right-4 top-4 flex items-center gap-2">
+          <span className="size-2 rounded-full bg-primary" />
         </div>
       )}
 
       <div className="flex items-start gap-4">
         {/* Priority Icon */}
         <div
-          className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center border ${priority.color}`}
+          className={`flex size-12 flex-shrink-0 items-center justify-center rounded-xl border ${priority.color}`}
         >
-          <Icon className="w-6 h-6" />
+          <Icon className="size-6" />
         </div>
 
         {/* Content */}
-        <div className="flex-1 min-w-0 pr-8">
-          <div className="flex flex-wrap items-center gap-2 mb-2">
+        <div className="min-w-0 flex-1 pr-8">
+          <div className="mb-2 flex flex-wrap items-center gap-2">
             <Badge variant="outline" size="sm" className={typeStyle.color}>
               {typeStyle.label}
             </Badge>
@@ -111,8 +114,8 @@ function InsightCard({
             </Badge>
           </div>
 
-          <h3 className="font-semibold text-foreground mb-1">{insight.title}</h3>
-          <p className="text-sm text-muted-foreground mb-3">
+          <h3 className="mb-1 font-semibold text-foreground">{insight.title}</h3>
+          <p className="mb-3 text-sm text-muted-foreground">
             {insight.description}
           </p>
 
@@ -129,7 +132,7 @@ function InsightCard({
                   e.stopPropagation();
                   onMarkAsRead();
                 }}
-                leftIcon={<Check className="w-4 h-4" />}
+                leftIcon={<Check className="size-4" />}
               >
                 Marcar como lido
               </Button>
@@ -144,7 +147,7 @@ function InsightCard({
 function InsightSkeleton() {
   return (
     <Card className="flex items-start gap-4">
-      <Skeleton variant="avatar" className="w-12 h-12" />
+      <Skeleton variant="avatar" className="size-12" />
       <div className="flex-1 space-y-3">
         <div className="flex gap-2">
           <Skeleton className="h-5 w-24" />
@@ -166,8 +169,8 @@ export default function InsightsPage() {
   // Filter insights
   const filteredInsights =
     insights?.filter((insight) => {
-      if (filter === "unread") return !insight.is_read;
-      if (filter === "read") return insight.is_read;
+      if (filter === "unread") {return !insight.is_read;}
+      if (filter === "read") {return insight.is_read;}
       return true;
     }) || [];
 
@@ -182,13 +185,13 @@ export default function InsightsPage() {
     >
       {/* Stats Cards */}
       {!isLoading && insights && (
-        <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className="mb-6 grid grid-cols-3 gap-3">
           <Card
             padding="sm"
-            className={`text-center cursor-pointer transition-colors ${
+            className={`cursor-pointer text-center transition-colors ${
               filter === "all" ? "border-primary bg-primary-subtle/30" : ""
             }`}
-            onClick={() => setFilter("all")}
+            onClick={() => { setFilter("all"); }}
           >
             <p className="text-2xl font-bold text-foreground">
               {insights.length}
@@ -197,20 +200,20 @@ export default function InsightsPage() {
           </Card>
           <Card
             padding="sm"
-            className={`text-center cursor-pointer transition-colors ${
+            className={`cursor-pointer text-center transition-colors ${
               filter === "unread" ? "border-primary bg-primary-subtle/30" : ""
             }`}
-            onClick={() => setFilter("unread")}
+            onClick={() => { setFilter("unread"); }}
           >
             <p className="text-2xl font-bold text-primary">{unreadCount}</p>
             <p className="text-xs text-muted-foreground">Não lidos</p>
           </Card>
           <Card
             padding="sm"
-            className={`text-center cursor-pointer transition-colors ${
+            className={`cursor-pointer text-center transition-colors ${
               filter === "read" ? "border-primary bg-primary-subtle/30" : ""
             }`}
-            onClick={() => setFilter("read")}
+            onClick={() => { setFilter("read"); }}
           >
             <p className="text-2xl font-bold text-muted-foreground">
               {readCount}
@@ -221,7 +224,7 @@ export default function InsightsPage() {
       )}
 
       {/* Filters */}
-      <div className="flex items-center gap-2 mb-6 overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+      <div className="scrollbar-hide -mx-4 mb-6 flex items-center gap-2 overflow-x-auto px-4 sm:mx-0 sm:px-0">
         {[
           { key: "all", label: "Todos" },
           { key: "unread", label: "Não lidos" },
@@ -231,7 +234,7 @@ export default function InsightsPage() {
             key={f.key}
             variant={filter === f.key ? "primary" : "outline"}
             size="sm"
-            onClick={() => setFilter(f.key as typeof filter)}
+            onClick={() => { setFilter(f.key as typeof filter); }}
           >
             {f.label}
           </Button>
@@ -251,23 +254,23 @@ export default function InsightsPage() {
             <InsightCard
               key={insight.id}
               insight={insight}
-              onMarkAsRead={() => markAsReadMutation.mutate(insight.id)}
+              onMarkAsRead={() => { markAsReadMutation.mutate(insight.id); }}
             />
           ))}
         </div>
       ) : (
-        <Card className="text-center py-12">
-          <div className="w-16 h-16 rounded-full bg-muted mx-auto mb-4 flex items-center justify-center">
-            <Sparkles className="w-8 h-8 text-muted-foreground" />
+        <Card className="py-12 text-center">
+          <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-muted">
+            <Sparkles className="size-8 text-muted-foreground" />
           </div>
-          <h3 className="text-lg font-semibold text-foreground mb-2">
+          <h3 className="mb-2 text-lg font-semibold text-foreground">
             {filter === "unread"
               ? "Nenhum insight não lido"
               : filter === "read"
               ? "Nenhum insight lido"
               : "Nenhum insight ainda"}
           </h3>
-          <p className="text-muted-foreground max-w-md mx-auto">
+          <p className="mx-auto max-w-md text-muted-foreground">
             {filter === "all"
               ? "Adicione notas fiscais para receber insights personalizados"
               : "Ajuste o filtro para ver outros insights"}

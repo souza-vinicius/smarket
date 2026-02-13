@@ -1,18 +1,20 @@
 "use client";
 
-import { useSubscription } from "@/hooks/use-subscription";
-import { AlertCircle } from "lucide-react";
 import Link from "next/link";
+
+import { AlertCircle } from "lucide-react";
+
+import { useSubscription } from "@/hooks/use-subscription";
 
 export function UsageBanner() {
   const { data, isLoading } = useSubscription();
 
-  if (isLoading || !data) return null;
+  if (isLoading || !data) {return null;}
 
   const { subscription, usage } = data;
 
   // Don't show banner if unlimited plan
-  if (subscription.plan === "premium") return null;
+  if (subscription.plan === "premium") {return null;}
 
   const invoicePercent = usage.invoices_limit
     ? (usage.invoices_used / usage.invoices_limit) * 100
@@ -30,26 +32,26 @@ export function UsageBanner() {
   }
 
   return (
-    <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg p-4 mb-6">
+    <div className="mb-6 rounded-lg border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 p-4">
       <div className="flex items-start gap-3">
         {showWarning && (
-          <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+          <AlertCircle className="mt-0.5 size-5 flex-shrink-0 text-amber-600" />
         )}
         <div className="flex-1">
-          <h3 className="text-sm font-semibold text-slate-900 mb-3">
+          <h3 className="mb-3 text-sm font-semibold text-slate-900">
             Uso do Plano {subscription.plan === "free" ? "Gratuito" : "Básico"}
           </h3>
 
           {/* Invoices Progress */}
           <div className="mb-3">
-            <div className="flex justify-between text-xs text-slate-600 mb-1">
+            <div className="mb-1 flex justify-between text-xs text-slate-600">
               <span>Notas fiscais</span>
               <span>
                 {usage.invoices_used} /{" "}
                 {usage.invoices_limit || "ilimitado"}
               </span>
             </div>
-            <div className="w-full bg-slate-200 rounded-full h-2">
+            <div className="h-2 w-full rounded-full bg-slate-200">
               <div
                 className={`h-2 rounded-full transition-all ${
                   invoicePercent >= 100
@@ -65,14 +67,14 @@ export function UsageBanner() {
 
           {/* AI Analyses Progress */}
           <div>
-            <div className="flex justify-between text-xs text-slate-600 mb-1">
+            <div className="mb-1 flex justify-between text-xs text-slate-600">
               <span>Análises IA</span>
               <span>
                 {usage.ai_analyses_used} /{" "}
                 {usage.ai_analyses_limit || "ilimitado"}
               </span>
             </div>
-            <div className="w-full bg-slate-200 rounded-full h-2">
+            <div className="h-2 w-full rounded-full bg-slate-200">
               <div
                 className={`h-2 rounded-full transition-all ${
                   analysisPercent >= 100
@@ -94,7 +96,7 @@ export function UsageBanner() {
               </p>
               <Link
                 href="/pricing"
-                className="text-xs font-medium text-emerald-600 hover:text-emerald-700 underline whitespace-nowrap ml-4"
+                className="ml-4 whitespace-nowrap text-xs font-medium text-emerald-600 underline hover:text-emerald-700"
               >
                 Ver planos
               </Link>

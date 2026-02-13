@@ -3,14 +3,15 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  CheckoutRequest,
-  CheckoutResponse,
-  PaymentResponse,
-  SubscriptionResponse,
-  UsageResponse,
-} from "@/types";
+
 import { apiClient } from "@/lib/api";
+import {
+  type CheckoutRequest,
+  type CheckoutResponse,
+  type PaymentResponse,
+  type SubscriptionResponse,
+  type UsageResponse,
+} from "@/types";
 
 // Query keys
 export const subscriptionKeys = {

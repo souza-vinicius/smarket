@@ -1,10 +1,13 @@
 "use client";
 
 import { useState } from "react";
+
 import Link from "next/link";
-import { useAdminCoupons, useDeactivateCoupon } from "@/hooks/use-admin-coupons";
-import { toast } from "sonner";
+
 import { Plus, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { toast } from "sonner";
+
+import { useAdminCoupons, useDeactivateCoupon } from "@/hooks/use-admin-coupons";
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("pt-BR", {
@@ -36,7 +39,7 @@ export default function CouponsPage() {
   const deactivateMutation = useDeactivateCoupon();
 
   const handleDeactivate = async (couponId: string, code: string) => {
-    if (!confirm(`Desativar cupom ${code}?`)) return;
+    if (!confirm(`Desativar cupom ${code}?`)) {return;}
 
     try {
       await deactivateMutation.mutateAsync(couponId);
@@ -48,27 +51,27 @@ export default function CouponsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Cupons</h1>
-          <p className="text-gray-600 mt-1">
+          <p className="mt-1 text-gray-600">
             Gerenciar cupons de desconto e promoções
           </p>
         </div>
         <Link
           href="/admin/coupons/new"
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="size-4" />
           Novo Cupom
         </Link>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow p-4 mb-6 flex flex-wrap gap-4">
-        <div className="flex-1 min-w-[200px]">
+      <div className="mb-6 flex flex-wrap gap-4 rounded-lg bg-white p-4 shadow">
+        <div className="min-w-[200px] flex-1">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               placeholder="Buscar por código..."
@@ -77,7 +80,7 @@ export default function CouponsPage() {
                 setSearch(e.target.value);
                 setPage(1);
               }}
-              className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm"
+              className="w-full rounded-md border border-gray-300 py-2 pl-10 pr-3 text-sm"
             />
           </div>
         </div>
@@ -89,7 +92,7 @@ export default function CouponsPage() {
               setIsActive(val === "all" ? undefined : val === "active");
               setPage(1);
             }}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+            className="rounded-md border border-gray-300 px-3 py-2 text-sm"
           >
             <option value="all">Todos</option>
             <option value="active">Ativos</option>
@@ -102,30 +105,30 @@ export default function CouponsPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="overflow-hidden rounded-lg bg-white shadow">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="border-b border-gray-200 bg-gray-50">
               <tr>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">
+                <th className="px-4 py-3 text-left font-medium text-gray-600">
                   Código
                 </th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">
+                <th className="px-4 py-3 text-left font-medium text-gray-600">
                   Descrição
                 </th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">
+                <th className="px-4 py-3 text-left font-medium text-gray-600">
                   Desconto
                 </th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">
+                <th className="px-4 py-3 text-left font-medium text-gray-600">
                   Validade
                 </th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">
+                <th className="px-4 py-3 text-left font-medium text-gray-600">
                   Usos
                 </th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">
+                <th className="px-4 py-3 text-left font-medium text-gray-600">
                   Status
                 </th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">
+                <th className="px-4 py-3 text-left font-medium text-gray-600">
                   Ações
                 </th>
               </tr>
@@ -135,25 +138,25 @@ export default function CouponsPage() {
                 [...Array(10)].map((_, i) => (
                   <tr key={i} className="animate-pulse">
                     <td className="px-4 py-3">
-                      <div className="h-4 bg-gray-200 rounded w-20" />
+                      <div className="h-4 w-20 rounded bg-gray-200" />
                     </td>
                     <td className="px-4 py-3">
-                      <div className="h-4 bg-gray-200 rounded w-32" />
+                      <div className="h-4 w-32 rounded bg-gray-200" />
                     </td>
                     <td className="px-4 py-3">
-                      <div className="h-4 bg-gray-200 rounded w-16" />
+                      <div className="h-4 w-16 rounded bg-gray-200" />
                     </td>
                     <td className="px-4 py-3">
-                      <div className="h-4 bg-gray-200 rounded w-24" />
+                      <div className="h-4 w-24 rounded bg-gray-200" />
                     </td>
                     <td className="px-4 py-3">
-                      <div className="h-4 bg-gray-200 rounded w-12" />
+                      <div className="h-4 w-12 rounded bg-gray-200" />
                     </td>
                     <td className="px-4 py-3">
-                      <div className="h-4 bg-gray-200 rounded w-12" />
+                      <div className="h-4 w-12 rounded bg-gray-200" />
                     </td>
                     <td className="px-4 py-3">
-                      <div className="h-4 bg-gray-200 rounded w-16" />
+                      <div className="h-4 w-16 rounded bg-gray-200" />
                     </td>
                   </tr>
                 ))
@@ -177,20 +180,20 @@ export default function CouponsPage() {
                       <td className="px-4 py-3">
                         <Link
                           href={`/admin/coupons/${coupon.id}`}
-                          className="font-mono text-blue-600 hover:text-blue-800 font-medium"
+                          className="font-mono font-medium text-blue-600 hover:text-blue-800"
                         >
                           {coupon.code}
                         </Link>
                       </td>
-                      <td className="px-4 py-3 text-gray-600 max-w-xs truncate">
+                      <td className="max-w-xs truncate px-4 py-3 text-gray-600">
                         {coupon.description || "-"}
                       </td>
-                      <td className="px-4 py-3 text-gray-900 font-medium">
+                      <td className="px-4 py-3 font-medium text-gray-900">
                         {coupon.discount_type === "percentage"
                           ? `${coupon.discount_value}%`
                           : formatCurrency(coupon.discount_value)}
                       </td>
-                      <td className="px-4 py-3 text-gray-600 text-xs">
+                      <td className="px-4 py-3 text-xs text-gray-600">
                         <div>De: {formatDate(coupon.valid_from)}</div>
                         <div>
                           Até: {coupon.valid_until ? formatDate(coupon.valid_until) : "∞"}
@@ -201,7 +204,7 @@ export default function CouponsPage() {
                       </td>
                       <td className="px-4 py-3">
                         <span
-                          className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                          className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
                             coupon.is_active && !isExpired
                               ? "bg-green-50 text-green-700"
                               : "bg-gray-100 text-gray-500"
@@ -218,7 +221,7 @@ export default function CouponsPage() {
                         <div className="flex gap-2">
                           <Link
                             href={`/admin/coupons/${coupon.id}`}
-                            className="text-blue-600 hover:text-blue-800 text-xs font-medium"
+                            className="text-xs font-medium text-blue-600 hover:text-blue-800"
                           >
                             Ver
                           </Link>
@@ -226,7 +229,7 @@ export default function CouponsPage() {
                             <button
                               onClick={() => handleDeactivate(coupon.id, coupon.code)}
                               disabled={deactivateMutation.isPending}
-                              className="text-red-600 hover:text-red-800 text-xs font-medium disabled:opacity-50"
+                              className="text-xs font-medium text-red-600 hover:text-red-800 disabled:opacity-50"
                             >
                               Desativar
                             </button>
@@ -243,26 +246,26 @@ export default function CouponsPage() {
 
         {/* Pagination */}
         {pages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-gray-50">
+          <div className="flex items-center justify-between border-t border-gray-200 bg-gray-50 px-4 py-3">
             <span className="text-sm text-gray-600">
               Página {page} de {pages} ({total} cupons)
             </span>
             <div className="flex gap-2">
               <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                onClick={() => { setPage((p) => Math.max(1, p - 1)); }}
                 disabled={page <= 1}
-                className="inline-flex items-center px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center rounded-md border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <ChevronLeft className="h-4 w-4 mr-1" />
+                <ChevronLeft className="mr-1 size-4" />
                 Anterior
               </button>
               <button
-                onClick={() => setPage((p) => Math.min(pages, p + 1))}
+                onClick={() => { setPage((p) => Math.min(pages, p + 1)); }}
                 disabled={page >= pages}
-                className="inline-flex items-center px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center rounded-md border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Próximo
-                <ChevronRight className="h-4 w-4 ml-1" />
+                <ChevronRight className="ml-1 size-4" />
               </button>
             </div>
           </div>

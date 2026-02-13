@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useMemo } from "react";
+
 import { Package, Store, Calendar, Search } from "lucide-react";
+
 import { PageLayout } from "@/components/layout/page-layout";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useProducts, type Product } from "@/hooks/use-products";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -14,21 +16,21 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 function ProductCard({ product }: { product: Product }) {
   return (
     <Card isInteractive className="flex items-start gap-4">
-      <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-primary-subtle flex items-center justify-center">
-        <Package className="w-6 h-6 text-primary" />
+      <div className="flex size-12 flex-shrink-0 items-center justify-center rounded-xl bg-primary-subtle">
+        <Package className="size-6 text-primary" />
       </div>
-      <div className="flex-1 min-w-0">
-        <h3 className="font-semibold text-foreground line-clamp-1">
+      <div className="min-w-0 flex-1">
+        <h3 className="line-clamp-1 font-semibold text-foreground">
           {product.normalized_name || product.description}
         </h3>
-        <div className="flex flex-wrap items-center gap-2 mt-2 text-sm text-muted-foreground">
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
           <span className="flex items-center gap-1">
-            <Store className="w-3.5 h-3.5" />
+            <Store className="size-3.5" />
             {product.merchant_name || product.issuer_name || "Desconhecido"}
           </span>
           <span>•</span>
           <span className="flex items-center gap-1">
-            <Calendar className="w-3.5 h-3.5" />
+            <Calendar className="size-3.5" />
             {formatDate(product.issue_date)}
           </span>
         </div>
@@ -48,7 +50,7 @@ function ProductCard({ product }: { product: Product }) {
 function ProductSkeleton() {
   return (
     <Card className="flex items-start gap-4">
-      <Skeleton variant="avatar" className="w-12 h-12" />
+      <Skeleton variant="avatar" className="size-12" />
       <div className="flex-1 space-y-2">
         <Skeleton className="h-5 w-3/4" />
         <Skeleton className="h-4 w-1/2" />
@@ -66,7 +68,7 @@ export default function ProductsPage() {
 
   // Debounce search
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
+    const {value} = e.target;
     setSearchQuery(value);
     
     // Debounce - only update API search after 300ms
@@ -82,14 +84,14 @@ export default function ProductsPage() {
 
   // Group by category for summary (from product data)
   const categorySummary = useMemo(() => {
-    if (!products) return {};
+    if (!products) {return {};}
     
-    return products.reduce((acc, product) => {
+    return products.reduce<Record<string, number>>((acc, product) => {
       // Use merchant name as a proxy for category since the API doesn't return category
       const category = product.merchant_name || product.issuer_name || "Sem categoria";
       acc[category] = (acc[category] || 0) + 1;
       return acc;
-    }, {} as Record<string, number>);
+    }, {});
   }, [products]);
 
   const displayProducts = products || [];
@@ -102,34 +104,34 @@ export default function ProductsPage() {
       {/* Search */}
       <div className="mb-6">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="text"
             placeholder="Buscar produtos (mínimo 2 caracteres)..."
             value={searchQuery}
             onChange={handleSearchChange}
-            className="pl-10 pr-10"
+            className="px-10"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={handleClear}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-muted transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 transition-colors hover:bg-muted"
             >
-              <svg className="w-4 h-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="size-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           )}
         </div>
-        <p className="text-xs text-muted-foreground mt-2">
+        <p className="mt-2 text-xs text-muted-foreground">
           Digite pelo menos 2 caracteres para buscar
         </p>
       </div>
 
       {/* Category Summary - Horizontal scroll on mobile */}
       {!isLoading && Object.keys(categorySummary).length > 0 && (
-        <div className="mb-6 overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div className="scrollbar-hide -mx-4 mb-6 overflow-x-auto px-4 sm:mx-0 sm:px-0">
           <div className="flex gap-3 sm:flex-wrap">
             {Object.entries(categorySummary)
               .sort(([, a], [, b]) => b - a)
@@ -137,9 +139,9 @@ export default function ProductsPage() {
               .map(([category, count]) => (
                 <div
                   key={category}
-                  className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-full bg-muted border border-border"
+                  className="flex flex-shrink-0 items-center gap-2 rounded-full border border-border bg-muted px-4 py-2"
                 >
-                  <span className="text-sm font-medium text-foreground whitespace-nowrap">
+                  <span className="whitespace-nowrap text-sm font-medium text-foreground">
                     {category}
                   </span>
                   <Badge variant="secondary" size="sm">
@@ -167,14 +169,14 @@ export default function ProductsPage() {
           ))}
         </div>
       ) : (
-        <Card className="text-center py-12">
-          <div className="w-16 h-16 rounded-full bg-muted mx-auto mb-4 flex items-center justify-center">
-            <Package className="w-8 h-8 text-muted-foreground" />
+        <Card className="py-12 text-center">
+          <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-muted">
+            <Package className="size-8 text-muted-foreground" />
           </div>
-          <h3 className="text-lg font-semibold text-foreground mb-2">
+          <h3 className="mb-2 text-lg font-semibold text-foreground">
             {searchQuery ? "Nenhum produto encontrado" : "Digite para buscar produtos"}
           </h3>
-          <p className="text-muted-foreground max-w-md mx-auto">
+          <p className="mx-auto max-w-md text-muted-foreground">
             {searchQuery
               ? `Nenhum resultado para "${searchQuery}". Tente outro termo.`
               : "Digite pelo menos 2 caracteres para buscar seus produtos"}

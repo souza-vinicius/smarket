@@ -1,8 +1,11 @@
 "use client";
 
 import * as React from "react";
+
 import { createPortal } from "react-dom";
+
 import { cn } from "@/lib/utils";
+
 import { Button } from "./button";
 
 interface ModalProps {
@@ -70,12 +73,12 @@ const Modal: React.FC<ModalProps> = ({
     full: "max-w-full h-full sm:h-auto m-0 sm:m-auto rounded-none sm:rounded-xl",
   };
 
-  if (!mounted || !isOpen) return null;
+  if (!mounted || !isOpen) {return null;}
 
   const modalContent = (
     <div
       className={cn(
-        "fixed inset-0 z-50 flex items-end sm:items-center justify-center",
+        "fixed inset-0 z-50 flex items-end justify-center sm:items-center",
         "animate-fade-in"
       )}
       onClick={handleBackdropClick}
@@ -99,12 +102,12 @@ const Modal: React.FC<ModalProps> = ({
       >
         {/* Header */}
         {(title || showCloseButton) && (
-          <div className="flex items-start justify-between gap-4 p-4 sm:p-6 border-b border-border">
-            <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-4 border-b border-border p-4 sm:p-6">
+            <div className="min-w-0 flex-1">
               {title && (
                 <h2
                   id="modal-title"
-                  className="text-lg sm:text-xl font-semibold text-foreground leading-tight"
+                  className="text-lg font-semibold leading-tight text-foreground sm:text-xl"
                 >
                   {title}
                 </h2>
@@ -112,7 +115,7 @@ const Modal: React.FC<ModalProps> = ({
               {description && (
                 <p
                   id="modal-description"
-                  className="text-sm text-muted-foreground mt-1"
+                  className="mt-1 text-sm text-muted-foreground"
                 >
                   {description}
                 </p>
@@ -123,11 +126,11 @@ const Modal: React.FC<ModalProps> = ({
                 variant="ghost"
                 size="icon"
                 onClick={onClose}
-                className="flex-shrink-0 -mr-2 -mt-2"
+                className="-mr-2 -mt-2 flex-shrink-0"
                 aria-label="Fechar"
               >
                 <svg
-                  className="w-5 h-5"
+                  className="size-5"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -155,7 +158,7 @@ const Modal: React.FC<ModalProps> = ({
 
         {/* Footer */}
         {footer && (
-          <div className="flex items-center justify-end gap-3 p-4 sm:p-6 border-t border-border bg-muted/30">
+          <div className="flex items-center justify-end gap-3 border-t border-border bg-muted/30 p-4 sm:p-6">
             {footer}
           </div>
         )}
@@ -241,7 +244,7 @@ const Drawer: React.FC<DrawerProps> = ({
 
   React.useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {onClose();}
     };
 
     if (isOpen) {
@@ -273,7 +276,7 @@ const Drawer: React.FC<DrawerProps> = ({
     bottom: isOpen ? "translate-y-0" : "translate-y-full",
   };
 
-  if (!mounted || !isOpen) return null;
+  if (!mounted || !isOpen) {return null;}
 
   const drawerContent = (
     <div
@@ -294,28 +297,28 @@ const Drawer: React.FC<DrawerProps> = ({
           "absolute bg-card shadow-2xl transition-transform duration-300 ease-out",
           positions[position],
           sizes[size],
-          position === "bottom" ? "rounded-t-2xl pb-safe" : "",
+          position === "bottom" ? "pb-safe rounded-t-2xl" : "",
           animations[position]
         )}
       >
         {/* Handle for bottom drawer */}
         {position === "bottom" && (
-          <div className="flex justify-center pt-3 pb-1">
-            <div className="w-12 h-1 rounded-full bg-muted-foreground/30" />
+          <div className="flex justify-center pb-1 pt-3">
+            <div className="h-1 w-12 rounded-full bg-muted-foreground/30" />
           </div>
         )}
 
         {/* Header */}
         {title && (
-          <div className="flex items-center justify-between p-4 border-b border-border">
+          <div className="flex items-center justify-between border-b border-border p-4">
             <h2 className="text-lg font-semibold">{title}</h2>
             <button
               onClick={onClose}
-              className="p-2 rounded-lg hover:bg-muted transition-colors"
+              className="rounded-lg p-2 transition-colors hover:bg-muted"
               aria-label="Fechar"
             >
               <svg
-                className="w-5 h-5"
+                className="size-5"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"

@@ -1,20 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+
 import Link from "next/link";
-import {
-  useAdminUserDetail,
-  useAdminUserActivity,
-  useUpdateAdminUser,
-  useDeleteAdminUser,
-  useRestoreAdminUser,
-  useImpersonateUser,
-} from "@/hooks/use-admin-users";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Modal } from "@/components/ui/modal";
-import { toast } from "sonner";
+import { useParams, useRouter } from "next/navigation";
+
 import {
   ArrowLeft,
   User,
@@ -27,6 +17,20 @@ import {
   RotateCcw,
   Edit,
 } from "lucide-react";
+import { toast } from "sonner";
+
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/modal";
+import {
+  useAdminUserDetail,
+  useAdminUserActivity,
+  useUpdateAdminUser,
+  useDeleteAdminUser,
+  useRestoreAdminUser,
+  useImpersonateUser,
+} from "@/hooks/use-admin-users";
+
 
 const adminRoleLabels: Record<string, string> = {
   super_admin: "Super Admin",
@@ -74,7 +78,7 @@ export default function UserDetailClient() {
 
   const handleUpdate = () => {
     const data: { full_name?: string; is_active?: boolean; admin_role?: string | null } = {};
-    if (editForm.full_name) data.full_name = editForm.full_name;
+    if (editForm.full_name) {data.full_name = editForm.full_name;}
     data.is_active = editForm.is_active;
     data.admin_role = editForm.admin_role || null;
 
@@ -97,7 +101,7 @@ export default function UserDetailClient() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-96">
+      <div className="flex h-96 items-center justify-center">
         <div className="text-gray-600">Carregando...</div>
       </div>
     );
@@ -105,9 +109,9 @@ export default function UserDetailClient() {
 
   if (!user) {
     return (
-      <div className="text-center py-12">
+      <div className="py-12 text-center">
         <p className="text-gray-600">Usuário não encontrado.</p>
-        <Link href="/admin/users" className="text-blue-600 hover:underline mt-4 inline-block">
+        <Link href="/admin/users" className="mt-4 inline-block text-blue-600 hover:underline">
           Voltar para lista
         </Link>
       </div>
@@ -122,26 +126,26 @@ export default function UserDetailClient() {
       <div className="mb-8">
         <Link
           href="/admin/users"
-          className="text-gray-600 hover:text-gray-900 flex items-center gap-2 mb-4"
+          className="mb-4 flex items-center gap-2 text-gray-600 hover:text-gray-900"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="size-4" />
           Voltar para usuários
         </Link>
 
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-              <User className="h-8 w-8" />
+            <h1 className="flex items-center gap-3 text-3xl font-bold text-gray-900">
+              <User className="size-8" />
               {user.full_name}
             </h1>
-            <div className="flex items-center gap-4 mt-2">
-              <span className="text-gray-600 flex items-center gap-1">
-                <Mail className="h-4 w-4" />
+            <div className="mt-2 flex items-center gap-4">
+              <span className="flex items-center gap-1 text-gray-600">
+                <Mail className="size-4" />
                 {user.email}
               </span>
               {user.admin_role && (
                 <Badge className="bg-purple-100 text-purple-800">
-                  <Shield className="h-3 w-3 mr-1" />
+                  <Shield className="mr-1 size-3" />
                   {adminRoleLabels[user.admin_role] || user.admin_role}
                 </Badge>
               )}
@@ -160,9 +164,9 @@ export default function UserDetailClient() {
             {!isDeleted && (
               <Button
                 variant="outline"
-                onClick={() => setShowImpersonateModal(true)}
+                onClick={() => { setShowImpersonateModal(true); }}
               >
-                <Eye className="h-4 w-4 mr-2" />
+                <Eye className="mr-2 size-4" />
                 Impersonar
               </Button>
             )}
@@ -180,23 +184,23 @@ export default function UserDetailClient() {
                     setShowEditModal(true);
                   }}
                 >
-                  <Edit className="h-4 w-4 mr-2" />
+                  <Edit className="mr-2 size-4" />
                   Editar
                 </Button>
                 <Button
                   variant="destructive"
-                  onClick={() => setShowDeleteModal(true)}
+                  onClick={() => { setShowDeleteModal(true); }}
                 >
-                  <Trash2 className="h-4 w-4 mr-2" />
+                  <Trash2 className="mr-2 size-4" />
                   Desativar
                 </Button>
               </>
             ) : (
               <Button
                 variant="outline"
-                onClick={() => setShowRestoreModal(true)}
+                onClick={() => { setShowRestoreModal(true); }}
               >
-                <RotateCcw className="h-4 w-4 mr-2" />
+                <RotateCcw className="mr-2 size-4" />
                 Reativar
               </Button>
             )}
@@ -205,12 +209,12 @@ export default function UserDetailClient() {
       </div>
 
       {/* Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* User Info */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-6 lg:col-span-2">
           {/* Profile Card */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+          <div className="rounded-lg bg-white p-6 shadow">
+            <h2 className="mb-4 text-lg font-semibold text-gray-900">
               Informações do Perfil
             </h2>
             <div className="grid grid-cols-2 gap-4">
@@ -241,8 +245,8 @@ export default function UserDetailClient() {
 
           {/* Subscription Card */}
           {user.subscription && (
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            <div className="rounded-lg bg-white p-6 shadow">
+              <h2 className="mb-4 text-lg font-semibold text-gray-900">
                 Assinatura
               </h2>
               <div className="grid grid-cols-2 gap-4">
@@ -279,8 +283,8 @@ export default function UserDetailClient() {
           )}
 
           {/* Activity Log */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+          <div className="rounded-lg bg-white p-6 shadow">
+            <h2 className="mb-4 text-lg font-semibold text-gray-900">
               Histórico de Atividades
             </h2>
             {isLoadingActivity ? (
@@ -292,7 +296,7 @@ export default function UserDetailClient() {
                 {logs.map((log) => (
                   <div
                     key={log.id}
-                    className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg"
+                    className="flex items-start gap-3 rounded-lg bg-gray-50 p-3"
                   >
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
@@ -303,7 +307,7 @@ export default function UserDetailClient() {
                           por {log.admin_email}
                         </span>
                       </div>
-                      <div className="text-xs text-gray-400 mt-1">
+                      <div className="mt-1 text-xs text-gray-400">
                         {new Date(log.created_at).toLocaleString("pt-BR")}
                       </div>
                     </div>
@@ -317,21 +321,21 @@ export default function UserDetailClient() {
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Stats Card */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+          <div className="rounded-lg bg-white p-6 shadow">
+            <h2 className="mb-4 text-lg font-semibold text-gray-900">
               Estatísticas
             </h2>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-gray-600">
-                  <FileText className="h-4 w-4" />
+                  <FileText className="size-4" />
                   Notas Fiscais
                 </div>
-                <span className="font-bold text-lg">{user.invoices_count}</span>
+                <span className="text-lg font-bold">{user.invoices_count}</span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="text-gray-600">Total Gasto</div>
-                <span className="font-bold text-lg">
+                <span className="text-lg font-bold">
                   R$ {user.total_spent.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </span>
               </div>
@@ -343,16 +347,16 @@ export default function UserDetailClient() {
       {/* Delete Modal */}
       <Modal
         isOpen={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
+        onClose={() => { setShowDeleteModal(false); }}
         title="Desativar Usuário"
       >
         <div className="p-6">
-          <p className="text-gray-600 mb-6">
+          <p className="mb-6 text-gray-600">
             Tem certeza que deseja desativar o usuário <strong>{user.full_name}</strong>?
             Esta ação pode ser desfeita posteriormente.
           </p>
           <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => setShowDeleteModal(false)}>
+            <Button variant="outline" onClick={() => { setShowDeleteModal(false); }}>
               Cancelar
             </Button>
             <Button variant="destructive" onClick={handleDelete}>
@@ -365,15 +369,15 @@ export default function UserDetailClient() {
       {/* Restore Modal */}
       <Modal
         isOpen={showRestoreModal}
-        onClose={() => setShowRestoreModal(false)}
+        onClose={() => { setShowRestoreModal(false); }}
         title="Reativar Usuário"
       >
         <div className="p-6">
-          <p className="text-gray-600 mb-6">
+          <p className="mb-6 text-gray-600">
             Tem certeza que deseja reativar o usuário <strong>{user.full_name}</strong>?
           </p>
           <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => setShowRestoreModal(false)}>
+            <Button variant="outline" onClick={() => { setShowRestoreModal(false); }}>
               Cancelar
             </Button>
             <Button onClick={handleRestore}>Reativar</Button>
@@ -384,21 +388,21 @@ export default function UserDetailClient() {
       {/* Edit Modal */}
       <Modal
         isOpen={showEditModal}
-        onClose={() => setShowEditModal(false)}
+        onClose={() => { setShowEditModal(false); }}
         title="Editar Usuário"
       >
-        <div className="p-6 space-y-4">
+        <div className="space-y-4 p-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="mb-1 block text-sm font-medium text-gray-700">
               Nome Completo
             </label>
             <input
               type="text"
               value={editForm.full_name}
               onChange={(e) =>
-                setEditForm({ ...editForm, full_name: e.target.value })
+                { setEditForm({ ...editForm, full_name: e.target.value }); }
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
@@ -408,7 +412,7 @@ export default function UserDetailClient() {
               id="is_active"
               checked={editForm.is_active}
               onChange={(e) =>
-                setEditForm({ ...editForm, is_active: e.target.checked })
+                { setEditForm({ ...editForm, is_active: e.target.checked }); }
               }
               className="rounded border-gray-300"
             />
@@ -418,15 +422,15 @@ export default function UserDetailClient() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="mb-1 block text-sm font-medium text-gray-700">
               Função Administrativa
             </label>
             <select
               value={editForm.admin_role}
               onChange={(e) =>
-                setEditForm({ ...editForm, admin_role: e.target.value })
+                { setEditForm({ ...editForm, admin_role: e.target.value }); }
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Nenhuma (usuário comum)</option>
               <option value="super_admin">Super Admin</option>
@@ -438,7 +442,7 @@ export default function UserDetailClient() {
           </div>
 
           <div className="flex justify-end gap-3 pt-4">
-            <Button variant="outline" onClick={() => setShowEditModal(false)}>
+            <Button variant="outline" onClick={() => { setShowEditModal(false); }}>
               Cancelar
             </Button>
             <Button onClick={handleUpdate}>Salvar</Button>
@@ -449,22 +453,22 @@ export default function UserDetailClient() {
       {/* Impersonate Modal */}
       <Modal
         isOpen={showImpersonateModal}
-        onClose={() => setShowImpersonateModal(false)}
+        onClose={() => { setShowImpersonateModal(false); }}
         title="Impersonar Usuário"
       >
         <div className="p-6">
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-            <p className="text-yellow-800 text-sm">
+          <div className="mb-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+            <p className="text-sm text-yellow-800">
               Você está prestes a acessar a conta de <strong>{user.full_name}</strong>.
               Todas as ações serão registradas no log de auditoria.
             </p>
           </div>
           <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => setShowImpersonateModal(false)}>
+            <Button variant="outline" onClick={() => { setShowImpersonateModal(false); }}>
               Cancelar
             </Button>
             <Button onClick={handleImpersonate}>
-              <Eye className="h-4 w-4 mr-2" />
+              <Eye className="mr-2 size-4" />
               Continuar
             </Button>
           </div>

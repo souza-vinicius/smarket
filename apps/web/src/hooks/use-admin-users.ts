@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
 import { adminApi } from "@/lib/admin-api";
 import type {
   AdminUser,
@@ -50,10 +51,10 @@ export function useAdminUsersList(
       const queryParams = new URLSearchParams();
       queryParams.set("page", String(page));
       queryParams.set("per_page", String(perPage));
-      if (search) queryParams.set("search", search);
-      if (isActive !== undefined) queryParams.set("is_active", String(isActive));
-      if (adminOnly) queryParams.set("admin_only", "true");
-      if (includeDeleted) queryParams.set("include_deleted", "true");
+      if (search) {queryParams.set("search", search);}
+      if (isActive !== undefined) {queryParams.set("is_active", String(isActive));}
+      if (adminOnly) {queryParams.set("admin_only", "true");}
+      if (includeDeleted) {queryParams.set("include_deleted", "true");}
 
       const response = await adminApi.get<UsersListResponse>(
         `/users?${queryParams.toString()}`
@@ -69,7 +70,7 @@ export function useAdminUsersList(
     perPage: data?.per_page || 20,
     pages: data?.pages || 0,
     isLoading,
-    error: error as Error | null,
+    error,
   };
 }
 
@@ -92,7 +93,7 @@ export function useAdminUserDetail(userId: string): UseAdminUserDetailReturn {
   return {
     user: data || null,
     isLoading,
-    error: error as Error | null,
+    error,
   };
 }
 
@@ -139,7 +140,7 @@ export function useAdminUserActivity(
     perPage: data?.per_page || 20,
     pages: data?.pages || 0,
     isLoading,
-    error: error as Error | null,
+    error,
   };
 }
 
@@ -173,7 +174,7 @@ export function useUpdateAdminUser(
   return {
     updateUser: mutation.mutate,
     isPending: mutation.isPending,
-    error: mutation.error as Error | null,
+    error: mutation.error,
     isSuccess: mutation.isSuccess,
   };
 }
@@ -203,7 +204,7 @@ export function useDeleteAdminUser(userId: string): UseDeleteAdminUserReturn {
   return {
     deleteUser: mutation.mutate,
     isPending: mutation.isPending,
-    error: mutation.error as Error | null,
+    error: mutation.error,
     isSuccess: mutation.isSuccess,
   };
 }
@@ -236,7 +237,7 @@ export function useRestoreAdminUser(userId: string): UseRestoreAdminUserReturn {
   return {
     restoreUser: mutation.mutate,
     isPending: mutation.isPending,
-    error: mutation.error as Error | null,
+    error: mutation.error,
     isSuccess: mutation.isSuccess,
   };
 }
@@ -263,7 +264,7 @@ export function useImpersonateUser(userId: string): UseImpersonateUserReturn {
     impersonate: mutation.mutate,
     isPending: mutation.isPending,
     data: mutation.data || null,
-    error: mutation.error as Error | null,
+    error: mutation.error,
     isSuccess: mutation.isSuccess,
   };
 }

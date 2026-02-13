@@ -9,9 +9,9 @@ import { FileText, Calendar, Store, ChevronRight } from "lucide-react";
 
 import { AddInvoiceOptions } from "@/components/invoices/add-invoice-options";
 import { UploadModal } from "@/components/invoices/upload-modal";
-import { UpgradeModal } from "@/components/subscription/upgrade-modal";
 import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
+import { UpgradeModal } from "@/components/subscription/upgrade-modal";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useInvoices, useUploadXML, useProcessQRCode, useUploadPhotos } from "@/hooks/use-invoices";

@@ -291,9 +291,7 @@ export interface SettingsResponse {
   feature_flags: FeatureFlags;
 }
 
-export interface FeatureFlagsUpdate {
-  [key: string]: boolean | number;
-}
+export type FeatureFlagsUpdate = Record<string, boolean | number>;
 
 export interface FeatureFlagsUpdateResponse {
   message: string;

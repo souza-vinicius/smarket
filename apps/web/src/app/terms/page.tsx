@@ -1,24 +1,25 @@
 import Link from "next/link";
+
 import { ArrowLeft } from "lucide-react";
 
 export default function TermsPage() {
   return (
     <main className="min-h-screen bg-background">
-      <div className="max-w-3xl mx-auto px-4 py-12">
+      <div className="mx-auto max-w-3xl px-4 py-12">
         <Link
           href="/register"
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8"
+          className="mb-8 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="size-4" />
           Voltar
         </Link>
 
-        <h1 className="text-3xl font-bold text-foreground mb-2">Termos de Uso</h1>
-        <p className="text-sm text-muted-foreground mb-8">
+        <h1 className="mb-2 text-3xl font-bold text-foreground">Termos de Uso</h1>
+        <p className="mb-8 text-sm text-muted-foreground">
           Última atualização: 11 de fevereiro de 2026
         </p>
 
-        <div className="prose prose-sm text-muted-foreground space-y-6">
+        <div className="prose prose-sm space-y-6 text-muted-foreground">
           <section>
             <h2 className="text-lg font-semibold text-foreground">1. Aceitação dos Termos</h2>
             <p>

@@ -1,15 +1,19 @@
 "use client";
 
 import { useState } from "react";
+
 import Link from "next/link";
-import { ColumnDef } from "@tanstack/react-table";
-import { DataTable } from "@/components/ui/data-table";
-import { Button } from "@/components/ui/button";
+
+import { type ColumnDef } from "@tanstack/react-table";
+import { Search, DollarSign, Calendar } from "lucide-react";
+
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { DataTable } from "@/components/ui/data-table";
 import { Input } from "@/components/ui/input";
 import { useAdminPaymentsList } from "@/hooks/use-admin-payments";
 import type { AdminPayment } from "@/types/admin";
-import { Search, DollarSign, Calendar } from "lucide-react";
+
 
 const columns: ColumnDef<AdminPayment>[] = [
   {
@@ -38,7 +42,7 @@ const columns: ColumnDef<AdminPayment>[] = [
     accessorKey: "status",
     header: "Status",
     cell: ({ row }) => {
-      const status = row.original.status;
+      const {status} = row.original;
       const statusColors: Record<string, string> = {
         succeeded: "bg-green-100 text-green-800",
         pending: "bg-yellow-100 text-yellow-800",
@@ -64,7 +68,7 @@ const columns: ColumnDef<AdminPayment>[] = [
     accessorKey: "provider",
     header: "Provider",
     cell: ({ row }) => (
-      <span className="text-gray-600 capitalize">{row.original.provider}</span>
+      <span className="capitalize text-gray-600">{row.original.provider}</span>
     ),
   },
   {
@@ -106,21 +110,21 @@ export default function PaymentsPage() {
       {/* Header */}
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <DollarSign className="h-8 w-8" />
+          <h1 className="flex items-center gap-3 text-3xl font-bold text-gray-900">
+            <DollarSign className="size-8" />
             Pagamentos
           </h1>
-          <p className="text-gray-600 mt-2">
+          <p className="mt-2 text-gray-600">
             Gerencie os pagamentos e reembolsos
           </p>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow p-4 mb-6">
+      <div className="mb-6 rounded-lg bg-white p-4 shadow">
         <div className="flex flex-wrap items-center gap-4">
-          <div className="relative flex-1 min-w-[300px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <div className="relative min-w-[300px] flex-1">
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
             <Input
               type="text"
               placeholder="Buscar por email..."
@@ -139,7 +143,7 @@ export default function PaymentsPage() {
               setStatusFilter(e.target.value);
               setPage(1);
             }}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Todos os status</option>
             <option value="succeeded">Pago</option>
@@ -152,15 +156,15 @@ export default function PaymentsPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-lg shadow p-4">
+      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4">
+        <div className="rounded-lg bg-white p-4 shadow">
           <div className="text-sm text-gray-500">Total</div>
           <div className="text-2xl font-bold text-gray-900">{total}</div>
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-lg shadow">
+      <div className="rounded-lg bg-white shadow">
         {isLoading ? (
           <div className="p-8 text-center text-gray-500">Carregando...</div>
         ) : (
@@ -174,7 +178,7 @@ export default function PaymentsPage() {
 
             {/* Pagination */}
             {pages > 1 && (
-              <div className="p-4 border-t border-gray-200 flex items-center justify-between">
+              <div className="flex items-center justify-between border-t border-gray-200 p-4">
                 <div className="text-sm text-gray-500">
                   Página {page} de {pages}
                 </div>
@@ -182,7 +186,7 @@ export default function PaymentsPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    onClick={() => { setPage((p) => Math.max(1, p - 1)); }}
                     disabled={page === 1}
                   >
                     Anterior
@@ -190,7 +194,7 @@ export default function PaymentsPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setPage((p) => Math.min(pages, p + 1))}
+                    onClick={() => { setPage((p) => Math.min(pages, p + 1)); }}
                     disabled={page === pages}
                   >
                     Próxima

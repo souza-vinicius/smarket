@@ -1,32 +1,33 @@
 import Link from "next/link";
+
 import { ArrowLeft } from "lucide-react";
 
 export default function PrivacyPage() {
   return (
     <main className="min-h-screen bg-background">
-      <div className="max-w-3xl mx-auto px-4 py-12">
+      <div className="mx-auto max-w-3xl px-4 py-12">
         <Link
           href="/register"
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8"
+          className="mb-8 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="size-4" />
           Voltar
         </Link>
 
-        <h1 className="text-3xl font-bold text-foreground mb-2">
+        <h1 className="mb-2 text-3xl font-bold text-foreground">
           Política de Privacidade
         </h1>
-        <p className="text-sm text-muted-foreground mb-8">
+        <p className="mb-8 text-sm text-muted-foreground">
           Última atualização: 11 de fevereiro de 2026
         </p>
 
-        <div className="prose prose-sm text-muted-foreground space-y-6">
+        <div className="prose prose-sm space-y-6 text-muted-foreground">
           <section>
             <h2 className="text-lg font-semibold text-foreground">
               1. Dados Coletados
             </h2>
             <p>Coletamos os seguintes tipos de dados:</p>
-            <ul className="list-disc pl-5 space-y-1">
+            <ul className="list-disc space-y-1 pl-5">
               <li>Dados de cadastro: nome, e-mail</li>
               <li>Notas fiscais enviadas (XML, fotos, QR codes)</li>
               <li>Dados de compras extraídos das notas fiscais</li>
@@ -39,7 +40,7 @@ export default function PrivacyPage() {
               2. Uso dos Dados
             </h2>
             <p>Seus dados são utilizados para:</p>
-            <ul className="list-disc pl-5 space-y-1">
+            <ul className="list-disc space-y-1 pl-5">
               <li>Análise de gastos e geração de insights personalizados</li>
               <li>Categorização de produtos e identificação de padrões de compra</li>
               <li>Comparação de preços e alertas de economia</li>
@@ -89,7 +90,7 @@ export default function PrivacyPage() {
               Em conformidade com a Lei Geral de Proteção de Dados (LGPD), você
               tem direito a:
             </p>
-            <ul className="list-disc pl-5 space-y-1">
+            <ul className="list-disc space-y-1 pl-5">
               <li>Acessar seus dados pessoais</li>
               <li>Solicitar correção de dados incompletos ou inexatos</li>
               <li>Solicitar exclusão de seus dados</li>

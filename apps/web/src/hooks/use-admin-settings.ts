@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
 import { adminApi } from "@/lib/admin-api";
 import type {
   SettingsResponse,
@@ -30,7 +31,7 @@ export function useAdminSettings() {
   return {
     settings: data || null,
     isLoading,
-    error: error as Error | null,
+    error,
   };
 }
 
@@ -66,7 +67,7 @@ export function useAdminRoles() {
   return {
     roles: data?.roles || [],
     isLoading,
-    error: error as Error | null,
+    error,
   };
 }
 
@@ -86,8 +87,8 @@ export function useAuditLogs(params: UseAuditLogsParams = {}) {
       const queryParams = new URLSearchParams();
       queryParams.set("page", String(page));
       queryParams.set("per_page", String(perPage));
-      if (resourceType) queryParams.set("resource_type", resourceType);
-      if (action) queryParams.set("action", action);
+      if (resourceType) {queryParams.set("resource_type", resourceType);}
+      if (action) {queryParams.set("action", action);}
 
       const response = await adminApi.get<AuditLogsResponse>(
         `/audit-logs?${queryParams.toString()}`
@@ -103,6 +104,6 @@ export function useAuditLogs(params: UseAuditLogsParams = {}) {
     perPage: data?.per_page || 20,
     pages: data?.pages || 0,
     isLoading,
-    error: error as Error | null,
+    error,
   };
 }

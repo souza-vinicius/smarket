@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+
 import { apiClient } from "@/lib/api";
 
 export interface Product {
@@ -44,7 +45,7 @@ export function useSearchProducts(query: string) {
   return useQuery({
     queryKey: ["products", "search", query],
     queryFn: async () => {
-      if (!query || query.length < 2) return [];
+      if (!query || query.length < 2) {return [];}
       
       const response = await apiClient.get<Product[]>(
         `/products/search-purchases?q=${encodeURIComponent(query)}`

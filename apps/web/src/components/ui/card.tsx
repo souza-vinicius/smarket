@@ -1,4 +1,5 @@
 import * as React from "react";
+
 import { cn } from "@/lib/utils";
 
 // Main Card Component
@@ -40,11 +41,11 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
       <div
         ref={ref}
         className={cn(
-          "rounded-xl overflow-hidden",
+          "overflow-hidden rounded-xl",
           variants[variant],
           paddings[padding],
-          isInteractive && "hover:shadow-md transition-shadow duration-200",
-          isPressable && "cursor-pointer active:scale-[0.99] transition-transform duration-100",
+          isInteractive && "transition-shadow duration-200 hover:shadow-md",
+          isPressable && "cursor-pointer transition-transform duration-100 active:scale-[0.99]",
           className
         )}
         {...props}
@@ -67,12 +68,12 @@ const CardHeader = React.forwardRef<HTMLDivElement, CardHeaderProps>(
     <div
       ref={ref}
       className={cn(
-        "flex items-start justify-between gap-4 mb-4",
+        "mb-4 flex items-start justify-between gap-4",
         className
       )}
       {...props}
     >
-      <div className="flex-1 min-w-0">{children}</div>
+      <div className="min-w-0 flex-1">{children}</div>
       {action && <div className="flex-shrink-0">{action}</div>}
     </div>
   )
@@ -88,7 +89,7 @@ const CardTitle = React.forwardRef<
   <h3
     ref={ref}
     className={cn(
-      "text-lg font-semibold text-foreground leading-tight line-clamp-2",
+      "line-clamp-2 text-lg font-semibold leading-tight text-foreground",
       className
     )}
     {...props}
@@ -107,7 +108,7 @@ const CardDescription = React.forwardRef<
   <p
     ref={ref}
     className={cn(
-      "text-sm text-muted-foreground mt-1 line-clamp-2",
+      "mt-1 line-clamp-2 text-sm text-muted-foreground",
       className
     )}
     {...props}
@@ -134,7 +135,7 @@ const CardFooter = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "flex items-center justify-between gap-4 mt-4 pt-4 border-t border-border",
+      "mt-4 flex items-center justify-between gap-4 border-t border-border pt-4",
       className
     )}
     {...props}
@@ -162,9 +163,9 @@ const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
       return (
         <Card className={className} ref={ref} {...props}>
           <div className="animate-pulse">
-            <div className="h-4 w-24 bg-muted rounded mb-3" />
-            <div className="h-8 w-32 bg-muted rounded mb-2" />
-            <div className="h-3 w-20 bg-muted rounded" />
+            <div className="mb-3 h-4 w-24 rounded bg-muted" />
+            <div className="mb-2 h-8 w-32 rounded bg-muted" />
+            <div className="h-3 w-20 rounded bg-muted" />
           </div>
         </Card>
       );
@@ -177,25 +178,25 @@ const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
         {...props}
       >
         <div className="flex items-start justify-between">
-          <div className="flex-1 min-w-0">
-            <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">
+          <div className="min-w-0 flex-1">
+            <p className="mb-1 text-xs font-medium text-muted-foreground sm:text-sm">
               {title}
             </p>
-            <p className="text-xl sm:text-3xl font-bold text-foreground tracking-tight">
+            <p className="text-xl font-bold tracking-tight text-foreground sm:text-3xl">
               {value}
             </p>
             {subtitle && (
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="mt-1 text-sm text-muted-foreground">
                 {subtitle}
               </p>
             )}
             {trend && (
               <div className={cn(
-                "inline-flex items-center gap-1 mt-2 text-sm font-medium",
+                "mt-2 inline-flex items-center gap-1 text-sm font-medium",
                 trend.isPositive ? "text-success" : "text-destructive"
               )}>
                 <svg
-                  className="w-4 h-4"
+                  className="size-4"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -211,8 +212,8 @@ const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
             )}
           </div>
           {icon && (
-            <div className="flex-shrink-0 ml-2 sm:ml-4">
-              <div className="flex h-9 w-9 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-primary-subtle text-primary">
+            <div className="ml-2 flex-shrink-0 sm:ml-4">
+              <div className="flex size-9 items-center justify-center rounded-xl bg-primary-subtle text-primary sm:size-12">
                 {icon}
               </div>
             </div>
@@ -264,7 +265,7 @@ const InfoCard = React.forwardRef<HTMLDivElement, InfoCardProps>(
       <div
         ref={ref}
         className={cn(
-          "flex gap-4 p-4 rounded-xl border",
+          "flex gap-4 rounded-xl border p-4",
           style.bg,
           style.border,
           className
@@ -276,10 +277,10 @@ const InfoCard = React.forwardRef<HTMLDivElement, InfoCardProps>(
             {icon}
           </div>
         )}
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0 flex-1">
           <p className={cn("font-medium", style.text)}>{title}</p>
           {description && (
-            <p className="text-sm text-muted-foreground mt-1">{description}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{description}</p>
           )}
         </div>
       </div>

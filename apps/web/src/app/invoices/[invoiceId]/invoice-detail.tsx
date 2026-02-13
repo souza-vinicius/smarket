@@ -1,6 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useState } from "react";
+
+import { useRouter , useParams } from "next/navigation";
+
 import {
   FileText,
   Calendar,
@@ -11,17 +14,16 @@ import {
   Trash2,
   Edit,
 } from "lucide-react";
+
+import { CategoryDonutChart } from "@/components/invoices/category-donut-chart";
 import { PageLayout } from "@/components/layout/page-layout";
-import { Card, StatCard } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, StatCard } from "@/components/ui/card";
 import { ConfirmModal } from "@/components/ui/modal";
 import { Skeleton, SkeletonListItem } from "@/components/ui/skeleton";
 import { useInvoice, useDeleteInvoice } from "@/hooks/use-invoices";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { CategoryDonutChart } from "@/components/invoices/category-donut-chart";
-import { useState } from "react";
-import { useParams } from "next/navigation";
 
 function ProductItem({
   product,
@@ -40,18 +42,18 @@ function ProductItem({
 }) {
   return (
     <div
-      className={`flex items-start gap-3 py-3 border-b border-border last:border-0 transition-all ${
-        isFiltered ? "opacity-30 scale-95" : "opacity-100 scale-100"
+      className={`flex items-start gap-3 border-b border-border py-3 transition-all last:border-0 ${
+        isFiltered ? "scale-95 opacity-30" : "scale-100 opacity-100"
       }`}
     >
-      <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary-subtle flex items-center justify-center">
-        <Package className="w-5 h-5 text-primary" />
+      <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-lg bg-primary-subtle">
+        <Package className="size-5 text-primary" />
       </div>
-      <div className="flex-1 min-w-0">
-        <h4 className="font-medium text-foreground line-clamp-1">
+      <div className="min-w-0 flex-1">
+        <h4 className="line-clamp-1 font-medium text-foreground">
           {product.normalized_name || product.description}
         </h4>
-        <div className="flex flex-wrap items-center gap-2 mt-1">
+        <div className="mt-1 flex flex-wrap items-center gap-2">
           {product.category_name && (
             <Badge variant="secondary" size="sm">
               {product.category_name}
@@ -79,9 +81,9 @@ export default function InvoiceDetailClient() {
   // In static export, params.invoiceId will be "_" from generateStaticParams
   // Get the real ID from the actual URL pathname
   const invoiceId = (() => {
-    if (typeof window === 'undefined') return params.invoiceId as string;
+    if (typeof window === 'undefined') {return params.invoiceId as string;}
 
-    const pathname = window.location.pathname;
+    const {pathname} = window.location;
     const match = pathname.match(/^\/invoices\/([^/]+)/);
     return match ? match[1] : params.invoiceId as string;
   })();
@@ -115,17 +117,17 @@ export default function InvoiceDetailClient() {
   if (!invoice) {
     return (
       <PageLayout title="Nota não encontrada" showBackButton>
-        <Card className="text-center py-12">
-          <div className="w-16 h-16 rounded-full bg-muted mx-auto mb-4 flex items-center justify-center">
-            <FileText className="w-8 h-8 text-muted-foreground" />
+        <Card className="py-12 text-center">
+          <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-muted">
+            <FileText className="size-8 text-muted-foreground" />
           </div>
-          <h3 className="text-lg font-semibold text-foreground mb-2">
+          <h3 className="mb-2 text-lg font-semibold text-foreground">
             Nota não encontrada
           </h3>
-          <p className="text-muted-foreground mb-4">
+          <p className="mb-4 text-muted-foreground">
             A nota fiscal que você procura não existe ou foi removida.
           </p>
-          <Button onClick={() => router.push("/invoices")}>
+          <Button onClick={() => { router.push("/invoices"); }}>
             Voltar para Notas
           </Button>
         </Card>
@@ -143,43 +145,43 @@ export default function InvoiceDetailClient() {
           <Button
             variant="outline"
             size="icon"
-            onClick={() => router.push(`/invoices/${invoiceId}/edit`)}
+            onClick={() => { router.push(`/invoices/${invoiceId}/edit`); }}
             aria-label="Editar"
           >
-            <Edit className="w-4 h-4" />
+            <Edit className="size-4" />
           </Button>
           <Button
             variant="danger"
             size="icon"
-            onClick={() => setShowDeleteModal(true)}
+            onClick={() => { setShowDeleteModal(true); }}
             aria-label="Excluir"
           >
-            <Trash2 className="w-4 h-4" />
+            <Trash2 className="size-4" />
           </Button>
         </div>
       }
     >
       {/* Summary Card */}
-      <Card className="mb-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-0">
+      <Card className="mb-4 border-0 bg-gradient-to-r from-emerald-600 to-teal-600 text-white">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-emerald-100 text-sm mb-1">Valor Total</p>
+            <p className="mb-1 text-sm text-emerald-100">Valor Total</p>
             <p className="text-3xl font-bold">
               {formatCurrency(invoice.total_value)}
             </p>
           </div>
-          <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center">
-            <FileText className="w-7 h-7" />
+          <div className="flex size-14 items-center justify-center rounded-full bg-white/20">
+            <FileText className="size-7" />
           </div>
         </div>
       </Card>
 
       {/* Info Grid */}
-      <div className="grid grid-cols-2 gap-3 mb-6">
+      <div className="mb-6 grid grid-cols-2 gap-3">
         <Card padding="sm">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary-subtle flex items-center justify-center">
-              <Calendar className="w-5 h-5 text-primary" />
+            <div className="flex size-10 items-center justify-center rounded-lg bg-primary-subtle">
+              <Calendar className="size-5 text-primary" />
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Data</p>
@@ -191,8 +193,8 @@ export default function InvoiceDetailClient() {
         </Card>
         <Card padding="sm">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary-subtle flex items-center justify-center">
-              <CreditCard className="w-5 h-5 text-primary" />
+            <div className="flex size-10 items-center justify-center rounded-lg bg-primary-subtle">
+              <CreditCard className="size-5 text-primary" />
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Tipo</p>
@@ -204,21 +206,21 @@ export default function InvoiceDetailClient() {
 
       {/* Details Card */}
       <Card className="mb-6">
-        <h3 className="font-semibold text-foreground mb-4">Detalhes</h3>
+        <h3 className="mb-4 font-semibold text-foreground">Detalhes</h3>
         <div className="space-y-3">
-          <div className="flex justify-between py-2 border-b border-border">
+          <div className="flex justify-between border-b border-border py-2">
             <span className="text-muted-foreground">CNPJ Emitente</span>
             <span className="font-medium text-foreground">
               {invoice.issuer_cnpj || "N/A"}
             </span>
           </div>
-          <div className="flex justify-between py-2 border-b border-border">
+          <div className="flex justify-between border-b border-border py-2">
             <span className="text-muted-foreground">Número</span>
             <span className="font-medium text-foreground">
               {invoice.number}
             </span>
           </div>
-          <div className="flex justify-between py-2 border-b border-border">
+          <div className="flex justify-between border-b border-border py-2">
             <span className="text-muted-foreground">Série</span>
             <span className="font-medium text-foreground">
               {invoice.series}
@@ -226,7 +228,7 @@ export default function InvoiceDetailClient() {
           </div>
           <div className="flex justify-between py-2">
             <span className="text-muted-foreground">Chave de Acesso</span>
-            <span className="font-medium text-foreground text-xs">
+            <span className="text-xs font-medium text-foreground">
               {invoice.access_key.slice(0, 20)}...
             </span>
           </div>
@@ -245,7 +247,7 @@ export default function InvoiceDetailClient() {
 
       {/* Products List */}
       <section>
-        <div className="flex items-center justify-between mb-4">
+        <div className="mb-4 flex items-center justify-between">
           <h3 className="font-semibold text-foreground">
             Produtos (
             {selectedCategory
@@ -280,8 +282,8 @@ export default function InvoiceDetailClient() {
               })}
             </div>
           ) : (
-            <div className="text-center py-8">
-              <Package className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+            <div className="py-8 text-center">
+              <Package className="mx-auto mb-3 size-12 text-muted-foreground" />
               <p className="text-muted-foreground">Nenhum produto encontrado</p>
             </div>
           )}
@@ -291,7 +293,7 @@ export default function InvoiceDetailClient() {
       {/* Delete Confirmation */}
       <ConfirmModal
         isOpen={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
+        onClose={() => { setShowDeleteModal(false); }}
         onConfirm={handleDelete}
         isConfirming={deleteMutation.isPending}
         variant="danger"

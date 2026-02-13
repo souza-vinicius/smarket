@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+
 import { useParams, useRouter } from "next/navigation";
+
 import { type AxiosError } from "axios";
 import {
   FileText,
@@ -15,17 +17,18 @@ import {
   Search,
   Hash,
 } from "lucide-react";
+
 import { PageLayout } from "@/components/layout/page-layout";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCNPJEnrichment, type CNPJEnrichmentError } from "@/hooks/use-cnpj-enrichment";
 import { useInvoice, useUpdateInvoice } from "@/hooks/use-invoices";
-import { formatCNPJInput, getCNPJErrorMessage, isValidCNPJ } from "@/lib/cnpj";
-import { type InvoiceItem, type InvoiceUpdateRequest } from "@/types";
-import { formatCurrency } from "@/lib/utils";
 import { CATEGORY_NAMES, getSubcategories } from "@/lib/category-options";
+import { formatCNPJInput, getCNPJErrorMessage, isValidCNPJ } from "@/lib/cnpj";
+import { formatCurrency } from "@/lib/utils";
+import { type InvoiceItem, type InvoiceUpdateRequest } from "@/types";
 
 interface EditableInvoice {
   issuer_name: string;
@@ -44,8 +47,8 @@ export default function InvoiceEditClient() {
 
   // In static export, extract real ID from URL pathname
   const invoiceId = (() => {
-    if (typeof window === 'undefined') return params.invoiceId as string;
-    const pathname = window.location.pathname;
+    if (typeof window === 'undefined') {return params.invoiceId as string;}
+    const {pathname} = window.location;
     const match = pathname.match(/^\/invoices\/([^/]+)/);
     return match ? match[1] : params.invoiceId as string;
   })();
@@ -92,7 +95,7 @@ export default function InvoiceEditClient() {
   }, [invoice, editedData]);
 
   const handleItemChange = (index: number, field: keyof InvoiceItem, value: string | number) => {
-    if (!editedData) return;
+    if (!editedData) {return;}
 
     const newItems = [...editedData.items];
 
@@ -129,7 +132,7 @@ export default function InvoiceEditClient() {
   };
 
   const handleHeaderChange = (field: keyof EditableInvoice, value: string) => {
-    if (!editedData) return;
+    if (!editedData) {return;}
 
     if (field === "issuer_cnpj") {
       const formatted = formatCNPJInput(value);
@@ -153,7 +156,7 @@ export default function InvoiceEditClient() {
   };
 
   const handleAddItem = () => {
-    if (!editedData) return;
+    if (!editedData) {return;}
     const newItems = [
       ...editedData.items,
       {
@@ -172,14 +175,14 @@ export default function InvoiceEditClient() {
   };
 
   const handleRemoveItem = (index: number) => {
-    if (!editedData || editedData.items.length <= 1) return;
+    if (!editedData || editedData.items.length <= 1) {return;}
     const newItems = editedData.items.filter((_, i) => i !== index);
     const newTotal = newItems.reduce((sum, item) => sum + (Number(item.total_price) || 0), 0);
     setEditedData({ ...editedData, items: newItems, total_value: newTotal });
   };
 
   const handleUseItemsSum = () => {
-    if (!editedData) return;
+    if (!editedData) {return;}
     const itemsSum = editedData.items.reduce((sum, item) => sum + (Number(item.total_price) || 0), 0);
     setEditedData({ ...editedData, total_value: itemsSum });
   };
@@ -217,7 +220,7 @@ export default function InvoiceEditClient() {
   };
 
   const handleSave = async () => {
-    if (!editedData) return;
+    if (!editedData) {return;}
 
     if (editedData.issuer_cnpj) {
       const cnpjValidationError = getCNPJErrorMessage(editedData.issuer_cnpj);
@@ -286,10 +289,10 @@ export default function InvoiceEditClient() {
   if (fetchError || !invoice || !editedData) {
     return (
       <PageLayout title="Erro" showBackButton>
-        <Card className="text-center py-12">
-          <AlertTriangle className="w-16 h-16 text-destructive mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-foreground mb-2">Nota não encontrada</h3>
-          <Button onClick={() => router.push("/invoices")}>Voltar para Notas</Button>
+        <Card className="py-12 text-center">
+          <AlertTriangle className="mx-auto mb-4 size-16 text-destructive" />
+          <h3 className="mb-2 text-lg font-semibold text-foreground">Nota não encontrada</h3>
+          <Button onClick={() => { router.push("/invoices"); }}>Voltar para Notas</Button>
         </Card>
       </PageLayout>
     );
@@ -308,8 +311,8 @@ export default function InvoiceEditClient() {
       {validationError && (
         <Card className="mb-6 border-destructive bg-destructive-subtle/30">
           <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
-            <p className="text-destructive text-sm">{validationError}</p>
+            <AlertTriangle className="mt-0.5 size-5 flex-shrink-0 text-destructive" />
+            <p className="text-sm text-destructive">{validationError}</p>
           </div>
         </Card>
       )}
@@ -318,7 +321,7 @@ export default function InvoiceEditClient() {
       {saveSuccess && (
         <Card className="mb-6 border-success bg-success-subtle/30">
           <div className="flex items-center gap-2 text-success">
-            <Check className="w-5 h-5" />
+            <Check className="size-5" />
             <p className="font-semibold">Alterações salvas com sucesso! Redirecionando...</p>
           </div>
         </Card>
@@ -326,25 +329,25 @@ export default function InvoiceEditClient() {
 
       {/* Header Information Card */}
       <Card className="mb-6">
-        <h3 className="font-semibold text-foreground mb-4">Informações do Emissor</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <h3 className="mb-4 font-semibold text-foreground">Informações do Emissor</h3>
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <div className="space-y-4">
             <div>
-              <label htmlFor="issuer-name" className="block text-sm font-medium text-muted-foreground mb-2">
+              <label htmlFor="issuer-name" className="mb-2 block text-sm font-medium text-muted-foreground">
                 Estabelecimento
               </label>
               <input
                 id="issuer-name"
                 type="text"
                 value={editedData.issuer_name}
-                onChange={(e) => handleHeaderChange("issuer_name", e.target.value)}
-                className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors"
+                onChange={(e) => { handleHeaderChange("issuer_name", e.target.value); }}
+                className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20"
                 placeholder="Nome do estabelecimento"
               />
             </div>
 
             <div>
-              <label htmlFor="issuer-cnpj" className="block text-sm font-medium text-muted-foreground mb-2">
+              <label htmlFor="issuer-cnpj" className="mb-2 block text-sm font-medium text-muted-foreground">
                 CNPJ
               </label>
               <div className="flex gap-2">
@@ -352,13 +355,13 @@ export default function InvoiceEditClient() {
                   id="issuer-cnpj"
                   type="text"
                   value={editedData.issuer_cnpj}
-                  onChange={(e) => handleHeaderChange("issuer_cnpj", e.target.value)}
+                  onChange={(e) => { handleHeaderChange("issuer_cnpj", e.target.value); }}
                   placeholder="00.000.000/0000-00"
                   maxLength={18}
-                  className={`flex-1 px-4 py-2 rounded-lg border ${cnpjError
+                  className={`flex-1 rounded-lg border px-4 py-2 ${cnpjError
                     ? "border-destructive bg-destructive-subtle/30 text-destructive"
                     : "border-border bg-background text-foreground"
-                    } focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors`}
+                    } transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20`}
                 />
                 <Button
                   variant="outline"
@@ -367,73 +370,73 @@ export default function InvoiceEditClient() {
                   disabled={enrichmentMutation.isPending || !!cnpjError || !editedData.issuer_cnpj}
                 >
                   {enrichmentMutation.isPending ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 className="size-4 animate-spin" />
                   ) : (
-                    <Search className="w-4 h-4" />
+                    <Search className="size-4" />
                   )}
                 </Button>
               </div>
-              {cnpjError && <p className="text-sm text-destructive mt-1">{cnpjError}</p>}
+              {cnpjError && <p className="mt-1 text-sm text-destructive">{cnpjError}</p>}
             </div>
           </div>
 
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-2">NF-e Número</label>
+                <label className="mb-2 block text-sm font-medium text-muted-foreground">NF-e Número</label>
                 <input
                   type="text"
                   value={editedData.number}
-                  onChange={(e) => handleHeaderChange("number", e.target.value)}
-                  className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors"
+                  onChange={(e) => { handleHeaderChange("number", e.target.value); }}
+                  className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-2">Série</label>
+                <label className="mb-2 block text-sm font-medium text-muted-foreground">Série</label>
                 <input
                   type="text"
                   value={editedData.series}
-                  onChange={(e) => handleHeaderChange("series", e.target.value)}
-                  className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors"
+                  onChange={(e) => { handleHeaderChange("series", e.target.value); }}
+                  className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-2">Data de Emissão</label>
+              <label className="mb-2 block text-sm font-medium text-muted-foreground">Data de Emissão</label>
               <input
                 type="datetime-local"
                 value={editedData.issue_date}
-                onChange={(e) => handleHeaderChange("issue_date", e.target.value)}
-                className={`w-full px-4 py-2 rounded-lg border ${dateError
+                onChange={(e) => { handleHeaderChange("issue_date", e.target.value); }}
+                className={`w-full rounded-lg border px-4 py-2 ${dateError
                   ? "border-destructive bg-destructive-subtle/30 text-destructive"
                   : "border-border bg-background text-foreground"
-                  } focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors`}
+                  } transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20`}
               />
-              {dateError && <p className="text-sm text-destructive mt-1">{dateError}</p>}
+              {dateError && <p className="mt-1 text-sm text-destructive">{dateError}</p>}
             </div>
           </div>
         </div>
 
         <div className="mt-6">
-          <label className="block text-sm font-medium text-muted-foreground mb-2">Chave de Acesso</label>
+          <label className="mb-2 block text-sm font-medium text-muted-foreground">Chave de Acesso</label>
           <input
             type="text"
             value={editedData.access_key}
-            onChange={(e) => handleHeaderChange("access_key", e.target.value)}
-            className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors"
+            onChange={(e) => { handleHeaderChange("access_key", e.target.value); }}
+            className="w-full rounded-lg border border-border bg-background px-4 py-2 font-mono text-sm text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
       </Card>
 
       {/* Items List Card */}
       <Card className="mb-6">
-        <div className="flex items-center justify-between mb-4">
+        <div className="mb-4 flex items-center justify-between">
           <h3 className="font-semibold text-foreground">Produtos ({editedData.items.length})</h3>
           <Button
             variant="outline"
             size="sm"
-            leftIcon={<Plus className="w-4 h-4" />}
+            leftIcon={<Plus className="size-4" />}
             onClick={handleAddItem}
           >
             Adicionar Item
@@ -442,75 +445,75 @@ export default function InvoiceEditClient() {
 
         <div className="space-y-4">
           {editedData.items.map((item, index) => (
-            <div key={index} className="p-4 border border-border rounded-lg bg-muted/30">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div key={index} className="rounded-lg border border-border bg-muted/30 p-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-muted-foreground mb-1">Descrição</label>
+                  <label className="mb-1 block text-sm font-medium text-muted-foreground">Descrição</label>
                   <input
                     type="text"
                     value={item.normalized_name || item.description}
-                    onChange={(e) => handleItemChange(index, "description", e.target.value)}
-                    className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors"
+                    onChange={(e) => { handleItemChange(index, "description", e.target.value); }}
+                    className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
                 </div>
 
                 <div className="grid grid-cols-3 gap-2">
                   <div>
-                    <label className="block text-sm font-medium text-muted-foreground mb-1">Qtd</label>
+                    <label className="mb-1 block text-sm font-medium text-muted-foreground">Qtd</label>
                     <input
                       type="number"
                       step="0.001"
                       value={item.quantity}
-                      onChange={(e) => handleItemChange(index, "quantity", e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors text-sm"
+                      onChange={(e) => { handleItemChange(index, "quantity", e.target.value); }}
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-muted-foreground mb-1">Un</label>
+                    <label className="mb-1 block text-sm font-medium text-muted-foreground">Un</label>
                     <input
                       type="text"
                       value={item.unit}
-                      onChange={(e) => handleItemChange(index, "unit", e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors text-sm"
+                      onChange={(e) => { handleItemChange(index, "unit", e.target.value); }}
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-muted-foreground mb-1">Preço Un.</label>
+                    <label className="mb-1 block text-sm font-medium text-muted-foreground">Preço Un.</label>
                     <input
                       type="number"
                       step="0.01"
                       value={item.unit_price}
-                      onChange={(e) => handleItemChange(index, "unit_price", e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors text-sm text-right"
+                      onChange={(e) => { handleItemChange(index, "unit_price", e.target.value); }}
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-right text-sm text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-1">Total</label>
+                  <label className="mb-1 block text-sm font-medium text-muted-foreground">Total</label>
                   <div className="flex items-center gap-2">
-                    <div className="flex-1 px-4 py-2 rounded-lg border border-border bg-muted text-foreground font-semibold">
+                    <div className="flex-1 rounded-lg border border-border bg-muted px-4 py-2 font-semibold text-foreground">
                       {formatCurrency(Number(item.total_price) || 0)}
                     </div>
                     {editedData.items.length > 1 && (
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleRemoveItem(index)}
-                        className="text-destructive hover:bg-destructive-subtle h-10 w-10"
+                        onClick={() => { handleRemoveItem(index); }}
+                        className="size-10 text-destructive hover:bg-destructive-subtle"
                       >
-                        <X className="w-4 h-4" />
+                        <X className="size-4" />
                       </Button>
                     )}
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-1">Categoria</label>
+                  <label className="mb-1 block text-sm font-medium text-muted-foreground">Categoria</label>
                   <select
                     value={item.category_name}
-                    onChange={(e) => handleItemChange(index, "category_name", e.target.value)}
-                    className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors"
+                    onChange={(e) => { handleItemChange(index, "category_name", e.target.value); }}
+                    className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20"
                   >
                     <option value="">Selecione uma categoria</option>
                     {CATEGORY_NAMES.map((cat) => (
@@ -519,12 +522,12 @@ export default function InvoiceEditClient() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-1">Subcategoria</label>
+                  <label className="mb-1 block text-sm font-medium text-muted-foreground">Subcategoria</label>
                   <select
                     value={item.subcategory}
-                    onChange={(e) => handleItemChange(index, "subcategory", e.target.value)}
+                    onChange={(e) => { handleItemChange(index, "subcategory", e.target.value); }}
                     disabled={!item.category_name}
-                    className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <option value="">{item.category_name ? "Selecione uma subcategoria" : "Selecione uma categoria primeiro"}</option>
                     {item.category_name && getSubcategories(item.category_name).map((sub) => (
@@ -541,12 +544,12 @@ export default function InvoiceEditClient() {
       {/* Total Mismatch Warning */}
       {totalMismatch && (
         <Card className="mb-6 border-warning bg-warning-subtle/30">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
             <div className="flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
+              <AlertTriangle className="mt-0.5 size-5 flex-shrink-0 text-warning" />
               <div>
                 <p className="font-semibold text-warning-foreground">Divergência de Valores</p>
-                <p className="text-sm text-warning-foreground/80 mt-1">
+                <p className="mt-1 text-sm text-warning-foreground/80">
                   Soma: {formatCurrency(itemsSum)} ≠ Total informado: {formatCurrency(editedData.total_value)}
                 </p>
               </div>
@@ -555,7 +558,7 @@ export default function InvoiceEditClient() {
               variant="outline"
               size="sm"
               onClick={handleUseItemsSum}
-              className="w-full sm:w-auto border-amber-600 text-amber-600 hover:bg-amber-600 hover:text-white"
+              className="w-full border-amber-600 text-amber-600 hover:bg-amber-600 hover:text-white sm:w-auto"
             >
               Usar Soma dos Itens
             </Button>
@@ -564,25 +567,25 @@ export default function InvoiceEditClient() {
       )}
 
       {/* Summary/Total Card */}
-      <Card className="mb-8 bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-0">
+      <Card className="mb-8 border-0 bg-gradient-to-r from-emerald-600 to-teal-600 text-white">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-emerald-100 text-sm mb-1">Valor Total</p>
+            <p className="mb-1 text-sm text-emerald-100">Valor Total</p>
             <p className="text-3xl font-bold">{formatCurrency(editedData.total_value)}</p>
           </div>
-          <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center">
-            <FileText className="w-7 h-7" />
+          <div className="flex size-14 items-center justify-center rounded-full bg-white/20">
+            <FileText className="size-7" />
           </div>
         </div>
       </Card>
 
       {/* Action Buttons */}
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row">
         <Button
           onClick={() => void handleSave()}
           disabled={updateMutation.isPending || !!cnpjError || !!dateError || saveSuccess}
           size="lg"
-          className="flex-1 !h-14 font-semibold text-lg"
+          className="!h-14 flex-1 text-lg font-semibold"
           isLoading={updateMutation.isPending}
         >
           {saveSuccess ? "Salvo!" : "Salvar Alterações"}
@@ -592,7 +595,7 @@ export default function InvoiceEditClient() {
           onClick={handleCancel}
           disabled={updateMutation.isPending}
           size="lg"
-          className="flex-1 !h-14 font-semibold text-lg"
+          className="!h-14 flex-1 text-lg font-semibold"
         >
           Cancelar
         </Button>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+
 import { adminApi } from "@/lib/admin-api";
 import type {
   ChurnReport,
@@ -25,7 +26,7 @@ interface UseChurnReportReturn {
 }
 
 export function useChurnReport(
-  months: number = 12
+  months = 12
 ): UseChurnReportReturn {
   const { data, isLoading, error } = useQuery({
     queryKey: ADMIN_REPORTS_KEYS.churn(months),
@@ -41,7 +42,7 @@ export function useChurnReport(
   return {
     report: data || null,
     isLoading,
-    error: error as Error | null,
+    error,
   };
 }
 
@@ -52,7 +53,7 @@ interface UseConversionReportReturn {
 }
 
 export function useConversionReport(
-  months: number = 12
+  months = 12
 ): UseConversionReportReturn {
   const { data, isLoading, error } = useQuery({
     queryKey: ADMIN_REPORTS_KEYS.conversion(months),
@@ -68,7 +69,7 @@ export function useConversionReport(
   return {
     report: data || null,
     isLoading,
-    error: error as Error | null,
+    error,
   };
 }
 
@@ -79,7 +80,7 @@ interface UseMRRReportReturn {
 }
 
 export function useMRRReport(
-  months: number = 12
+  months = 12
 ): UseMRRReportReturn {
   const { data, isLoading, error } = useQuery({
     queryKey: ADMIN_REPORTS_KEYS.mrr(months),
@@ -95,13 +96,13 @@ export function useMRRReport(
   return {
     report: data || null,
     isLoading,
-    error: error as Error | null,
+    error,
   };
 }
 
 // CSV Export functions
 export async function exportUsersCSV(
-  includeDeleted: boolean = false
+  includeDeleted = false
 ): Promise<void> {
   const response = await adminApi.get(
     `/reports/export/users?include_deleted=${includeDeleted}`,
@@ -132,7 +133,7 @@ export async function exportSubscriptionsCSV(
   status?: string
 ): Promise<void> {
   const params = new URLSearchParams();
-  if (status) params.append("status", status);
+  if (status) {params.append("status", status);}
 
   const response = await adminApi.get(
     `/reports/export/subscriptions?${params.toString()}`,
@@ -160,11 +161,11 @@ export async function exportSubscriptionsCSV(
 
 export async function exportPaymentsCSV(
   status?: string,
-  months: number = 12
+  months = 12
 ): Promise<void> {
   const params = new URLSearchParams();
   params.append("months", months.toString());
-  if (status) params.append("status", status);
+  if (status) {params.append("status", status);}
 
   const response = await adminApi.get(
     `/reports/export/payments?${params.toString()}`,

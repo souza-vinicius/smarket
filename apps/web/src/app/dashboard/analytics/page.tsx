@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+
 import {
   TrendingUp,
   TrendingDown,
@@ -11,18 +12,19 @@ import {
   Store,
   Receipt,
 } from "lucide-react";
+
 import { PageLayout } from "@/components/layout/page-layout";
-import { Card, StatCard } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, StatCard } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatCurrency } from "@/lib/utils";
-import { useDashboardSummary } from "@/hooks/use-dashboard";
 import {
   useSpendingTrends,
   useMerchantInsights,
   useCategorySpending,
 } from "@/hooks/use-analytics";
+import { useDashboardSummary } from "@/hooks/use-dashboard";
+import { formatCurrency } from "@/lib/utils";
 
 // Map API period to months
 const periodToMonths: Record<string, number> = {
@@ -48,7 +50,7 @@ function CategoryBar({
       <div className="flex items-center justify-between text-sm">
         <div className="flex items-center gap-2">
           <span
-            className="w-3 h-3 rounded-full"
+            className="size-3 rounded-full"
             style={{ backgroundColor: color }}
           />
           <span className="font-medium text-foreground">{name}</span>
@@ -57,7 +59,7 @@ function CategoryBar({
           {formatCurrency(value)} ({percentage}%)
         </span>
       </div>
-      <div className="h-2 bg-muted rounded-full overflow-hidden">
+      <div className="h-2 overflow-hidden rounded-full bg-muted">
         <div
           className="h-full rounded-full transition-all duration-500"
           style={{ width: `${percentage}%`, backgroundColor: color }}
@@ -83,11 +85,11 @@ function MerchantCard({
 
   return (
     <Card isInteractive className="flex items-center gap-4">
-      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary-subtle flex items-center justify-center text-lg">
+      <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-full bg-primary-subtle text-lg">
         {medals[index] || `${index + 1}º`}
       </div>
-      <div className="flex-1 min-w-0">
-        <h3 className="font-semibold text-foreground truncate">
+      <div className="min-w-0 flex-1">
+        <h3 className="truncate font-semibold text-foreground">
           {merchant.name}
         </h3>
         <p className="text-sm text-muted-foreground">
@@ -118,7 +120,7 @@ export default function AnalyticsPage() {
 
   // Calculate stats from real data
   const stats = useMemo(() => {
-    if (!summary) return null;
+    if (!summary) {return null;}
 
     const totalSpent = summary.total_spent_this_month;
     const totalSpentLastMonth = summary.total_spent_last_month;
@@ -156,7 +158,7 @@ export default function AnalyticsPage() {
 
   // Process categories with percentages
   const categoriesWithPercentage = useMemo(() => {
-    if (!categoryData?.categories) return [];
+    if (!categoryData?.categories) {return [];}
 
     const total = categoryData.categories.reduce(
       (sum, c) => sum + c.total_spent,
@@ -179,7 +181,7 @@ export default function AnalyticsPage() {
       showBackButton
     >
       {/* Period Selector */}
-      <div className="flex gap-2 mb-6 overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+      <div className="scrollbar-hide -mx-4 mb-6 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:px-0">
         {[
           { key: "7d", label: "7 dias" },
           { key: "30d", label: "30 dias" },
@@ -190,7 +192,7 @@ export default function AnalyticsPage() {
             key={p.key}
             variant={period === p.key ? "primary" : "outline"}
             size="sm"
-            onClick={() => setPeriod(p.key as typeof period)}
+            onClick={() => { setPeriod(p.key as typeof period); }}
           >
             {p.label}
           </Button>
@@ -198,7 +200,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         {isLoading ? (
           <>
             <Skeleton className="h-24" />
@@ -219,23 +221,23 @@ export default function AnalyticsPage() {
                     }
                   : undefined
               }
-              icon={<DollarSign className="w-5 h-5" />}
+              icon={<DollarSign className="size-5" />}
             />
             <StatCard
               title="Notas Fiscais"
               value={stats.invoiceCount}
-              icon={<Receipt className="w-5 h-5" />}
+              icon={<Receipt className="size-5" />}
             />
             <StatCard
               title="Ticket Médio"
               value={formatCurrency(stats.averageTicket)}
-              icon={<BarChart3 className="w-5 h-5" />}
+              icon={<BarChart3 className="size-5" />}
             />
             <StatCard
               title="Top Categoria"
               value={stats.topCategory.name}
               subtitle={formatCurrency(stats.topCategory.total_spent)}
-              icon={<PieChart className="w-5 h-5" />}
+              icon={<PieChart className="size-5" />}
             />
           </>
         ) : null}
@@ -243,7 +245,7 @@ export default function AnalyticsPage() {
 
       {/* Categories Section */}
       <section className="mb-6">
-        <div className="flex items-center justify-between mb-4">
+        <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-foreground">
             Gastos por Categoria
           </h2>
@@ -272,8 +274,8 @@ export default function AnalyticsPage() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-8">
-              <PieChart className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+            <div className="py-8 text-center">
+              <PieChart className="mx-auto mb-3 size-12 text-muted-foreground" />
               <p className="text-muted-foreground">
                 Nenhuma categoria encontrada para este período
               </p>
@@ -284,7 +286,7 @@ export default function AnalyticsPage() {
 
       {/* Top Merchants Section */}
       <section>
-        <h2 className="text-lg font-semibold text-foreground mb-4">
+        <h2 className="mb-4 text-lg font-semibold text-foreground">
           Top Estabelecimentos
         </h2>
 
@@ -305,8 +307,8 @@ export default function AnalyticsPage() {
             ))}
           </div>
         ) : (
-          <Card className="text-center py-8">
-            <Store className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+          <Card className="py-8 text-center">
+            <Store className="mx-auto mb-3 size-12 text-muted-foreground" />
             <p className="text-muted-foreground">
               Nenhum estabelecimento encontrado
             </p>
@@ -316,13 +318,13 @@ export default function AnalyticsPage() {
 
       {/* Insights Summary */}
       {stats && stats.periodChange < 0 && (
-        <Card className="mt-6 bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-0">
+        <Card className="mt-6 border-0 bg-gradient-to-r from-emerald-600 to-teal-600 text-white">
           <div className="flex items-start gap-4">
-            <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
-              <TrendingDown className="w-6 h-6" />
+            <div className="flex size-12 flex-shrink-0 items-center justify-center rounded-xl bg-white/20">
+              <TrendingDown className="size-6" />
             </div>
             <div>
-              <h3 className="font-semibold text-lg mb-1">
+              <h3 className="mb-1 text-lg font-semibold">
                 Você está economizando!
               </h3>
               <p className="text-emerald-100">
@@ -335,13 +337,13 @@ export default function AnalyticsPage() {
       )}
 
       {stats && stats.periodChange > 0 && (
-        <Card className="mt-6 bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0">
+        <Card className="mt-6 border-0 bg-gradient-to-r from-amber-500 to-orange-500 text-white">
           <div className="flex items-start gap-4">
-            <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
-              <TrendingUp className="w-6 h-6" />
+            <div className="flex size-12 flex-shrink-0 items-center justify-center rounded-xl bg-white/20">
+              <TrendingUp className="size-6" />
             </div>
             <div>
-              <h3 className="font-semibold text-lg mb-1">Atenção!</h3>
+              <h3 className="mb-1 text-lg font-semibold">Atenção!</h3>
               <p className="text-amber-100">
                 Seus gastos aumentaram {stats.periodChange.toFixed(1)}% em
                 relação ao período anterior. Fique de olho!

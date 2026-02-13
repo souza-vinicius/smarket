@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import * as React from "react";
+
 import { useRouter } from "next/navigation";
+
 import {
   Plus,
   Search,
@@ -14,17 +16,19 @@ import {
   ChevronRight,
   Receipt,
 } from "lucide-react";
+
 import { InvoiceCard } from "@/components/invoices/invoice-card";
 import { UploadModal } from "@/components/invoices/upload-modal";
-import { UpgradeModal } from "@/components/subscription/upgrade-modal";
 import { VirtualizedInvoiceList } from "@/components/invoices/virtualized-invoice-list";
 import { PageLayout } from "@/components/layout/page-layout";
+import { UpgradeModal } from "@/components/subscription/upgrade-modal";
+import { Badge, StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, StatCard } from "@/components/ui/card";
-import { Badge, StatusBadge } from "@/components/ui/badge";
 import { SearchInput } from "@/components/ui/input";
 import { Modal, ConfirmModal } from "@/components/ui/modal";
 import { Skeleton, SkeletonListItem } from "@/components/ui/skeleton";
+import { useGroupedInvoices } from "@/hooks/use-grouped-invoices";
 import {
   useInvoices,
   useUploadXML,
@@ -34,7 +38,6 @@ import {
   useDeleteProcessing,
 } from "@/hooks/use-invoices";
 import { useInvoicesSummary } from "@/hooks/use-invoices-summary";
-import { useGroupedInvoices } from "@/hooks/use-grouped-invoices";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 // Pending Item - Mobile optimized
@@ -56,15 +59,15 @@ function PendingItem({
   const router = useRouter();
 
   return (
-    <div className="flex items-center gap-4 p-4 bg-warning-subtle/30 rounded-xl border border-warning/20">
-      <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-warning/20 flex items-center justify-center">
-        <Receipt className="w-6 h-6 text-warning" />
+    <div className="flex items-center gap-4 rounded-xl border border-warning/20 bg-warning-subtle/30 p-4">
+      <div className="flex size-12 flex-shrink-0 items-center justify-center rounded-xl bg-warning/20">
+        <Receipt className="size-6 text-warning" />
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="font-medium text-foreground truncate">
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-medium text-foreground">
           {item.extracted_issuer_name || "Processando..."}
         </p>
-        <div className="flex items-center gap-2 mt-1">
+        <div className="mt-1 flex items-center gap-2">
           <StatusBadge status={item.status} />
           <span className="text-xs text-muted-foreground">
             {item.image_count} foto(s)
@@ -75,7 +78,7 @@ function PendingItem({
         {item.status === "extracted" && (
           <Button
             size="sm"
-            onClick={() => router.push(`/invoices/review/${item.processing_id}`)}
+            onClick={() => { router.push(`/invoices/review/${item.processing_id}`); }}
           >
             Revisar
           </Button>
@@ -87,7 +90,7 @@ function PendingItem({
           isLoading={isDeleting}
           className="text-destructive hover:bg-destructive-subtle"
         >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
           </svg>
         </Button>
@@ -173,8 +176,8 @@ export default function InvoicesPage() {
 
   // Filter invoices
   const filteredInvoices = React.useMemo(() => {
-    if (!invoices) return [];
-    if (!searchQuery.trim()) return invoices;
+    if (!invoices) {return [];}
+    if (!searchQuery.trim()) {return invoices;}
 
     const query = searchQuery.toLowerCase().trim();
 
@@ -205,11 +208,11 @@ export default function InvoicesPage() {
       title="Notas Fiscais"
       subtitle="Gerencie suas notas NFC-e e NF-e"
       showFloatingAction
-      onFloatingActionClick={() => setIsUploadModalOpen(true)}
+      onFloatingActionClick={() => { setIsUploadModalOpen(true); }}
       floatingActionLabel="Nota"
     >
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         {isSummaryLoading ? (
           <>
             <Skeleton className="h-24" />
@@ -221,12 +224,12 @@ export default function InvoicesPage() {
             <StatCard
               title="Total de Notas"
               value={invoices?.length || 0}
-              icon={<FileText className="w-5 h-5" />}
+              icon={<FileText className="size-5" />}
             />
             <StatCard
               title="Total Gasto"
               value={formatCurrency(summary?.total_spent || 0)}
-              icon={<Store className="w-5 h-5" />}
+              icon={<Store className="size-5" />}
             />
             <StatCard
               title="Este Mês"
@@ -240,25 +243,25 @@ export default function InvoicesPage() {
                   );
                 }).length || 0
               }
-              icon={<Calendar className="w-5 h-5" />}
+              icon={<Calendar className="size-5" />}
             />
           </>
         )}
       </div>
 
       {/* Search and Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-6">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row">
         <div className="flex-1">
           <SearchInput
             placeholder="Buscar por estabelecimento..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onClear={() => setSearchQuery("")}
+            onChange={(e) => { setSearchQuery(e.target.value); }}
+            onClear={() => { setSearchQuery(""); }}
           />
         </div>
         <Button
           variant="outline"
-          leftIcon={<Filter className="w-4 h-4" />}
+          leftIcon={<Filter className="size-4" />}
           className="sm:hidden"
         >
           Filtros
@@ -268,7 +271,7 @@ export default function InvoicesPage() {
       {/* Pending Section */}
       {pendingProcessing && pendingProcessing.length > 0 && (
         <section className="mb-6">
-          <h2 className="text-lg font-semibold text-foreground mb-3">
+          <h2 className="mb-3 text-lg font-semibold text-foreground">
             Aguardando Revisão
           </h2>
           <div className="space-y-3">
@@ -293,7 +296,7 @@ export default function InvoicesPage() {
 
       {/* Invoices List */}
       <section>
-        <div className="flex items-center justify-between mb-3">
+        <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-foreground">
             Notas Processadas
           </h2>
@@ -313,20 +316,20 @@ export default function InvoicesPage() {
         ) : filteredInvoices.length > 0 ? (
           <VirtualizedInvoiceList items={groupedItems} />
         ) : (
-          <Card className="text-center py-12">
-            <div className="w-16 h-16 rounded-full bg-muted mx-auto mb-4 flex items-center justify-center">
-              <FileText className="w-8 h-8 text-muted-foreground" />
+          <Card className="py-12 text-center">
+            <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-muted">
+              <FileText className="size-8 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-semibold text-foreground mb-2">
+            <h3 className="mb-2 text-lg font-semibold text-foreground">
               {searchQuery ? "Nenhuma nota encontrada" : "Nenhuma nota registrada"}
             </h3>
-            <p className="text-muted-foreground mb-4">
+            <p className="mb-4 text-muted-foreground">
               {searchQuery
                 ? "Tente ajustar sua busca"
                 : "Adicione sua primeira nota fiscal para começar"}
             </p>
             {!searchQuery && (
-              <Button onClick={() => setIsUploadModalOpen(true)}>
+              <Button onClick={() => { setIsUploadModalOpen(true); }}>
                 Adicionar Nota
               </Button>
             )}
@@ -337,7 +340,7 @@ export default function InvoicesPage() {
       {/* Upload Modal */}
       <UploadModal
         isOpen={isUploadModalOpen}
-        onClose={() => setIsUploadModalOpen(false)}
+        onClose={() => { setIsUploadModalOpen(false); }}
         onUploadXML={handleUploadXML}
         onUploadImages={handleUploadImages}
         onProcessQRCode={handleProcessQRCode}
@@ -348,7 +351,7 @@ export default function InvoicesPage() {
       {subscriptionError && (
         <UpgradeModal
           isOpen={true}
-          onClose={() => setSubscriptionError(null)}
+          onClose={() => { setSubscriptionError(null); }}
           limitType={subscriptionError.limitType}
           currentPlan={subscriptionError.currentPlan}
         />

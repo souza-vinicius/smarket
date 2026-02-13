@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
 import { adminApi } from "@/lib/admin-api";
 import type {
   AdminPayment,
@@ -45,8 +46,8 @@ export function useAdminPaymentsList(
       const queryParams = new URLSearchParams();
       queryParams.set("page", String(page));
       queryParams.set("per_page", String(perPage));
-      if (status) queryParams.set("status", status);
-      if (search) queryParams.set("search", search);
+      if (status) {queryParams.set("status", status);}
+      if (search) {queryParams.set("search", search);}
 
       const response = await adminApi.get<PaymentsListResponse>(
         `/payments?${queryParams.toString()}`
@@ -62,7 +63,7 @@ export function useAdminPaymentsList(
     perPage: data?.per_page || 20,
     pages: data?.pages || 0,
     isLoading,
-    error: error as Error | null,
+    error,
   };
 }
 
@@ -87,7 +88,7 @@ export function useAdminPaymentDetail(
   return {
     payment: data || null,
     isLoading,
-    error: error as Error | null,
+    error,
   };
 }
 
@@ -124,7 +125,7 @@ export function useRefundPayment(paymentId: string): UseRefundPaymentReturn {
     refundPayment: mutation.mutate,
     isPending: mutation.isPending,
     data: mutation.data || null,
-    error: mutation.error as Error | null,
+    error: mutation.error,
     isSuccess: mutation.isSuccess,
   };
 }

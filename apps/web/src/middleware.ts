@@ -13,12 +13,11 @@ import type { NextRequest } from "next/server";
 
 const WEBVIEW_PATTERNS = /\b(wv|WebView|Capacitor|; wv\))\b/i;
 
-export function middleware(request: NextRequest) {
+export function middleware(request: NextRequest): NextResponse {
   if (request.nextUrl.pathname.startsWith("/admin")) {
-    const ua = request.headers.get("user-agent") || "";
+    const ua = request.headers.get("user-agent") ?? "";
 
     if (WEBVIEW_PATTERNS.test(ua)) {
-      console.log("[Middleware] Blocked admin access from WebView:", ua);
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
   }

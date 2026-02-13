@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
 import { adminApi } from "@/lib/admin-api";
 import type {
   AdminSubscription,
@@ -45,9 +46,9 @@ export function useAdminSubscriptionsList(
       const queryParams = new URLSearchParams();
       queryParams.set("page", String(page));
       queryParams.set("per_page", String(perPage));
-      if (status) queryParams.set("status", status);
-      if (plan) queryParams.set("plan", plan);
-      if (search) queryParams.set("search", search);
+      if (status) {queryParams.set("status", status);}
+      if (plan) {queryParams.set("plan", plan);}
+      if (search) {queryParams.set("search", search);}
 
       const response = await adminApi.get<SubscriptionsListResponse>(
         `/subscriptions?${queryParams.toString()}`
@@ -63,7 +64,7 @@ export function useAdminSubscriptionsList(
     perPage: data?.per_page || 20,
     pages: data?.pages || 0,
     isLoading,
-    error: error as Error | null,
+    error,
   };
 }
 
@@ -90,7 +91,7 @@ export function useAdminSubscriptionDetail(
   return {
     subscription: data || null,
     isLoading,
-    error: error as Error | null,
+    error,
   };
 }
 
@@ -124,7 +125,7 @@ export function useCancelSubscription(
   return {
     cancelSubscription: mutation.mutate,
     isPending: mutation.isPending,
-    error: mutation.error as Error | null,
+    error: mutation.error,
     isSuccess: mutation.isSuccess,
   };
 }
@@ -160,7 +161,7 @@ export function useExtendTrial(subscriptionId: string): UseExtendTrialReturn {
   return {
     extendTrial: mutation.mutate,
     isPending: mutation.isPending,
-    error: mutation.error as Error | null,
+    error: mutation.error,
     isSuccess: mutation.isSuccess,
   };
 }
