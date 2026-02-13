@@ -77,13 +77,16 @@ jobs:
         working-directory: apps/web
 
       - name: Decode Signing Key
-        if: ${{ secrets.ANDROID_SIGNING_KEY != '' }}
         env:
           ANDROID_SIGNING_KEY: ${{ secrets.ANDROID_SIGNING_KEY }}
         run: |
-          mkdir -p android/keystore
-          echo "$ANDROID_SIGNING_KEY" | base64 -d > android/keystore/mercado-esperto-release.p12
-          ls -la android/keystore/
+          if [ -n "$ANDROID_SIGNING_KEY" ]; then
+            mkdir -p android/keystore
+            echo "$ANDROID_SIGNING_KEY" | base64 -d > android/keystore/mercado-esperto-release.p12
+            ls -la android/keystore/
+          else
+            echo "No signing key configured, skipping..."
+          fi
         working-directory: apps/web
 
       - name: Build Next.js for Capacitor
