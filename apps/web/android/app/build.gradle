@@ -3,23 +3,51 @@ apply plugin: 'com.android.application'
 android {
     namespace "com.mercadoesperto.app"
     compileSdk rootProject.ext.compileSdkVersion
+
     defaultConfig {
         applicationId "com.mercadoesperto.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
-        versionName "1.0"
+        versionName "1.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
-            ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+            ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini!*~'
         }
     }
+
+    signingConfigs {
+        release {
+            // CI/CD uses environment variables
+            // Store file should be in android/keystore/
+            def keystorePath = System.getenv("ANDROID_SIGNING_KEY_FILE") ?: "keystore/mercado-esperto-release.p12"
+            def keystorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: ""
+            def keyAlias = System.getenv("ANDROID_KEYSTORE_ALIAS") ?: "mercado-esperto"
+            def keyPassword = System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: keystorePassword
+
+            // Check if signing key exists
+            def keystoreFile = file(keystorePath)
+            if (keystoreFile.exists()) {
+                storeFile keystoreFile
+                storePassword keystorePassword
+                keyAlias keyAlias
+                keyPassword keyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
+            // Only enable minify if ProGuard rules are properly configured
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            
+            // Use signing config if available
+            if (System.getenv("ANDROID_KEYSTORE_PASSWORD")) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 }

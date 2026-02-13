@@ -1,0 +1,242 @@
+# GitHub Actions Workflow - Android Build & Deploy
+# Publishes Mercado Esperto app to Google Play Store
+#
+# Required Secrets:
+#   ANDROID_SIGNING_KEY: Base64 encoded keystore (.p12 file)
+#   ANDROID_KEYSTORE_PASSWORD: Password for the keystore
+#   ANDROID_KEYSTORE_ALIAS: Key alias (default: mercado-esperto)
+#   GOOGLE_PLAY_SERVICE_ACCOUNT: JSON credentials for Google Play API
+#
+# Required Variables:
+#   NEXT_PUBLIC_API_URL: Production API URL
+
+name: Android Build & Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+      upload_to_play_store:
+        description: 'Upload to Google Play Store'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+      version_name:
+        description: 'Version name (e.g., 1.0.0)'
+        required: false
+        default: ''
+
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/web/**'
+      - '.github/workflows/android-deploy.yml'
+    tags:
+      - 'android/**'
+
+env:
+  NODE_VERSION: '20'
+  JAVA_VERSION: '17'
+
+jobs:
+  build-android:
+    name: Build Android APK/AAB
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Install Dependencies
+        run: npm ci
+        working-directory: apps/web
+
+      - name: Decode Signing Key
+        if: env.ANDROID_SIGNING_KEY != ''
+        run: |
+          echo "$ANDROID_SIGNING_KEY" | base64 -d > android/keystore/mercado-esperto-release.p12
+          ls -la android/keystore/
+        working-directory: apps/web
+
+      - name: Build Next.js for Capacitor
+        env:
+          NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL || 'https://smarket-api.n8nvinicius.cloud' }}
+          NODE_ENV: production
+          BUILD_TARGET: capacitor
+        run: npm run build
+        working-directory: apps/web
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+        working-directory: apps/web
+
+      - name: Update Version
+        if: github.event.inputs.version_name != ''
+        run: |
+          # Update version in build.gradle
+          sed -i 's/versionName ".*"/versionName "${{ github.event.inputs.version_name }}"/' android/app/build.gradle
+          
+          # Update versionCode (increment from current)
+          CURRENT_VERSION_CODE=$(grep -oP 'versionCode \K\d+' android/app/build.gradle)
+          NEW_VERSION_CODE=$((CURRENT_VERSION_CODE + 1))
+          sed -i "s/versionCode [0-9]*/versionCode $NEW_VERSION_CODE/" android/app/build.gradle
+          
+          cat android/app/build.gradle | grep -E "version(Code|Name)"
+        working-directory: apps/web
+
+      - name: Build Android Release APK
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEYSTORE_ALIAS: ${{ secrets.ANDROID_KEYSTORE_ALIAS || 'mercado-esperto' }}
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+        working-directory: apps/web
+
+      - name: Build Android AAB (App Bundle)
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEYSTORE_ALIAS: ${{ secrets.ANDROID_KEYSTORE_ALIAS || 'mercado-esperto' }}
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew bundleRelease --no-daemon
+        working-directory: apps/web
+
+      - name: List Build Outputs
+        run: |
+          echo "=== APK Files ==="
+          find apps/web/android -name "*.apk" -type f
+          echo ""
+          echo "=== AAB Files ==="
+          find apps/web/android -name "*.aab" -type f
+        working-directory: .
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mercado-esperto-apk
+          path: apps/web/android/app/build/outputs/apk/release/*.apk
+          retention-days: 30
+
+      - name: Upload AAB Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mercado-esperto-aab
+          path: apps/web/android/app/build/outputs/bundle/release/*.aab
+          retention-days: 30
+
+      - name: Upload to Google Play Store
+        if: github.event.inputs.upload_to_play_store == 'true' || github.event_name == 'push'
+        uses: r0adkll/upload-google-play@v1
+        with:
+          service-account-json: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT }}
+          package-name: com.mercadoesperto.app
+          release-files: apps/web/android/app/build/outputs/bundle/release/*.aab
+          track: ${{ github.event.inputs.environment || 'production' }}
+          whats-new-directory: |
+            "## Novo na versão
+            
+            - Melhorias na análise de notas fiscais
+            - Correções de bugs
+            - Performance aprimorada"
+        continue-on-error: true
+
+      - name: Create GitHub Release
+        if: github.event.inputs.upload_to_play_store == 'true' || github.event_name == 'push'
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: android/${{ github.event.inputs.version_name || 'latest' }}
+          release_name: Android Release ${{ github.event.inputs.version_name || 'latest' }}
+          draft: true
+        continue-on-error: true
+
+      - name: Upload Release Assets
+        if: github.event.inputs.upload_to_play_store == 'true' || github.event_name == 'push'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: apps/web/android/app/build/outputs/apk/release/*.apk
+          asset_name: mercado-esperto-release.apk
+          asset_content_type: application/vnd.android.package-archive
+        continue-on-error: true
+
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci
+        working-directory: apps/web
+
+      - name: Run ESLint
+        run: npm run lint
+        working-directory: apps/web
+
+      - name: Run Type Check
+        run: npm run type-check
+        working-directory: apps/web
+
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci
+        working-directory: apps/web
+
+      - name: Run Tests
+        run: npm test --if-present
+        working-directory: apps/web

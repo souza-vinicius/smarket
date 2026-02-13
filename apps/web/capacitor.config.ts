@@ -20,6 +20,19 @@ const config: CapacitorConfig = {
       resizeOnFullScreen: true,
     },
   },
+  // Signing configuration for Google Play Store
+  // In CI/CD, use environment variables:
+  // - ANDROID_SIGNING_KEY (base64 encoded keystore)
+  // - ANDROID_KEYSTORE_PASSWORD
+  // - ANDROID_KEYSTORE_ALIAS
+  android: {
+    signingKey: {
+      storeFile: process.env.ANDROID_SIGNING_KEY_FILE || 'android/keystore/mercado-esperto-release.p12',
+      storePassword: process.env.ANDROID_KEYSTORE_PASSWORD || '',
+      keyAlias: process.env.ANDROID_KEYSTORE_ALIAS || 'mercado-esperto',
+      keyPassword: process.env.ANDROID_KEYSTORE_PASSWORD || '',
+    },
+  },
 };
 
 export default config;
