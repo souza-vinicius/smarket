@@ -1,15 +1,20 @@
 """Subscription management endpoints."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.config import settings
 from src.database import get_db
 from src.dependencies import get_current_user
 from src.models.payment import Payment
-from src.models.subscription import Subscription
+from src.models.subscription import (
+    Subscription,
+    SubscriptionPlan,
+    SubscriptionStatus,
+)
 from src.models.usage_record import UsageRecord
 from src.models.user import User
 from src.models.coupon import Coupon
@@ -27,23 +32,48 @@ from src.utils.logger import logger
 router = APIRouter(prefix="/subscriptions", tags=["subscriptions"])
 
 
+async def ensure_subscription(
+    user: User, db: AsyncSession
+) -> Subscription:
+    """Return the user's subscription, creating a FREE one if missing.
+
+    Users created before the subscription system was added may not have a
+    Subscription row.  Instead of returning 404, we auto-provision a FREE
+    plan with an already-expired trial so they can proceed to checkout.
+    """
+    result = await db.execute(
+        select(Subscription).where(Subscription.user_id == user.id)
+    )
+    subscription = result.scalar_one_or_none()
+
+    if subscription is None:
+        logger.info(
+            "auto_creating_subscription",
+            user_id=str(user.id),
+            email=user.email,
+        )
+        now = datetime.utcnow()
+        subscription = Subscription(
+            user_id=user.id,
+            plan=SubscriptionPlan.FREE.value,
+            status=SubscriptionStatus.EXPIRED.value,
+            trial_start=now,
+            trial_end=now,  # already expired
+        )
+        db.add(subscription)
+        await db.commit()
+        await db.refresh(subscription)
+
+    return subscription
+
+
 @router.get("/", response_model=dict)
 async def get_subscription_and_usage(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Get user's subscription and current month usage."""
-    # Get subscription
-    result = await db.execute(
-        select(Subscription).where(Subscription.user_id == current_user.id)
-    )
-    subscription = result.scalar_one_or_none()
-
-    if not subscription:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Nenhuma assinatura encontrada.",
-        )
+    subscription = await ensure_subscription(current_user, db)
 
     # Get current month usage
     now = datetime.utcnow()
@@ -78,17 +108,7 @@ async def create_checkout_session(
     db: AsyncSession = Depends(get_db),
 ):
     """Create Stripe Checkout session for subscription upgrade."""
-    # Get user's subscription
-    result = await db.execute(
-        select(Subscription).where(Subscription.user_id == current_user.id)
-    )
-    subscription = result.scalar_one_or_none()
-
-    if not subscription:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Nenhuma assinatura encontrada.",
-        )
+    subscription = await ensure_subscription(current_user, db)
 
     discounts = []
     if request.coupon_code:
@@ -135,13 +155,9 @@ async def create_portal_session(
     db: AsyncSession = Depends(get_db),
 ):
     """Create Stripe Customer Portal session."""
-    # Get user's subscription
-    result = await db.execute(
-        select(Subscription).where(Subscription.user_id == current_user.id)
-    )
-    subscription = result.scalar_one_or_none()
+    subscription = await ensure_subscription(current_user, db)
 
-    if not subscription or not subscription.stripe_customer_id:
+    if not subscription.stripe_customer_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Nenhum cliente Stripe vinculado.",
@@ -161,13 +177,9 @@ async def cancel_subscription(
     db: AsyncSession = Depends(get_db),
 ):
     """Cancel subscription at period end."""
-    # Get user's subscription
-    result = await db.execute(
-        select(Subscription).where(Subscription.user_id == current_user.id)
-    )
-    subscription = result.scalar_one_or_none()
+    subscription = await ensure_subscription(current_user, db)
 
-    if not subscription or not subscription.stripe_subscription_id:
+    if not subscription.stripe_subscription_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Nenhuma assinatura ativa encontrada.",
@@ -187,14 +199,7 @@ async def list_payments(
     db: AsyncSession = Depends(get_db),
 ):
     """List payment history."""
-    # Get user's subscription
-    sub_result = await db.execute(
-        select(Subscription).where(Subscription.user_id == current_user.id)
-    )
-    subscription = sub_result.scalar_one_or_none()
-
-    if not subscription:
-        return []
+    subscription = await ensure_subscription(current_user, db)
 
     # Get payments
     payments_result = await db.execute(
