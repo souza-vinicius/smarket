@@ -1,0 +1,159 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-mercadoesperto}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mercadoesperto_password}
+      POSTGRES_DB: ${POSTGRES_DB:-mercadoesperto}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mercadoesperto}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
+  # FastAPI Backend
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    environment:
+      PYTHONUNBUFFERED: 1
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://mercadoesperto:mercadoesperto_password@postgres:5432/mercadoesperto}
+      DB_ECHO: ${DB_ECHO:-false}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      SECRET_KEY: ${SECRET_KEY:-your-secret-key-change-in-production}
+      ALGORITHM: ${ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS:-7}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.0-flash}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-3-5-sonnet-20241022}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-google/gemini-2.0-flash-001}
+      OPENROUTER_MODEL_LITE: ${OPENROUTER_MODEL_LITE:-google/gemini-2.0-flash-lite-preview-02-05}
+      OPENROUTER_MODEL_FULL: ${OPENROUTER_MODEL_FULL:-google/gemini-2.0-flash-thinking-exp-01-21}
+      OPENROUTER_BASE_URL: ${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
+      SEFAZ_API_URL: ${SEFAZ_API_URL:-https://www.nfce.fazenda.sp.gov.br/NFCeConsultaPublica}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://${WEB_DOMAIN}}
+      UPLOAD_DIR: ${UPLOAD_DIR:-uploads}
+      DEBUG: ${DEBUG:-false}
+      APP_NAME: ${APP_NAME:-Mercado Esperto API}
+      ENABLE_CNPJ_FEATURES: ${ENABLE_CNPJ_FEATURES:-true}
+      ENABLE_CNPJ_VALIDATION: ${ENABLE_CNPJ_VALIDATION:-true}
+      ENABLE_CNPJ_ENRICHMENT: ${ENABLE_CNPJ_ENRICHMENT:-true}
+      UVICORN_WORKERS: ${UVICORN_WORKERS:-2}
+      IMAGE_OPTIMIZATION_ENABLED: ${IMAGE_OPTIMIZATION_ENABLED:-true}
+      # AI Analysis flags
+      ENABLE_AI_ANALYSIS: ${ENABLE_AI_ANALYSIS:-true}
+      # Subscription System
+      ENABLE_SUBSCRIPTION_SYSTEM: ${ENABLE_SUBSCRIPTION_SYSTEM:-false}
+      TRIAL_DURATION_DAYS: ${TRIAL_DURATION_DAYS:-30}
+      # Stripe Payment Integration
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_BASIC_MONTHLY_PRICE_ID: ${STRIPE_BASIC_MONTHLY_PRICE_ID:-}
+      STRIPE_BASIC_YEARLY_PRICE_ID: ${STRIPE_BASIC_YEARLY_PRICE_ID:-}
+      STRIPE_PREMIUM_MONTHLY_PRICE_ID: ${STRIPE_PREMIUM_MONTHLY_PRICE_ID:-}
+      STRIPE_PREMIUM_YEARLY_PRICE_ID: ${STRIPE_PREMIUM_YEARLY_PRICE_ID:-}
+      # Admin Bootstrap
+      ADMIN_BOOTSTRAP_EMAIL: ${ADMIN_BOOTSTRAP_EMAIL:-}
+      ADMIN_BOOTSTRAP_ROLE: ${ADMIN_BOOTSTRAP_ROLE:-super_admin}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - api_uploads:/app/uploads
+    networks:
+      - internal
+      - dokploy-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.smarket-api.rule=Host(`${API_DOMAIN}`)"
+      - "traefik.http.routers.smarket-api.entrypoints=websecure"
+      - "traefik.http.routers.smarket-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.smarket-api.loadbalancer.server.port=8000"
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 2560M
+        reservations:
+          memory: 1G
+
+  # Next.js Frontend
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://${API_DOMAIN}}
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - internal
+      - dokploy-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.smarket-web.rule=Host(`${WEB_DOMAIN}`)"
+      - "traefik.http.routers.smarket-web.entrypoints=websecure"
+      - "traefik.http.routers.smarket-web.tls.certresolver=letsencrypt"
+      - "traefik.http.services.smarket-web.loadbalancer.server.port=3000"
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+
+volumes:
+  postgres_data:
+  redis_data:
+  api_uploads:
+
+networks:
+  internal:
+    driver: bridge
+  dokploy-network:
+    external: true
