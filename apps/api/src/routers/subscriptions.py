@@ -35,11 +35,12 @@ router = APIRouter(prefix="/subscriptions", tags=["subscriptions"])
 async def ensure_subscription(
     user: User, db: AsyncSession
 ) -> Subscription:
-    """Return the user's subscription, creating a FREE one if missing.
+    """Return the user's subscription, creating one if missing.
 
     Users created before the subscription system was added may not have a
-    Subscription row.  Instead of returning 404, we auto-provision a FREE
-    plan with an already-expired trial so they can proceed to checkout.
+    Subscription row.  Instead of returning 404, we auto-provision:
+    - TRIAL subscription if user registered within TRIAL_DURATION_DAYS
+    - EXPIRED/FREE subscription if trial period has already passed
     """
     result = await db.execute(
         select(Subscription).where(Subscription.user_id == user.id)
@@ -47,18 +48,30 @@ async def ensure_subscription(
     subscription = result.scalar_one_or_none()
 
     if subscription is None:
+        now = datetime.utcnow()
+        trial_end = user.created_at + timedelta(days=settings.TRIAL_DURATION_DAYS)
+        still_in_trial = now < trial_end
+
+        if still_in_trial:
+            sub_status = SubscriptionStatus.TRIAL.value
+            trial_start = user.created_at
+        else:
+            sub_status = SubscriptionStatus.EXPIRED.value
+            trial_start = now
+            trial_end = now  # already expired
+
         logger.info(
             "auto_creating_subscription",
             user_id=str(user.id),
             email=user.email,
+            status=sub_status,
         )
-        now = datetime.utcnow()
         subscription = Subscription(
             user_id=user.id,
             plan=SubscriptionPlan.FREE.value,
-            status=SubscriptionStatus.EXPIRED.value,
-            trial_start=now,
-            trial_end=now,  # already expired
+            status=sub_status,
+            trial_start=trial_start,
+            trial_end=trial_end,
         )
         db.add(subscription)
         await db.commit()

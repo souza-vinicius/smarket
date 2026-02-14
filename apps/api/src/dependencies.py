@@ -185,13 +185,22 @@ async def check_analysis_limit(
 async def _get_active_subscription(user_id: uuid.UUID, db: AsyncSession):
     """Get subscription with limit enforcement.
 
+    Auto-creates a subscription if missing (TRIAL if user is new enough,
+    otherwise EXPIRED/FREE).
     Free-tier users (expired trial) are allowed through so that
     the caller can enforce per-plan limits (1 invoice/month, 2 analyses/month).
     Only paid plans that become inactive are blocked with 402.
     """
+    from datetime import timedelta
+
     from sqlalchemy import select
 
-    from src.models.subscription import Subscription
+    from src.config import settings
+    from src.models.subscription import (
+        Subscription,
+        SubscriptionPlan,
+        SubscriptionStatus,
+    )
 
     result = await db.execute(
         select(Subscription).where(Subscription.user_id == user_id)
@@ -199,11 +208,40 @@ async def _get_active_subscription(user_id: uuid.UUID, db: AsyncSession):
     sub = result.scalar_one_or_none()
 
     if not sub:
-        raise HTTPException(
-            status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail="Nenhuma assinatura encontrada. Contate o suporte.",
-            headers={"X-Subscription-Error": "no_subscription"},
+        # Auto-create subscription for users who don't have one
+        from datetime import datetime
+
+        user_result = await db.execute(select(User).where(User.id == user_id))
+        user = user_result.scalar_one_or_none()
+
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail="Nenhuma assinatura encontrada. Contate o suporte.",
+                headers={"X-Subscription-Error": "no_subscription"},
+            )
+
+        now = datetime.utcnow()
+        trial_end = user.created_at + timedelta(days=settings.TRIAL_DURATION_DAYS)
+        still_in_trial = now < trial_end
+
+        if still_in_trial:
+            sub_status = SubscriptionStatus.TRIAL.value
+            trial_start = user.created_at
+        else:
+            sub_status = SubscriptionStatus.EXPIRED.value
+            trial_start = now
+            trial_end = now
+
+        sub = Subscription(
+            user_id=user_id,
+            plan=SubscriptionPlan.FREE.value,
+            status=sub_status,
+            trial_start=trial_start,
+            trial_end=trial_end,
         )
+        db.add(sub)
+        await db.flush()
 
     if not sub.is_active:
         # Free plan with expired trial: allow through (limits enforced by caller)

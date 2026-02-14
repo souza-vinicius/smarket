@@ -19,7 +19,35 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    """Create FREE/expired subscriptions for users that don't have one."""
+    """Create subscriptions for users that don't have one.
+
+    Users still within trial period (registered < 30 days ago) get TRIAL status
+    with proper trial dates. Older users get EXPIRED/FREE status.
+    """
+    # Users still within trial period → TRIAL subscription
+    op.execute(
+        """
+        INSERT INTO subscriptions (
+            id, user_id, plan, status,
+            trial_start, trial_end,
+            created_at, updated_at
+        )
+        SELECT
+            gen_random_uuid(),
+            u.id,
+            'free',
+            'trial',
+            u.created_at,
+            u.created_at + INTERVAL '30 days',
+            NOW(),
+            NOW()
+        FROM users u
+        LEFT JOIN subscriptions s ON s.user_id = u.id
+        WHERE s.id IS NULL
+          AND u.created_at > NOW() - INTERVAL '30 days'
+        """
+    )
+    # Users past trial period → EXPIRED/FREE subscription
     op.execute(
         """
         INSERT INTO subscriptions (
@@ -39,6 +67,7 @@ def upgrade() -> None:
         FROM users u
         LEFT JOIN subscriptions s ON s.user_id = u.id
         WHERE s.id IS NULL
+          AND u.created_at <= NOW() - INTERVAL '30 days'
         """
     )
 
