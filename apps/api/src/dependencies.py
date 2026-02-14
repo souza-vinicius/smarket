@@ -221,13 +221,16 @@ async def _get_active_subscription(user_id: uuid.UUID, db: AsyncSession):
                 headers={"X-Subscription-Error": "no_subscription"},
             )
 
-        now = datetime.utcnow()
-        trial_end = user.created_at + timedelta(days=settings.TRIAL_DURATION_DAYS)
+        from src.utils.datetime_utils import ensure_naive, utcnow
+
+        now = utcnow()
+        created_at = ensure_naive(user.created_at)
+        trial_end = created_at + timedelta(days=settings.TRIAL_DURATION_DAYS)
         still_in_trial = now < trial_end
 
         if still_in_trial:
             sub_status = SubscriptionStatus.TRIAL.value
-            trial_start = user.created_at
+            trial_start = created_at
         else:
             sub_status = SubscriptionStatus.EXPIRED.value
             trial_start = now

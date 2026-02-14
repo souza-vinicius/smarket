@@ -116,11 +116,15 @@ class Subscription(Base):
     @property
     def is_active(self) -> bool:
         """Check if subscription is currently active."""
-        now = datetime.utcnow()
+        from src.utils.datetime_utils import ensure_naive, utcnow
+
+        now = utcnow()
         if self.status == SubscriptionStatus.TRIAL.value:
-            return now < self.trial_end
+            return now < ensure_naive(self.trial_end)
         if self.status == SubscriptionStatus.ACTIVE.value:
-            return self.current_period_end is None or now < self.current_period_end
+            return self.current_period_end is None or now < ensure_naive(
+                self.current_period_end
+            )
         if self.status == SubscriptionStatus.PAST_DUE.value:
             return True  # grace period - access maintained
         return False

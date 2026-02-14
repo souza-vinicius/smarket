@@ -236,7 +236,11 @@ State is fetched via TanStack React Query. The root layout wraps children in a `
 - **Duplicate detection**: Composite unique constraint `(access_key, user_id)`. Early check in background task shows warning banner (non-blocking).
 
 - **Date handling**: `dateutil.parser.parse(dayfirst=True)` in Pydantic validators. Supports DD/MM/YYYY (Brazilian), ISO 8601, and US formats.
-  - **⚠️ AsyncPG timezone mismatch**: DB columns are `TIMESTAMP WITHOUT TIME ZONE` (naive). AsyncPG rejects timezone-aware datetimes (`datetime.now(timezone.utc)`) with error `can't subtract offset-naive and offset-aware datetimes`. Always use `datetime.utcnow()` (naive) when storing/comparing timestamps. When reading from DB for comparisons, use `datetime.utcnow()` not `datetime.now(timezone.utc)`.
+  - **⚠️ CRITICAL — Datetime timezone handling**: Some DB columns use `DateTime(timezone=True)` (`TIMESTAMP WITH TIME ZONE`), so AsyncPG returns **timezone-aware** datetimes. But the codebase uses `datetime.utcnow()` which returns **naive** datetimes. Comparing the two causes `TypeError: can't compare offset-naive and offset-aware datetimes`. **Rules:**
+    1. **Always use `from src.utils.datetime_utils import utcnow, ensure_naive`** — never use `datetime.utcnow()` or `datetime.now(timezone.utc)` directly.
+    2. **Always wrap DB datetimes with `ensure_naive()`** before comparing or doing arithmetic — e.g. `ensure_naive(user.created_at) + timedelta(days=30)`.
+    3. **Never compare `datetime.utcnow()` with a model property** without `ensure_naive()` — AsyncPG may have returned an aware datetime.
+    4. Utility location: `src/utils/datetime_utils.py` (`utcnow()`, `ensure_naive()`).
 
 - **Database migrations**: 8 Alembic migrations in `apps/api/alembic/versions/`. Docker entrypoint runs `alembic upgrade head` before starting uvicorn.
 
