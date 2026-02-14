@@ -11,6 +11,10 @@ import {
   Package,
   Trash2,
   Edit,
+  Sparkles,
+  TrendingUp,
+  AlertTriangle,
+  Info,
 } from "lucide-react";
 
 import { CategoryDonutChart } from "@/components/invoices/category-donut-chart";
@@ -21,8 +25,49 @@ import { Card } from "@/components/ui/card";
 import { ConfirmModal } from "@/components/ui/modal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useInvoice, useDeleteInvoice } from "@/hooks/use-invoices";
+import { useInvoiceAnalyses } from "@/hooks/use-insights";
 import { dynamicRoute, useDynamicParam } from "@/lib/dynamic-params";
 import { formatCurrency, formatDate } from "@/lib/utils";
+
+const priorityConfig = {
+  critical: {
+    icon: AlertTriangle,
+    color: "bg-destructive-subtle text-destructive border-destructive/20",
+    label: "Crítico",
+  },
+  high: {
+    icon: TrendingUp,
+    color: "bg-warning-subtle text-warning border-warning/20",
+    label: "Alto",
+  },
+  medium: {
+    icon: Info,
+    color: "bg-info-subtle text-info border-info/20",
+    label: "Médio",
+  },
+  low: {
+    icon: Sparkles,
+    color: "bg-muted text-muted-foreground border-border",
+    label: "Baixo",
+  },
+};
+
+const typeConfig: Record<string, { label: string; color: string }> = {
+  price_alert: { label: "Alerta de Preço", color: "bg-destructive/10 text-destructive" },
+  category_insight: { label: "Categoria", color: "bg-primary/10 text-primary" },
+  merchant_pattern: { label: "Estabelecimento", color: "bg-accent/10 text-accent" },
+  summary: { label: "Resumo", color: "bg-muted text-muted-foreground" },
+  budget_health: { label: "Orçamento", color: "bg-destructive/10 text-destructive" },
+  per_capita_spending: { label: "Per Capita", color: "bg-info-subtle text-info" },
+  essential_ratio: { label: "Essenciais", color: "bg-warning-subtle text-warning" },
+  income_commitment: { label: "Renda", color: "bg-destructive/10 text-destructive" },
+  children_spending: { label: "Crianças", color: "bg-primary/10 text-primary" },
+  wholesale_opportunity: { label: "Atacado", color: "bg-accent/10 text-accent" },
+  shopping_frequency: { label: "Frequência", color: "bg-warning-subtle text-warning" },
+  seasonal_alert: { label: "Sazonalidade", color: "bg-info-subtle text-info" },
+  savings_potential: { label: "Economia", color: "bg-primary/10 text-primary" },
+  family_nutrition: { label: "Nutrição", color: "bg-accent/10 text-accent" },
+};
 
 function ProductItem({
   product,
@@ -82,6 +127,7 @@ export default function InvoiceDetailClient() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const { data: invoice, isLoading } = useInvoice(invoiceId);
+  const { data: analyses, isLoading: isLoadingAnalyses } = useInvoiceAnalyses(invoiceId);
   const deleteMutation = useDeleteInvoice();
 
   const handleDelete = () => {
@@ -278,6 +324,91 @@ export default function InvoiceDetailClient() {
             </div>
           )}
         </Card>
+      </section>
+
+      {/* Analyses Section */}
+      <section className="mt-6">
+        <h3 className="mb-4 font-semibold text-foreground">
+          Análises da Nota
+          {isLoadingAnalyses ? (
+            <span className="ml-2 text-sm font-normal text-muted-foreground">Carregando...</span>
+          ) : analyses && analyses.length > 0 ? (
+            <span className="ml-2 text-sm font-normal text-muted-foreground">
+              ({analyses.length})
+            </span>
+          ) : null}
+        </h3>
+
+        {isLoadingAnalyses ? (
+          <div className="space-y-3">
+            <Skeleton className="h-24" />
+            <Skeleton className="h-24" />
+          </div>
+        ) : analyses && analyses.length > 0 ? (
+          <div className="space-y-3">
+            {analyses.map((analysis) => {
+              const priority = priorityConfig[analysis.priority as keyof typeof priorityConfig] || priorityConfig.medium;
+              const Icon = priority.icon;
+              const typeStyle = typeConfig[analysis.type] || typeConfig.summary;
+
+              return (
+                <Card
+                  key={analysis.id}
+                  className={`relative ${!analysis.is_read ? "border-primary/30" : ""}`}
+                >
+                  {/* Unread indicator */}
+                  {!analysis.is_read && (
+                    <div className="absolute right-4 top-4 flex items-center gap-2">
+                      <span className="size-2 rounded-full bg-primary" />
+                    </div>
+                  )}
+
+                  <div className="flex items-start gap-4">
+                    {/* Priority Icon */}
+                    <div
+                      className={`flex size-12 flex-shrink-0 items-center justify-center rounded-xl border ${priority.color}`}
+                    >
+                      <Icon className="size-6" />
+                    </div>
+
+                    {/* Content */}
+                    <div className="min-w-0 flex-1 pr-8">
+                      <div className="mb-2 flex flex-wrap items-center gap-2">
+                        <Badge variant="outline" size="sm" className={typeStyle.color}>
+                          {typeStyle.label}
+                        </Badge>
+                        <Badge variant="outline" size="sm">
+                          {priority.label}
+                        </Badge>
+                      </div>
+
+                      <h4 className="mb-1 font-semibold text-foreground">{analysis.title}</h4>
+                      <p className="mb-3 text-sm text-muted-foreground">
+                        {analysis.description}
+                      </p>
+
+                      <span className="text-xs text-muted-foreground">
+                        {formatDate(analysis.created_at)}
+                      </span>
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        ) : (
+          <Card className="py-8 text-center">
+            <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-muted">
+              <Sparkles className="size-8 text-muted-foreground" />
+            </div>
+            <h4 className="mb-2 text-lg font-semibold text-foreground">
+              Nenhuma análise ainda
+            </h4>
+            <p className="mx-auto max-w-md text-muted-foreground">
+              As análises da IA aparecerão aqui após o processamento da nota fiscal.
+            </p>
+          </Card>
+        )}
       </section>
 
       {/* Delete Confirmation */}

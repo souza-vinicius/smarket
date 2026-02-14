@@ -77,6 +77,54 @@ async def list_analysis(
     return list(analyses)
 
 
+@router.get("/by-invoice/{invoice_id}", response_model=list[AnalysisResponse])
+async def list_analysis_by_invoice(
+    invoice_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List all analyses for a specific invoice."""
+    # Verify invoice belongs to user
+    invoice_result = await db.execute(
+        select(Invoice).where(
+            and_(Invoice.id == invoice_id, Invoice.user_id == current_user.id)
+        )
+    )
+    invoice = invoice_result.scalar_one_or_none()
+
+    if not invoice:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Invoice not found"
+        )
+
+    # Get analyses for this invoice
+    query = (
+        select(Analysis)
+        .where(
+            and_(
+                Analysis.invoice_id == invoice_id,
+                Analysis.user_id == current_user.id,
+                Analysis.dismissed_at.is_(None),
+            )
+        )
+        .order_by(
+            case(
+                (Analysis.priority == "critical", 1),
+                (Analysis.priority == "high", 2),
+                (Analysis.priority == "medium", 3),
+                (Analysis.priority == "low", 4),
+                else_=5,
+            ),
+            Analysis.created_at.desc(),
+        )
+    )
+
+    result = await db.execute(query)
+    analyses = result.scalars().all()
+
+    return list(analyses)
+
+
 @router.get("/{analysis_id}", response_model=AnalysisResponse)
 async def get_analysis(
     analysis_id: uuid.UUID,
