@@ -3,9 +3,13 @@ import sys
 import traceback
 import uuid
 
+import structlog
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
 from src.config import settings
 from src.exceptions import MercadoEspertoException, handle_exception
@@ -26,12 +30,35 @@ from src.routers import (
 from src.routers.admin import admin_router
 
 
-# Configurar logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout)],
-)
+# Configure structured logging (JSON format for production)
+if not settings.DEBUG:
+    # Production: JSON logging for easy parsing
+    structlog.configure(
+        processors=[
+            structlog.stdlib.add_log_level,
+            structlog.stdlib.add_logger_name,
+            structlog.processors.TimeStamper(fmt="iso"),
+            structlog.processors.StackInfoRenderer(),
+            structlog.processors.format_exc_info,
+            structlog.processors.JSONRenderer(),
+        ],
+        wrapper_class=structlog.stdlib.BoundLogger,
+        context_class=dict,
+        logger_factory=structlog.stdlib.LoggerFactory(),
+        cache_logger_on_first_use=True,
+    )
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(message)s",
+        handlers=[logging.StreamHandler(sys.stdout)],
+    )
+else:
+    # Development: Human-readable logs
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        handlers=[logging.StreamHandler(sys.stdout)],
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +70,13 @@ logging.getLogger("src.tasks.process_invoice_photos").setLevel(logging.DEBUG)
 
 # Log CORS origins at startup so we can verify on the server
 logger.info("CORS allowed origins: %s", settings.allowed_origins_list)
+
+# Initialize rate limiter (only if enabled)
+limiter = Limiter(
+    key_func=get_remote_address,
+    storage_uri=settings.REDIS_URL,
+    enabled=settings.RATE_LIMIT_ENABLED,
+)
 
 # API documentation tags metadata
 tags_metadata = [
@@ -193,6 +227,10 @@ Endpoints em `/api/v1/admin/*` são restritos a usuários com role administrativ
     },
 )
 
+# Attach rate limiter to app state
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 
 @app.on_event("startup")
 async def bootstrap_admin():
@@ -224,6 +262,25 @@ async def bootstrap_admin():
                 "ADMIN_BOOTSTRAP_EMAIL configured but user not found: %s",
                 settings.ADMIN_BOOTSTRAP_EMAIL,
             )
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Gracefully close database and Redis connections on shutdown."""
+    logger.info("Shutting down gracefully...")
+
+    # Dispose database engine (close all connections in pool)
+    from src.database import engine
+    await engine.dispose()
+    logger.info("Database connections closed")
+
+    # Close Redis connection if exists
+    from src.services.cached_prompts import prompt_cache
+    if prompt_cache.redis_client:
+        await prompt_cache.redis_client.close()
+        logger.info("Redis connection closed")
+
+    logger.info("Shutdown complete")
 
 
 def _cors_headers(request: Request) -> dict[str, str]:
@@ -304,7 +361,36 @@ app.include_router(admin_router, prefix="/api/v1")
 
 @app.get("/health")
 async def health_check():
-    return {"status": "ok", "version": "1.0.0"}
+    """Enhanced health check with database and Redis verification."""
+    from sqlalchemy import text
+    import redis.asyncio as redis_async
+
+    checks = {"api": "ok", "version": "1.0.0"}
+
+    # Database check
+    try:
+        from src.database import AsyncSessionLocal
+
+        async with AsyncSessionLocal() as db:
+            await db.execute(text("SELECT 1"))
+        checks["database"] = "ok"
+    except Exception as e:
+        logger.error(f"Database health check failed: {e}")
+        checks["database"] = f"error: {str(e)[:100]}"
+
+    # Redis check
+    try:
+        r = redis_async.from_url(settings.REDIS_URL)
+        await r.ping()
+        await r.close()
+        checks["redis"] = "ok"
+    except Exception as e:
+        logger.error(f"Redis health check failed: {e}")
+        checks["redis"] = f"error: {str(e)[:100]}"
+
+    # Overall status
+    status = "ok" if all(v == "ok" for k, v in checks.items() if k not in ["version"]) else "degraded"
+    return {"status": status, **checks}
 
 
 @app.get("/features")

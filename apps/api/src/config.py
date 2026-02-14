@@ -41,6 +41,12 @@ class Settings(BaseSettings):
     # Redis
     REDIS_URL: str = "redis://redis:6379/0"
 
+    # Database Connection Pool (Production optimization)
+    DB_POOL_SIZE: int = 10  # Connections per worker (2 workers × 10 = 20 base)
+    DB_MAX_OVERFLOW: int = 5  # Extra connections under load (total max: 25)
+    DB_POOL_RECYCLE: int = 1800  # Recycle connections after 30 minutes
+    DB_POOL_TIMEOUT: int = 30  # Timeout for getting connection from pool (seconds)
+
     # Sefaz
     SEFAZ_API_URL: str = "https://www.nfce.fazenda.sp.gov.br/NFCeConsultaPublica"
 
@@ -54,6 +60,15 @@ class Settings(BaseSettings):
     IMAGE_OPTIMIZATION_ENABLED: bool = True
     IMAGE_MAX_DIMENSION: int = 1536  # Max dimension for longest side
     IMAGE_JPEG_QUALITY: int = 90  # JPEG quality (1-100)
+
+    # LLM Cache (Production optimization)
+    LLM_CACHE_TTL: int = 86400  # Cache TTL in seconds (24 hours)
+
+    # Rate Limiting (Production optimization)
+    RATE_LIMIT_ENABLED: bool = True  # Master toggle for rate limiting
+
+    # LLM Resilience (Production optimization)
+    LLM_TIMEOUT_SECONDS: int = 60  # Timeout for LLM API calls (seconds)
 
     # AI Analysis - Master flag + individual flags per analysis type
     ENABLE_AI_ANALYSIS: bool = True

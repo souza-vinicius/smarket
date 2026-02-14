@@ -6,6 +6,20 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-mercadoesperto}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mercadoesperto_password}
       POSTGRES_DB: ${POSTGRES_DB:-mercadoesperto}
+    command: >
+      postgres
+      -c shared_buffers=512MB
+      -c effective_cache_size=1536MB
+      -c maintenance_work_mem=128MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c work_mem=2621kB
+      -c min_wal_size=1GB
+      -c max_wal_size=4GB
+      -c max_connections=50
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -16,6 +30,12 @@ services:
     networks:
       - internal
     restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
 
   # Redis Cache
   redis:
@@ -31,6 +51,12 @@ services:
     networks:
       - internal
     restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
 
   # FastAPI Backend
   api:
@@ -57,7 +83,7 @@ services:
       OPENROUTER_MODEL_FULL: ${OPENROUTER_MODEL_FULL:-google/gemini-2.0-flash-thinking-exp-01-21}
       OPENROUTER_BASE_URL: ${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
       SEFAZ_API_URL: ${SEFAZ_API_URL:-https://www.nfce.fazenda.sp.gov.br/NFCeConsultaPublica}
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:8000}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://${WEB_DOMAIN}}
       UPLOAD_DIR: ${UPLOAD_DIR:-uploads}
       DEBUG: ${DEBUG:-false}
       APP_NAME: ${APP_NAME:-Mercado Esperto API}
@@ -66,15 +92,15 @@ services:
       ENABLE_CNPJ_ENRICHMENT: ${ENABLE_CNPJ_ENRICHMENT:-true}
       UVICORN_WORKERS: ${UVICORN_WORKERS:-2}
       IMAGE_OPTIMIZATION_ENABLED: ${IMAGE_OPTIMIZATION_ENABLED:-true}
-      # Database Pool
+      # Database Pool (Production optimization)
       DB_POOL_SIZE: ${DB_POOL_SIZE:-10}
       DB_MAX_OVERFLOW: ${DB_MAX_OVERFLOW:-5}
       DB_POOL_RECYCLE: ${DB_POOL_RECYCLE:-1800}
       DB_POOL_TIMEOUT: ${DB_POOL_TIMEOUT:-30}
-      # LLM Cache & Resilience
+      # LLM Cache & Resilience (Production optimization)
       LLM_CACHE_TTL: ${LLM_CACHE_TTL:-86400}
       LLM_TIMEOUT_SECONDS: ${LLM_TIMEOUT_SECONDS:-60}
-      # Rate Limiting
+      # Rate Limiting (Production optimization)
       RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
       # AI Analysis flags
       ENABLE_AI_ANALYSIS: ${ENABLE_AI_ANALYSIS:-true}
@@ -103,18 +129,30 @@ services:
       - dokploy-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.smarket-api.rule=Host(`${API_DOMAIN:-smarket-api.n8nvinicius.cloud}`)"
+      - "traefik.http.routers.smarket-api.rule=Host(`${API_DOMAIN}`)"
       - "traefik.http.routers.smarket-api.entrypoints=websecure"
       - "traefik.http.routers.smarket-api.tls.certresolver=letsencrypt"
       - "traefik.http.services.smarket-api.loadbalancer.server.port=8000"
+      # Rate limiting (network-level protection)
+      - "traefik.http.middlewares.smarket-ratelimit.ratelimit.average=100"
+      - "traefik.http.middlewares.smarket-ratelimit.ratelimit.burst=50"
+      - "traefik.http.middlewares.smarket-ratelimit.ratelimit.period=1m"
+      - "traefik.http.routers.smarket-api.middlewares=smarket-ratelimit"
     restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 2560M
+        reservations:
+          memory: 1G
+
   # Next.js Frontend
   web:
     build:
       context: ./apps/web
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://${API_DOMAIN}}
     environment:
       NODE_ENV: production
       PORT: 3000
@@ -126,11 +164,17 @@ services:
       - dokploy-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.smarket-web.rule=Host(`${WEB_DOMAIN:-smarket.n8nvinicius.cloud}`)"
+      - "traefik.http.routers.smarket-web.rule=Host(`${WEB_DOMAIN}`)"
       - "traefik.http.routers.smarket-web.entrypoints=websecure"
       - "traefik.http.routers.smarket-web.tls.certresolver=letsencrypt"
       - "traefik.http.services.smarket-web.loadbalancer.server.port=3000"
     restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
 
 volumes:
   postgres_data:

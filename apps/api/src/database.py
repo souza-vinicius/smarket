@@ -11,6 +11,12 @@ engine = create_async_engine(
     echo=settings.DB_ECHO,
     future=True,
     poolclass=NullPool if settings.DEBUG else None,
+    # Production pool settings (ignored when NullPool is used in DEBUG mode)
+    pool_size=settings.DB_POOL_SIZE,  # Base connection pool size
+    max_overflow=settings.DB_MAX_OVERFLOW,  # Extra connections under load
+    pool_pre_ping=True,  # Verify connections before using (detect stale connections)
+    pool_recycle=settings.DB_POOL_RECYCLE,  # Recycle connections after N seconds
+    pool_timeout=settings.DB_POOL_TIMEOUT,  # Timeout when getting connection from pool
 )
 
 # Create async session factory
