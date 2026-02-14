@@ -24,6 +24,7 @@ export default function NewCouponPage() {
     max_uses_per_user: 1,
     min_purchase_amount: null,
     first_time_only: false,
+    duration_months: null,
     allow_reuse_after_cancel: false,
     is_stackable: false,
     applicable_plans: [],
@@ -107,8 +108,7 @@ export default function NewCouponPage() {
                 <input
                   type="text"
                   value={formData.code}
-                  onChange={(e) =>
-                    { setFormData({ ...formData, code: e.target.value.toUpperCase() }); }
+                  onChange={(e) => { setFormData({ ...formData, code: e.target.value.toUpperCase() }); }
                   }
                   className="w-full rounded-md border border-gray-300 px-3 py-2 font-mono"
                   placeholder="PROMO2026"
@@ -122,8 +122,7 @@ export default function NewCouponPage() {
                 <input
                   type="text"
                   value={formData.description || ""}
-                  onChange={(e) =>
-                    { setFormData({ ...formData, description: e.target.value }); }
+                  onChange={(e) => { setFormData({ ...formData, description: e.target.value }); }
                   }
                   className="w-full rounded-md border border-gray-300 px-3 py-2"
                   placeholder="Promoção de lançamento"
@@ -144,11 +143,12 @@ export default function NewCouponPage() {
                 </label>
                 <select
                   value={formData.discount_type}
-                  onChange={(e) =>
-                    { setFormData({
+                  onChange={(e) => {
+                    setFormData({
                       ...formData,
                       discount_type: e.target.value as CouponType,
-                    }); }
+                    });
+                  }
                   }
                   className="w-full rounded-md border border-gray-300 px-3 py-2"
                 >
@@ -166,11 +166,12 @@ export default function NewCouponPage() {
                   min="0"
                   max={formData.discount_type === "percentage" ? "100" : undefined}
                   value={formData.discount_value}
-                  onChange={(e) =>
-                    { setFormData({
+                  onChange={(e) => {
+                    setFormData({
                       ...formData,
                       discount_value: parseFloat(e.target.value) || 0,
-                    }); }
+                    });
+                  }
                   }
                   className="w-full rounded-md border border-gray-300 px-3 py-2"
                   required
@@ -193,11 +194,12 @@ export default function NewCouponPage() {
                   type="number"
                   min="1"
                   value={formData.max_uses || ""}
-                  onChange={(e) =>
-                    { setFormData({
+                  onChange={(e) => {
+                    setFormData({
                       ...formData,
                       max_uses: e.target.value ? parseInt(e.target.value) : null,
-                    }); }
+                    });
+                  }
                   }
                   className="w-full rounded-md border border-gray-300 px-3 py-2"
                   placeholder="Ilimitado"
@@ -211,11 +213,12 @@ export default function NewCouponPage() {
                   type="number"
                   min="1"
                   value={formData.max_uses_per_user}
-                  onChange={(e) =>
-                    { setFormData({
+                  onChange={(e) => {
+                    setFormData({
                       ...formData,
                       max_uses_per_user: parseInt(e.target.value) || 1,
-                    }); }
+                    });
+                  }
                   }
                   className="w-full rounded-md border border-gray-300 px-3 py-2"
                   required
@@ -230,13 +233,14 @@ export default function NewCouponPage() {
                   step="0.01"
                   min="0"
                   value={formData.min_purchase_amount || ""}
-                  onChange={(e) =>
-                    { setFormData({
+                  onChange={(e) => {
+                    setFormData({
                       ...formData,
                       min_purchase_amount: e.target.value
                         ? parseFloat(e.target.value)
                         : null,
-                    }); }
+                    });
+                  }
                   }
                   className="w-full rounded-md border border-gray-300 px-3 py-2"
                   placeholder="Sem mínimo"
@@ -258,8 +262,7 @@ export default function NewCouponPage() {
                 <input
                   type="date"
                   value={formData.valid_from}
-                  onChange={(e) =>
-                    { setFormData({ ...formData, valid_from: e.target.value }); }
+                  onChange={(e) => { setFormData({ ...formData, valid_from: e.target.value }); }
                   }
                   className="w-full rounded-md border border-gray-300 px-3 py-2"
                   required
@@ -272,15 +275,40 @@ export default function NewCouponPage() {
                 <input
                   type="date"
                   value={formData.valid_until || ""}
-                  onChange={(e) =>
-                    { setFormData({
+                  onChange={(e) => {
+                    setFormData({
                       ...formData,
                       valid_until: e.target.value || null,
-                    }); }
+                    });
+                  }
                   }
                   className="w-full rounded-md border border-gray-300 px-3 py-2"
                   placeholder="Sem data de expiração"
                 />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Duração do Desconto (Meses)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={formData.duration_months || ""}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      duration_months: e.target.value
+                        ? parseInt(e.target.value)
+                        : null,
+                    });
+                  }
+                  }
+                  className="w-full rounded-md border border-gray-300 px-3 py-2"
+                  placeholder="Vazio = Para sempre"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Deixe vazio para desconto vitalício na assinatura.
+                </p>
               </div>
             </div>
           </div>
@@ -295,11 +323,12 @@ export default function NewCouponPage() {
                 <input
                   type="checkbox"
                   checked={formData.first_time_only}
-                  onChange={(e) =>
-                    { setFormData({
+                  onChange={(e) => {
+                    setFormData({
                       ...formData,
                       first_time_only: e.target.checked,
-                    }); }
+                    });
+                  }
                   }
                   className="rounded border-gray-300"
                 />
@@ -311,11 +340,12 @@ export default function NewCouponPage() {
                 <input
                   type="checkbox"
                   checked={formData.is_stackable}
-                  onChange={(e) =>
-                    { setFormData({
+                  onChange={(e) => {
+                    setFormData({
                       ...formData,
                       is_stackable: e.target.checked,
-                    }); }
+                    });
+                  }
                   }
                   className="rounded border-gray-300"
                 />
@@ -327,11 +357,12 @@ export default function NewCouponPage() {
                 <input
                   type="checkbox"
                   checked={formData.allow_reuse_after_cancel}
-                  onChange={(e) =>
-                    { setFormData({
+                  onChange={(e) => {
+                    setFormData({
                       ...formData,
                       allow_reuse_after_cancel: e.target.checked,
-                    }); }
+                    });
+                  }
                   }
                   className="rounded border-gray-300"
                 />
@@ -343,11 +374,12 @@ export default function NewCouponPage() {
                 <input
                   type="checkbox"
                   checked={formData.is_active}
-                  onChange={(e) =>
-                    { setFormData({
+                  onChange={(e) => {
+                    setFormData({
                       ...formData,
                       is_active: e.target.checked,
-                    }); }
+                    });
+                  }
                   }
                   className="rounded border-gray-300"
                 />

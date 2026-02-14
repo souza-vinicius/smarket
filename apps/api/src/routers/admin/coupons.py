@@ -190,6 +190,7 @@ async def create_coupon(
         max_uses_per_user=data.max_uses_per_user,
         min_purchase_amount=data.min_purchase_amount,
         first_time_only=data.first_time_only,
+        duration_months=data.duration_months,
         allow_reuse_after_cancel=data.allow_reuse_after_cancel,
         is_stackable=data.is_stackable,
         applicable_plans=data.applicable_plans,
@@ -207,12 +208,17 @@ async def create_coupon(
 
     # Sync with Stripe
     try:
-        # Default to repeating for subscriptions (matches monthly/yearly cycles)
-        stripe_duration = "repeating"
+        # Determine duration
+        if data.duration_months:
+            stripe_duration = "repeating"
+            duration_in_months = data.duration_months
+        else:
+            stripe_duration = "forever"
+            duration_in_months = None
 
         stripe_coupon = await StripeService.create_coupon(
             duration=stripe_duration,
-            duration_in_months=None, # Forever repeating
+            duration_in_months=duration_in_months,
             name=f"{data.description} ({data.code})",
             percent_off=float(data.discount_value) if data.discount_type == "percentage" else None,
             amount_off=int(data.discount_value * 100) if data.discount_type == "fixed" else None,
