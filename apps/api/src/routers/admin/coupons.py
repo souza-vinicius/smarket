@@ -193,7 +193,7 @@ async def create_coupon(
         is_stackable=data.is_stackable,
         applicable_plans=data.applicable_plans,
         applicable_cycles=data.applicable_cycles,
-        applicable_cycles=data.applicable_cycles,
+
         valid_from=valid_from,
         valid_until=valid_until,
         is_active=data.is_active,
