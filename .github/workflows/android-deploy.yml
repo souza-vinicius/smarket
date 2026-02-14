@@ -35,6 +35,10 @@ on:
         description: 'Version name (e.g., 1.0.0)'
         required: false
         default: ''
+      version_code:
+        description: 'Version Code (optional, auto-increments if empty)'
+        required: false
+        default: ''
 
   push:
     branches:
@@ -102,15 +106,23 @@ jobs:
         working-directory: apps/web
 
       - name: Update Version
-        if: github.event.inputs.version_name != ''
+        if: github.event.inputs.version_name != '' || github.event.inputs.version_code != ''
         run: |
-          # Update version in build.gradle
-          sed -i 's/versionName ".*"/versionName "${{ github.event.inputs.version_name }}"/' android/app/build.gradle
+          # Update versionName if provided
+          if [ -n "${{ github.event.inputs.version_name }}" ]; then
+            sed -i 's/versionName ".*"/versionName "${{ github.event.inputs.version_name }}"/' android/app/build.gradle
+          fi
           
-          # Update versionCode (increment from current)
-          CURRENT_VERSION_CODE=$(grep -oP 'versionCode \K\d+' android/app/build.gradle)
-          NEW_VERSION_CODE=$((CURRENT_VERSION_CODE + 1))
-          sed -i "s/versionCode [0-9]*/versionCode $NEW_VERSION_CODE/" android/app/build.gradle
+          # Update versionCode
+          if [ -n "${{ github.event.inputs.version_code }}" ]; then
+            # Use explicit version code
+            sed -i "s/versionCode [0-9]*/versionCode ${{ github.event.inputs.version_code }}/" android/app/build.gradle
+          else
+            # Auto-increment if no code provided but update requested
+            CURRENT_VERSION_CODE=$(grep -oP 'versionCode \K\d+' android/app/build.gradle)
+            NEW_VERSION_CODE=$((CURRENT_VERSION_CODE + 1))
+            sed -i "s/versionCode [0-9]*/versionCode $NEW_VERSION_CODE/" android/app/build.gradle
+          fi
           
           cat android/app/build.gradle | grep -E "version(Code|Name)"
         working-directory: apps/web
