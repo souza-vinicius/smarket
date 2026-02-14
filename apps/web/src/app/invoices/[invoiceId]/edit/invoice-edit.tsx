@@ -23,6 +23,7 @@ import { useCNPJEnrichment, type CNPJEnrichmentError } from "@/hooks/use-cnpj-en
 import { useInvoice, useUpdateInvoice } from "@/hooks/use-invoices";
 import { CATEGORY_NAMES, getSubcategories } from "@/lib/category-options";
 import { formatCNPJInput, getCNPJErrorMessage } from "@/lib/cnpj";
+import { dynamicRoute, readDynamicParam } from "@/lib/dynamic-params";
 import { formatCurrency } from "@/lib/utils";
 import { type InvoiceItem, type InvoiceUpdateRequest } from "@/types";
 
@@ -41,13 +42,7 @@ export default function InvoiceEditClient() {
   const params = useParams();
   const router = useRouter();
 
-  // In static export, extract real ID from URL pathname
-  const invoiceId = (() => {
-    if (typeof window === 'undefined') {return params.invoiceId as string;}
-    const {pathname} = window.location;
-    const match = pathname.match(/^\/invoices\/([^/]+)/);
-    return match ? match[1] : params.invoiceId as string;
-  })();
+  const invoiceId = readDynamicParam(params.invoiceId as string);
 
   const { data: invoice, isLoading, error: fetchError } = useInvoice(invoiceId);
   const updateMutation = useUpdateInvoice();
@@ -256,7 +251,7 @@ export default function InvoiceEditClient() {
       await updateMutation.mutateAsync({ id: invoiceId, data: updateData });
       setSaveSuccess(true);
       setTimeout(() => {
-        router.push(`/invoices/${invoiceId}`);
+        router.push(dynamicRoute("/invoices", invoiceId));
       }, 800);
     } catch (err) {
       const axiosError = err as AxiosError<{ detail?: any }>;
@@ -266,7 +261,7 @@ export default function InvoiceEditClient() {
   };
 
   const handleCancel = () => {
-    router.push(`/invoices/${invoiceId}`);
+    router.push(dynamicRoute("/invoices", invoiceId));
   };
 
   if (isLoading) {

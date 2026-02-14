@@ -29,6 +29,7 @@ import {
   useUploadPhotos,
   useInvoices,
 } from "@/hooks/use-invoices";
+import { dynamicRoute } from "@/lib/dynamic-params";
 import { formatCurrency } from "@/lib/utils";
 
 // Insight Card Component
@@ -142,7 +143,7 @@ export default function DashboardPage() {
       onSuccess: (data) => {
         setIsUploadModalOpen(false);
         if (data.processing_id) {
-          router.push(`/invoices/review/${data.processing_id}`);
+          router.push(dynamicRoute("/invoices/review", data.processing_id));
         }
       },
       onError: handleSubscriptionError,
@@ -288,7 +289,7 @@ export default function DashboardPage() {
               <InvoiceCard
                 key={invoice.id}
                 invoice={invoice}
-                onClick={() => { router.push(`/invoices/${invoice.id}`); }}
+                onClick={() => { router.push(dynamicRoute("/invoices", invoice.id)); }}
               />
             ))}
           </div>

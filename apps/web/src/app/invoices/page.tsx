@@ -27,6 +27,7 @@ import {
   useDeleteProcessing,
 } from "@/hooks/use-invoices";
 import { useInvoicesSummary } from "@/hooks/use-invoices-summary";
+import { dynamicRoute } from "@/lib/dynamic-params";
 import { formatCurrency } from "@/lib/utils";
 
 // Pending Item - Mobile optimized
@@ -67,7 +68,7 @@ function PendingItem({
         {item.status === "extracted" && (
           <Button
             size="sm"
-            onClick={() => { router.push(`/invoices/review/${item.processing_id}`); }}
+            onClick={() => { router.push(dynamicRoute("/invoices/review", item.processing_id)); }}
           >
             Revisar
           </Button>
@@ -138,7 +139,7 @@ export default function InvoicesPage() {
       onSuccess: (data) => {
         setIsUploadModalOpen(false);
         if (data.processing_id) {
-          router.push(`/invoices/review/${data.processing_id}`);
+          router.push(dynamicRoute("/invoices/review", data.processing_id));
         }
       },
       onError: handleSubscriptionError,

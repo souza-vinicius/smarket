@@ -27,6 +27,7 @@ import {
 } from "@/hooks/use-invoices";
 import { CATEGORY_NAMES, getSubcategories } from "@/lib/category-options";
 import { formatCNPJInput, getCNPJErrorMessage } from "@/lib/cnpj";
+import { readDynamicParam } from "@/lib/dynamic-params";
 import { formatCurrency } from "@/lib/utils";
 import { type InvoiceItem } from "@/types";
 
@@ -42,13 +43,7 @@ export default function InvoiceReviewClient() {
   const params = useParams();
   const router = useRouter();
 
-  // In static export, extract real ID from URL pathname
-  const processingId = (() => {
-    if (typeof window === 'undefined') {return params.processingId as string;}
-    const {pathname} = window.location;
-    const match = pathname.match(/^\/invoices\/review\/([^/]+)/);
-    return match ? match[1] : params.processingId as string;
-  })();
+  const processingId = readDynamicParam(params.processingId as string);
 
   const { data: processingData, isLoading, error: fetchError } = useProcessingStatus(processingId);
   const confirmMutation = useConfirmInvoice();

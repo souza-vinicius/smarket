@@ -15,6 +15,7 @@ import { UpgradeModal } from "@/components/subscription/upgrade-modal";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useInvoices, useUploadXML, useProcessQRCode, useUploadPhotos } from "@/hooks/use-invoices";
+import { dynamicRoute } from "@/lib/dynamic-params";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 type UploadMode = "qrcode" | "xml" | "photo" | null;
@@ -62,7 +63,7 @@ export default function AddInvoicePage() {
       onSuccess: (data) => {
         setUploadMode(null);
         if (data.processing_id) {
-          router.push(`/invoices/review/${data.processing_id}`);
+          router.push(dynamicRoute("/invoices/review", data.processing_id));
         }
       },
       onError: (error: any) => {

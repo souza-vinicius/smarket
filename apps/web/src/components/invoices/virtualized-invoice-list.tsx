@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useVirtualizer } from "@tanstack/react-virtual";
 
 import { type VirtualItem } from "@/hooks/use-grouped-invoices";
+import { dynamicRoute } from "@/lib/dynamic-params";
 
 import { InvoiceCard } from "./invoice-card";
 import { MonthSeparator } from "./month-separator";
@@ -60,7 +61,7 @@ export function VirtualizedInvoiceList({ items }: VirtualizedInvoiceListProps) {
 
   const handleInvoiceClick = useCallback(
     (invoiceId: string) => {
-      router.push(`/invoices/${invoiceId}`);
+      router.push(dynamicRoute("/invoices", invoiceId));
     },
     [router]
   );
