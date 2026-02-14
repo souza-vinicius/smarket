@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+
 import { adminApi } from "@/lib/admin-api";
 import type {
   DashboardStats,
@@ -39,7 +40,7 @@ export function useAdminDashboardStats(): UseAdminDashboardStatsReturn {
   return {
     stats: data || null,
     isLoading,
-    error: error as Error | null,
+    error,
   };
 }
 
@@ -50,7 +51,7 @@ interface UseAdminRevenueChartReturn {
 }
 
 export function useAdminRevenueChart(
-  months: number = 12
+  months = 12
 ): UseAdminRevenueChartReturn {
   const { data, isLoading, error } = useQuery({
     queryKey: ADMIN_ANALYTICS_KEYS.revenue(months),
@@ -65,7 +66,7 @@ export function useAdminRevenueChart(
   return {
     data: data || [],
     isLoading,
-    error: error as Error | null,
+    error,
   };
 }
 
@@ -76,7 +77,7 @@ interface UseAdminGrowthChartReturn {
 }
 
 export function useAdminGrowthChart(
-  months: number = 12
+  months = 12
 ): UseAdminGrowthChartReturn {
   const { data, isLoading, error } = useQuery({
     queryKey: ADMIN_ANALYTICS_KEYS.growth(months),
@@ -91,7 +92,7 @@ export function useAdminGrowthChart(
   return {
     data: data || [],
     isLoading,
-    error: error as Error | null,
+    error,
   };
 }
 
@@ -115,7 +116,7 @@ export function useAdminOperationalMetrics(): UseAdminOperationalMetricsReturn {
   return {
     metrics: data || null,
     isLoading,
-    error: error as Error | null,
+    error,
   };
 }
 
@@ -140,7 +141,7 @@ export function useSystemHealth(): UseSystemHealthReturn {
   return {
     health: data || null,
     isLoading,
-    error: error as Error | null,
+    error,
     refetch,
   };
 }

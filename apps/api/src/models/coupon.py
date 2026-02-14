@@ -62,6 +62,8 @@ class Coupon(Base):
     min_purchase_amount: Mapped[Optional[Decimal]] = mapped_column(
         Numeric(10, 2), nullable=True
     )
+    # Duração do desconto (em meses) - None significa "Para sempre"
+    duration_months: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
     # Controle avançado
     first_time_only: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -80,6 +82,10 @@ class Coupon(Base):
 
     # Status
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    # Integração Stripe
+    stripe_coupon_id: Mapped[Optional[str]] = mapped_column(String(50), unique=True, nullable=True)
+    stripe_promo_code_id: Mapped[Optional[str]] = mapped_column(String(50), unique=True, nullable=True)
 
     # Metadados
     created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))

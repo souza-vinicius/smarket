@@ -1,11 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useCreateCoupon } from "@/hooks/use-admin-coupons";
-import { toast } from "sonner";
-import { ArrowLeft } from "lucide-react";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+
+import { ArrowLeft } from "lucide-react";
+import { toast } from "sonner";
+
+import { useCreateCoupon } from "@/hooks/use-admin-coupons";
 import type { CouponCreate, CouponType } from "@/types/admin";
 
 export default function NewCouponPage() {
@@ -21,6 +24,7 @@ export default function NewCouponPage() {
     max_uses_per_user: 1,
     min_purchase_amount: null,
     first_time_only: false,
+    duration_months: null,
     allow_reuse_after_cancel: false,
     is_stackable: false,
     applicable_plans: [],
@@ -78,51 +82,49 @@ export default function NewCouponPage() {
       <div className="mb-6">
         <Link
           href="/admin/coupons"
-          className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
+          className="mb-4 inline-flex items-center gap-2 text-gray-600 hover:text-gray-900"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="size-4" />
           Voltar para cupons
         </Link>
         <h1 className="text-2xl font-bold text-gray-900">Novo Cupom</h1>
-        <p className="text-gray-600 mt-1">
+        <p className="mt-1 text-gray-600">
           Criar um novo cupom de desconto
         </p>
       </div>
 
       <form onSubmit={handleSubmit}>
-        <div className="bg-white rounded-lg shadow p-6 space-y-6">
+        <div className="space-y-6 rounded-lg bg-white p-6 shadow">
           {/* Basic Info */}
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            <h2 className="mb-4 text-lg font-semibold text-gray-900">
               Informações Básicas
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="mb-1 block text-sm font-medium text-gray-700">
                   Código *
                 </label>
                 <input
                   type="text"
                   value={formData.code}
-                  onChange={(e) =>
-                    setFormData({ ...formData, code: e.target.value.toUpperCase() })
+                  onChange={(e) => { setFormData({ ...formData, code: e.target.value.toUpperCase() }); }
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md font-mono"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 font-mono"
                   placeholder="PROMO2026"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="mb-1 block text-sm font-medium text-gray-700">
                   Descrição
                 </label>
                 <input
                   type="text"
                   value={formData.description || ""}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
+                  onChange={(e) => { setFormData({ ...formData, description: e.target.value }); }
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2"
                   placeholder="Promoção de lançamento"
                 />
               </div>
@@ -131,30 +133,31 @@ export default function NewCouponPage() {
 
           {/* Discount */}
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            <h2 className="mb-4 text-lg font-semibold text-gray-900">
               Desconto
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="mb-1 block text-sm font-medium text-gray-700">
                   Tipo de Desconto *
                 </label>
                 <select
                   value={formData.discount_type}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setFormData({
                       ...formData,
                       discount_type: e.target.value as CouponType,
-                    })
+                    });
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  }
+                  className="w-full rounded-md border border-gray-300 px-3 py-2"
                 >
                   <option value="percentage">Percentual</option>
                   <option value="fixed">Valor Fixo (R$)</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="mb-1 block text-sm font-medium text-gray-700">
                   Valor *
                 </label>
                 <input
@@ -163,13 +166,14 @@ export default function NewCouponPage() {
                   min="0"
                   max={formData.discount_type === "percentage" ? "100" : undefined}
                   value={formData.discount_value}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setFormData({
                       ...formData,
                       discount_value: parseFloat(e.target.value) || 0,
-                    })
+                    });
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  }
+                  className="w-full rounded-md border border-gray-300 px-3 py-2"
                   required
                 />
               </div>
@@ -178,48 +182,50 @@ export default function NewCouponPage() {
 
           {/* Usage Limits */}
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            <h2 className="mb-4 text-lg font-semibold text-gray-900">
               Limites de Uso
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="mb-1 block text-sm font-medium text-gray-700">
                   Usos Totais
                 </label>
                 <input
                   type="number"
                   min="1"
                   value={formData.max_uses || ""}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setFormData({
                       ...formData,
                       max_uses: e.target.value ? parseInt(e.target.value) : null,
-                    })
+                    });
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  }
+                  className="w-full rounded-md border border-gray-300 px-3 py-2"
                   placeholder="Ilimitado"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="mb-1 block text-sm font-medium text-gray-700">
                   Usos por Usuário *
                 </label>
                 <input
                   type="number"
                   min="1"
                   value={formData.max_uses_per_user}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setFormData({
                       ...formData,
                       max_uses_per_user: parseInt(e.target.value) || 1,
-                    })
+                    });
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  }
+                  className="w-full rounded-md border border-gray-300 px-3 py-2"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="mb-1 block text-sm font-medium text-gray-700">
                   Compra Mínima (R$)
                 </label>
                 <input
@@ -227,15 +233,16 @@ export default function NewCouponPage() {
                   step="0.01"
                   min="0"
                   value={formData.min_purchase_amount || ""}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setFormData({
                       ...formData,
                       min_purchase_amount: e.target.value
                         ? parseFloat(e.target.value)
                         : null,
-                    })
+                    });
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  }
+                  className="w-full rounded-md border border-gray-300 px-3 py-2"
                   placeholder="Sem mínimo"
                 />
               </div>
@@ -244,47 +251,71 @@ export default function NewCouponPage() {
 
           {/* Validity */}
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            <h2 className="mb-4 text-lg font-semibold text-gray-900">
               Validade
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="mb-1 block text-sm font-medium text-gray-700">
                   Válido De *
                 </label>
                 <input
                   type="date"
                   value={formData.valid_from}
-                  onChange={(e) =>
-                    setFormData({ ...formData, valid_from: e.target.value })
+                  onChange={(e) => { setFormData({ ...formData, valid_from: e.target.value }); }
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="mb-1 block text-sm font-medium text-gray-700">
                   Válido Até
                 </label>
                 <input
                   type="date"
                   value={formData.valid_until || ""}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setFormData({
                       ...formData,
                       valid_until: e.target.value || null,
-                    })
+                    });
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  }
+                  className="w-full rounded-md border border-gray-300 px-3 py-2"
                   placeholder="Sem data de expiração"
                 />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Duração do Desconto (Meses)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={formData.duration_months || ""}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      duration_months: e.target.value
+                        ? parseInt(e.target.value)
+                        : null,
+                    });
+                  }
+                  }
+                  className="w-full rounded-md border border-gray-300 px-3 py-2"
+                  placeholder="Vazio = Para sempre"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Deixe vazio para desconto vitalício na assinatura.
+                </p>
               </div>
             </div>
           </div>
 
           {/* Advanced Options */}
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            <h2 className="mb-4 text-lg font-semibold text-gray-900">
               Opções Avançadas
             </h2>
             <div className="space-y-3">
@@ -292,11 +323,12 @@ export default function NewCouponPage() {
                 <input
                   type="checkbox"
                   checked={formData.first_time_only}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setFormData({
                       ...formData,
                       first_time_only: e.target.checked,
-                    })
+                    });
+                  }
                   }
                   className="rounded border-gray-300"
                 />
@@ -308,11 +340,12 @@ export default function NewCouponPage() {
                 <input
                   type="checkbox"
                   checked={formData.is_stackable}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setFormData({
                       ...formData,
                       is_stackable: e.target.checked,
-                    })
+                    });
+                  }
                   }
                   className="rounded border-gray-300"
                 />
@@ -324,11 +357,12 @@ export default function NewCouponPage() {
                 <input
                   type="checkbox"
                   checked={formData.allow_reuse_after_cancel}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setFormData({
                       ...formData,
                       allow_reuse_after_cancel: e.target.checked,
-                    })
+                    });
+                  }
                   }
                   className="rounded border-gray-300"
                 />
@@ -340,11 +374,12 @@ export default function NewCouponPage() {
                 <input
                   type="checkbox"
                   checked={formData.is_active}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setFormData({
                       ...formData,
                       is_active: e.target.checked,
-                    })
+                    });
+                  }
                   }
                   className="rounded border-gray-300"
                 />
@@ -354,17 +389,17 @@ export default function NewCouponPage() {
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end gap-3 pt-4 border-t">
+          <div className="flex justify-end gap-3 border-t pt-4">
             <Link
               href="/admin/coupons"
-              className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+              className="rounded-md border border-gray-300 px-4 py-2 hover:bg-gray-50"
             >
               Cancelar
             </Link>
             <button
               type="submit"
               disabled={createMutation.isPending}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+              className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
             >
               {createMutation.isPending ? "Criando..." : "Criar Cupom"}
             </button>

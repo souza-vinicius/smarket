@@ -1,15 +1,17 @@
 "use client";
 
 import { useEffect } from "react";
+
 import { useRouter } from "next/navigation";
+
 import { QueryClientProvider } from "@tanstack/react-query";
 
-import { queryClient } from "@/lib/query-client";
 import { isNative } from "@/lib/capacitor";
+import { queryClient } from "@/lib/query-client";
 
 function useNativeInit() {
   useEffect(() => {
-    if (!isNative()) return;
+    if (!isNative()) {return;}
 
     const init = async () => {
       const { StatusBar, Style } = await import("@capacitor/status-bar");
@@ -39,7 +41,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Only run on client side
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined") {return;}
 
     const handleUnauthorized = () => {
       queryClient.clear();

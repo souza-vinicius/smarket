@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+
 import { useRouter } from "next/navigation";
+
 import {
   DollarSign,
   FileText,
@@ -11,10 +13,13 @@ import {
   Receipt,
   ArrowRight,
 } from "lucide-react";
+
+import { InvoiceCard } from "@/components/invoices/invoice-card";
+import { UploadModal } from "@/components/invoices/upload-modal";
 import { PageLayout } from "@/components/layout/page-layout";
+import { UpgradeModal } from "@/components/subscription/upgrade-modal";
 import { Button } from "@/components/ui/button";
 import { Card, StatCard } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton, SkeletonCard } from "@/components/ui/skeleton";
 import { useDashboardSummary, useRecentInsights } from "@/hooks/use-dashboard";
 import { useMarkInsightAsRead } from "@/hooks/use-insights";
@@ -24,9 +29,7 @@ import {
   useUploadPhotos,
   useInvoices,
 } from "@/hooks/use-invoices";
-import { InvoiceCard } from "@/components/invoices/invoice-card";
-import { UploadModal } from "@/components/invoices/upload-modal";
-import { UpgradeModal } from "@/components/subscription/upgrade-modal";
+import { dynamicRoute } from "@/lib/dynamic-params";
 import { formatCurrency } from "@/lib/utils";
 
 // Insight Card Component
@@ -58,23 +61,23 @@ function InsightCard({
         }`}
     >
       {!insight.is_read && (
-        <span className="absolute top-4 right-4 w-2 h-2 rounded-full bg-primary" />
+        <span className="absolute right-4 top-4 size-2 rounded-full bg-primary" />
       )}
       <div className="flex items-start gap-4">
         <div
-          className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center border ${priorityColors[insight.priority as keyof typeof priorityColors] ||
+          className={`flex size-10 flex-shrink-0 items-center justify-center rounded-xl border ${priorityColors[insight.priority as keyof typeof priorityColors] ||
             priorityColors.low
             }`}
         >
-          <Sparkles className="w-5 h-5" />
+          <Sparkles className="size-5" />
         </div>
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="text-sm sm:text-base font-semibold text-foreground line-clamp-1">
+            <h3 className="line-clamp-1 text-sm font-semibold text-foreground sm:text-base">
               {insight.title}
             </h3>
           </div>
-          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+          <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
             {insight.description}
           </p>
           {!insight.is_read && (
@@ -82,7 +85,7 @@ function InsightCard({
               variant="ghost"
               size="sm"
               onClick={onMarkAsRead}
-              className="mt-3 -ml-2 text-primary"
+              className="-ml-2 mt-3 text-primary"
             >
               Marcar como lido
             </Button>
@@ -140,7 +143,7 @@ export default function DashboardPage() {
       onSuccess: (data) => {
         setIsUploadModalOpen(false);
         if (data.processing_id) {
-          router.push(`/invoices/review/${data.processing_id}`);
+          router.push(dynamicRoute("/invoices/review", data.processing_id));
         }
       },
       onError: handleSubscriptionError,
@@ -170,29 +173,29 @@ export default function DashboardPage() {
       title="Dashboard"
       subtitle="Visão geral dos seus gastos e insights"
       showFloatingAction
-      onFloatingActionClick={() => setIsUploadModalOpen(true)}
+      onFloatingActionClick={() => { setIsUploadModalOpen(true); }}
       floatingActionLabel="Nota"
     >
       {/* Welcome Section */}
       <Card
         padding="lg"
-        className="mb-6 bg-gradient-to-r from-emerald-600 to-teal-600 border-0 text-white"
+        className="mb-6 border-0 bg-gradient-to-r from-emerald-600 to-teal-600 text-white"
       >
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
-            <h2 className="text-2xl font-bold mb-2">Olá! 👋</h2>
+            <h2 className="mb-2 text-2xl font-bold">Olá! 👋</h2>
             <p className="text-emerald-100">
               Aqui está o resumo das suas compras e insights para economizar.
             </p>
           </div>
           <div className="hidden sm:block">
-            <Sparkles className="w-12 h-12 text-emerald-200/50" />
+            <Sparkles className="size-12 text-emerald-200/50" />
           </div>
         </div>
       </Card>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         {isSummaryLoading ? (
           <>
             <SkeletonCard />
@@ -213,43 +216,43 @@ export default function DashboardPage() {
                   }
                   : undefined
               }
-              icon={<DollarSign className="w-4 h-4 sm:w-5 sm:h-5" />}
+              icon={<DollarSign className="size-4 sm:size-5" />}
             />
             <StatCard
               title="Notas Fiscais"
               value={summary.invoice_count_this_month}
               subtitle="Este mês"
-              icon={<FileText className="w-4 h-4 sm:w-5 sm:h-5" />}
+              icon={<FileText className="size-4 sm:size-5" />}
             />
             <StatCard
               title="Insights"
               value={summary.unread_insights_count}
               subtitle="Não lidos"
-              icon={<AlertCircle className="w-4 h-4 sm:w-5 sm:h-5" />}
+              icon={<AlertCircle className="size-4 sm:size-5" />}
             />
             <StatCard
               title="Top Estabelecimento"
               value={formatCurrency(summary.top_merchant_this_month?.total || 0)}
               subtitle={summary.top_merchant_this_month?.name || "N/A"}
-              icon={<TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />}
+              icon={<TrendingUp className="size-4 sm:size-5" />}
             />
           </>
         ) : null}
       </div>
 
-      <div className="hidden sm:flex gap-3 mb-8">
+      <div className="mb-8 hidden gap-3 sm:flex">
         <Button
           size="lg"
-          leftIcon={<Receipt className="w-4 h-4" />}
-          onClick={() => setIsUploadModalOpen(true)}
+          leftIcon={<Receipt className="size-4" />}
+          onClick={() => { setIsUploadModalOpen(true); }}
         >
           Adicionar Nota
         </Button>
         <Button
           variant="outline"
           size="lg"
-          leftIcon={<TrendingUp className="w-4 h-4" />}
-          onClick={() => router.push("/dashboard/analytics")}
+          leftIcon={<TrendingUp className="size-4" />}
+          onClick={() => { router.push("/dashboard/analytics"); }}
         >
           Ver Análises
         </Button>
@@ -257,7 +260,7 @@ export default function DashboardPage() {
 
       {/* Recent Invoices Section */}
       <section className="mb-8">
-        <div className="flex items-center justify-between mb-4">
+        <div className="mb-4 flex items-center justify-between">
           <div>
             <h2 className="text-xl font-bold text-foreground">Notas Fiscais Recentes</h2>
             <p className="text-sm text-muted-foreground">
@@ -267,8 +270,8 @@ export default function DashboardPage() {
           <Button
             variant="ghost"
             size="sm"
-            rightIcon={<ArrowRight className="w-4 h-4" />}
-            onClick={() => router.push("/invoices")}
+            rightIcon={<ArrowRight className="size-4" />}
+            onClick={() => { router.push("/invoices"); }}
           >
             Ver todas
           </Button>
@@ -286,20 +289,20 @@ export default function DashboardPage() {
               <InvoiceCard
                 key={invoice.id}
                 invoice={invoice}
-                onClick={() => router.push(`/invoices/${invoice.id}`)}
+                onClick={() => { router.push(dynamicRoute("/invoices", invoice.id)); }}
               />
             ))}
           </div>
         ) : (
-          <Card className="text-center py-8">
-            <p className="text-muted-foreground text-sm">Nenhuma nota fiscal encontrada</p>
+          <Card className="py-8 text-center">
+            <p className="text-sm text-muted-foreground">Nenhuma nota fiscal encontrada</p>
           </Card>
         )}
       </section>
 
       {/* Insights Section */}
       <section>
-        <div className="flex items-center justify-between mb-4">
+        <div className="mb-4 flex items-center justify-between">
           <div>
             <h2 className="text-xl font-bold text-foreground">Insights Recentes</h2>
             <p className="text-sm text-muted-foreground">
@@ -309,41 +312,41 @@ export default function DashboardPage() {
           <Button
             variant="ghost"
             size="sm"
-            rightIcon={<ArrowRight className="w-4 h-4" />}
-            onClick={() => router.push("/insights")}
+            rightIcon={<ArrowRight className="size-4" />}
+            onClick={() => { router.push("/insights"); }}
           >
             Ver todos
           </Button>
         </div>
 
         {isInsightsLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             <SkeletonCard />
             <SkeletonCard />
             <SkeletonCard />
           </div>
         ) : insights && insights.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {insights.map((insight) => (
               <InsightCard
                 key={insight.id}
                 insight={insight}
-                onMarkAsRead={() => markAsReadMutation.mutate(insight.id)}
+                onMarkAsRead={() => { markAsReadMutation.mutate(insight.id); }}
               />
             ))}
           </div>
         ) : (
-          <Card className="text-center py-12">
-            <div className="w-16 h-16 rounded-full bg-muted mx-auto mb-4 flex items-center justify-center">
-              <Sparkles className="w-8 h-8 text-muted-foreground" />
+          <Card className="py-12 text-center">
+            <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-muted">
+              <Sparkles className="size-8 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-semibold text-foreground mb-2">
+            <h3 className="mb-2 text-lg font-semibold text-foreground">
               Nenhum insight ainda
             </h3>
-            <p className="text-muted-foreground mb-4 max-w-md mx-auto">
+            <p className="mx-auto mb-4 max-w-md text-muted-foreground">
               Adicione suas notas fiscais para começar a receber insights personalizados
             </p>
-            <Button onClick={() => setIsUploadModalOpen(true)}>
+            <Button onClick={() => { setIsUploadModalOpen(true); }}>
               Adicionar Primeira Nota
             </Button>
           </Card>
@@ -353,7 +356,7 @@ export default function DashboardPage() {
       {/* Shared Upload Modal */}
       <UploadModal
         isOpen={isUploadModalOpen}
-        onClose={() => setIsUploadModalOpen(false)}
+        onClose={() => { setIsUploadModalOpen(false); }}
         onUploadXML={handleUploadXML}
         onUploadImages={handleUploadImages}
         onProcessQRCode={handleProcessQRCode}
@@ -364,7 +367,7 @@ export default function DashboardPage() {
       {subscriptionError && (
         <UpgradeModal
           isOpen={true}
-          onClose={() => setSubscriptionError(null)}
+          onClose={() => { setSubscriptionError(null); }}
           limitType={subscriptionError.limitType}
           currentPlan={subscriptionError.currentPlan}
         />

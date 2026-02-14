@@ -1,13 +1,16 @@
 "use client";
 
 import { useState } from "react";
+
 import Link from "next/link";
-import { Eye, EyeOff, ArrowRight } from "lucide-react";
-import { useAuth } from "@/hooks/use-auth";
+
+import { ArrowRight } from "lucide-react";
+
 import { AuthLayout } from "@/components/layout/page-layout";
 import { Button } from "@/components/ui/button";
-import { Input, PasswordInput } from "@/components/ui/input";
 import { InfoCard } from "@/components/ui/card";
+import { Input, PasswordInput } from "@/components/ui/input";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -27,7 +30,7 @@ export default function LoginPage() {
           <InfoCard
             variant="error"
             icon={
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             }
@@ -41,7 +44,7 @@ export default function LoginPage() {
           label="E-mail"
           type="email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => { setEmail(e.target.value); }}
           placeholder="seu@email.com"
           required
           autoComplete="email"
@@ -52,22 +55,22 @@ export default function LoginPage() {
           <PasswordInput
             label="Senha"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => { setPassword(e.target.value); }}
             placeholder="••••••••"
             required
             autoComplete="current-password"
           />
           <div className="flex items-center justify-between">
-            <label className="flex items-center gap-2 cursor-pointer">
+            <label className="flex cursor-pointer items-center gap-2">
               <input
                 type="checkbox"
-                className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                className="size-4 rounded border-border text-primary focus:ring-primary"
               />
               <span className="text-sm text-muted-foreground">Lembrar de mim</span>
             </label>
             <Link
               href="/forgot-password"
-              className="text-sm font-medium text-primary hover:text-primary-hover transition-colors"
+              className="text-sm font-medium text-primary transition-colors hover:text-primary-hover"
             >
               Esqueceu a senha?
             </Link>
@@ -81,19 +84,19 @@ export default function LoginPage() {
           size="lg"
           isLoading={isLoginPending}
           disabled={!email || !password}
-          rightIcon={<ArrowRight className="w-4 h-4" />}
+          rightIcon={<ArrowRight className="size-4" />}
         >
           Entrar
         </Button>
       </form>
 
       {/* Footer */}
-      <div className="text-center pt-6 border-t border-border">
+      <div className="border-t border-border pt-6 text-center">
         <p className="text-sm text-muted-foreground">
           Ainda não tem uma conta?{" "}
           <Link
             href="/register"
-            className="font-medium text-primary hover:text-primary-hover transition-colors"
+            className="font-medium text-primary transition-colors hover:text-primary-hover"
           >
             Registre-se
           </Link>

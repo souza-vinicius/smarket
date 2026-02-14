@@ -1,5 +1,5 @@
+import { type MonthGroup } from "@/hooks/use-grouped-invoices";
 import { formatCurrency } from "@/lib/utils";
-import { MonthGroup } from "@/hooks/use-grouped-invoices";
 
 interface MonthSeparatorProps {
   monthGroup: MonthGroup;

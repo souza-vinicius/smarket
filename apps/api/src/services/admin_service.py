@@ -79,7 +79,7 @@ class AdminService:
         await self.db.commit()
 
         # Create audit log
-        await self._create_audit_log(
+        await self.create_audit_log(
             action="delete",
             resource_type="user",
             resource_id=user_id,
@@ -137,7 +137,7 @@ class AdminService:
         await self.db.commit()
 
         # Create audit log
-        await self._create_audit_log(
+        await self.create_audit_log(
             action="restore",
             resource_type="user",
             resource_id=user_id,
@@ -209,7 +209,7 @@ class AdminService:
         await self.db.commit()
 
         # Create audit log
-        await self._create_audit_log(
+        await self.create_audit_log(
             action="update",
             resource_type="user",
             resource_id=user_id,
@@ -267,7 +267,7 @@ class AdminService:
         )
 
         # Create audit log
-        await self._create_audit_log(
+        await self.create_audit_log(
             action="impersonate",
             resource_type="user",
             resource_id=user_id,
@@ -357,7 +357,7 @@ class AdminService:
             "pages": (total + per_page - 1) // per_page,
         }
 
-    async def _create_audit_log(
+    async def create_audit_log(
         self,
         action: str,
         resource_type: str,

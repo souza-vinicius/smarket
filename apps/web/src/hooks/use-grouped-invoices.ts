@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import { InvoiceList } from "@/types";
+
+import { type InvoiceList } from "@/types";
 
 export interface MonthGroup {
   monthKey: string; // "2026-02"

@@ -2,12 +2,12 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 
-import { Upload, X, FileText, ImagePlus, Trash2, Camera, Loader2, Send, Plus } from "lucide-react";
+import { Upload, X, ImagePlus, Camera, Loader2, Send, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { FEATURE_FLAGS } from "@/lib/feature-flags";
 import { isNative } from "@/lib/capacitor";
+import { FEATURE_FLAGS } from "@/lib/feature-flags";
 import { cn } from "@/lib/utils";
 
 interface UploadModalProps {
@@ -138,12 +138,6 @@ export function UploadModal({
     }
   };
 
-  const handleXMLFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) {
-      onUploadXML(e.target.files[0]);
-    }
-  };
-
   const handleTakePhoto = async () => {
     try {
       const { requestCameraPermission } = await import("@/lib/camera-permissions");
@@ -202,17 +196,17 @@ export function UploadModal({
   const showTabs = FEATURE_FLAGS.ENABLE_XML_UPLOAD || FEATURE_FLAGS.ENABLE_QR_CODE;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-200">
-      <div className="w-full max-w-xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden transition-all duration-300 transform scale-100">
+    <div className="animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 duration-200">
+      <div className="w-full max-w-xl scale-100 transform overflow-hidden rounded-3xl bg-white shadow-2xl transition-all duration-300 dark:bg-slate-900">
 
         {/* Header */}
         <div className="flex items-center justify-between p-6 pb-4">
-          <h2 className="text-2xl font-extrabold text-slate-800 dark:text-slate-100 tracking-tight">
+          <h2 className="text-2xl font-extrabold tracking-tight text-slate-800 dark:text-slate-100">
             Adicionar Fotos da Nota Fiscal
           </h2>
           <button
             onClick={handleClose}
-            className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"
+            className="rounded-full p-2 text-slate-500 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
           >
             <X className="size-6" />
           </button>
@@ -220,9 +214,9 @@ export function UploadModal({
 
         {/* Tabs - Only show if there's more than one option */}
         {showTabs && (
-          <div className="px-6 pb-2 flex gap-2">
+          <div className="flex gap-2 px-6 pb-2">
             <button
-              onClick={() => setActiveTab("images")}
+              onClick={() => { setActiveTab("images"); }}
               className={cn(
                 "flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
                 activeTab === "images"
@@ -234,7 +228,7 @@ export function UploadModal({
             </button>
             {FEATURE_FLAGS.ENABLE_XML_UPLOAD && (
               <button
-                onClick={() => setActiveTab("xml")}
+                onClick={() => { setActiveTab("xml"); }}
                 className={cn(
                   "flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
                   activeTab === "xml"
@@ -247,7 +241,7 @@ export function UploadModal({
             )}
             {FEATURE_FLAGS.ENABLE_QR_CODE && (
               <button
-                onClick={() => setActiveTab("qrcode")}
+                onClick={() => { setActiveTab("qrcode"); }}
                 className={cn(
                   "flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
                   activeTab === "qrcode"
@@ -265,19 +259,19 @@ export function UploadModal({
           {activeTab === "images" ? (
             <div className="space-y-6">
               {/* Drop Zone */}
-              <div className="relative group">
+              <div className="group relative">
                 <div
                   onDragEnter={!isUploading ? handleDrag : undefined}
                   onDragLeave={!isUploading ? handleDrag : undefined}
                   onDragOver={!isUploading ? handleDrag : undefined}
                   onDrop={!isUploading ? handleDrop : undefined}
                   className={cn(
-                    "p-10 flex flex-col items-center justify-center rounded-2xl transition-all duration-300 cursor-pointer border-2 border-dashed",
+                    "flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-10 transition-all duration-300",
                     isUploading
                       ? "cursor-wait border-muted bg-muted/20"
                       : dragActive
                         ? "border-primary bg-primary/10"
-                        : "border-emerald-400/30 bg-emerald-50/50 hover:bg-emerald-50 dark:bg-emerald-950/10 dark:hover:bg-emerald-950/20 dark:border-emerald-800/50"
+                        : "border-emerald-400/30 bg-emerald-50/50 hover:bg-emerald-50 dark:border-emerald-800/50 dark:bg-emerald-950/10 dark:hover:bg-emerald-950/20"
                   )}
                 >
                   {isUploading ? (
@@ -288,13 +282,13 @@ export function UploadModal({
                     </div>
                   ) : (
                     <>
-                      <div className="size-16 mb-4 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                      <div className="mb-4 flex size-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                         <ImagePlus className="size-8" />
                       </div>
-                      <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-200 mb-1 text-center">
+                      <h3 className="mb-1 text-center text-lg font-semibold text-slate-700 dark:text-slate-200">
                         Arraste e solte as fotos aqui
                       </h3>
-                      <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 text-center">
+                      <p className="mb-6 text-center text-sm text-slate-500 dark:text-slate-400">
                         Formatos aceitos: JPG, PNG e WebP (máx. {MAX_IMAGES} arquivos)
                       </p>
 
@@ -319,7 +313,7 @@ export function UploadModal({
                             onChange={handleImageFileChange}
                             className="hidden"
                           />
-                          <div className="flex items-center gap-2 px-6 py-2.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium hover:border-primary hover:text-primary transition-all shadow-sm cursor-pointer">
+                          <div className="flex cursor-pointer items-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-2.5 font-medium text-slate-700 shadow-sm transition-all hover:border-primary hover:text-primary dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
                             <Upload className="size-5" />
                             Selecionar arquivos
                           </div>
@@ -332,9 +326,9 @@ export function UploadModal({
 
               {/* Selected Files Grid */}
               {selectedImages.length > 0 && (
-                <div className="mt-8 animate-in slide-in-from-bottom-5 duration-300">
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <div className="animate-in slide-in-from-bottom-5 mt-8 duration-300">
+                  <div className="mb-4 flex items-center justify-between">
+                    <span className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                       Arquivos selecionados ({selectedImages.length})
                     </span>
                     <button
@@ -348,11 +342,11 @@ export function UploadModal({
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-4 sm:grid-cols-5 gap-3">
+                  <div className="grid grid-cols-4 gap-3 sm:grid-cols-5">
                     {imagePreviews.map((preview, index) => (
                       <div
                         key={`preview-${String(index)}`}
-                        className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 group"
+                        className="group relative aspect-square overflow-hidden rounded-xl border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800"
                       >
                         <img
                           src={preview}
@@ -360,8 +354,8 @@ export function UploadModal({
                           className="size-full object-cover transition-transform group-hover:scale-105"
                         />
                         <button
-                          onClick={() => removeImage(index)}
-                          className="absolute top-1 right-1 size-6 bg-slate-900/60 hover:bg-rose-500 text-white rounded-full flex items-center justify-center transition-colors opacity-0 group-hover:opacity-100"
+                          onClick={() => { removeImage(index); }}
+                          className="absolute right-1 top-1 flex size-6 items-center justify-center rounded-full bg-slate-900/60 text-white opacity-0 transition-colors hover:bg-rose-500 group-hover:opacity-100"
                         >
                           <X className="size-3" />
                         </button>
@@ -378,9 +372,9 @@ export function UploadModal({
                           onChange={handleImageFileChange}
                           className="hidden"
                         />
-                        <div className="aspect-square rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 flex flex-col items-center justify-center text-slate-400 dark:text-slate-600 hover:text-primary hover:border-primary transition-colors h-full w-full">
+                        <div className="flex aspect-square size-full flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 text-slate-400 transition-colors hover:border-primary hover:text-primary dark:border-slate-700 dark:text-slate-600">
                           <Plus className="size-6" />
-                          <span className="text-[10px] font-bold uppercase mt-1">Add</span>
+                          <span className="mt-1 text-[10px] font-bold uppercase">Add</span>
                         </div>
                       </label>
                     )}
@@ -392,13 +386,13 @@ export function UploadModal({
               <Button
                 onClick={handleSubmitImages}
                 disabled={selectedImages.length === 0 || isUploading}
-                className="w-full bg-primary hover:brightness-105 active:scale-[0.98] transition-all duration-200 py-6 rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 group text-slate-900 hover:bg-primary/90"
+                className="group flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-6 text-slate-900 shadow-lg shadow-emerald-500/20 transition-all duration-200 hover:bg-primary/90 hover:brightness-105 active:scale-[0.98]"
               >
-                <span className="text-slate-900 font-extrabold text-lg">
+                <span className="text-lg font-extrabold text-slate-900">
                   {isUploading ? "Enviando..." : "Enviar fotos"}
                 </span>
                 {!isUploading && (
-                  <Send className="size-5 text-slate-900 group-hover:translate-x-1 transition-transform" />
+                  <Send className="size-5 text-slate-900 transition-transform group-hover:translate-x-1" />
                 )}
               </Button>
             </div>
@@ -412,7 +406,7 @@ export function UploadModal({
                 label="URL do QR Code"
                 placeholder="https://www.sefaz..."
                 value={qrCodeUrl}
-                onChange={(e) => setQrCodeUrl(e.target.value)}
+                onChange={(e) => { setQrCodeUrl(e.target.value); }}
               />
               <Button type="submit" className="w-full" disabled={!qrCodeUrl.trim()}>
                 Processar
@@ -421,7 +415,7 @@ export function UploadModal({
           )}
 
           {activeTab === "images" && (
-            <p className="text-center mt-4 text-xs text-slate-400 dark:text-slate-500">
+            <p className="mt-4 text-center text-xs text-slate-400 dark:text-slate-500">
               Ao enviar, você concorda com nossos <a href="#" className="underline hover:text-slate-600 dark:hover:text-slate-300">Termos de Uso</a>
             </p>
           )}

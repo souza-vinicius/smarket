@@ -1,20 +1,24 @@
 "use client";
 
-import { useSubscription } from "@/hooks/use-subscription";
-import { Clock, Sparkles } from "lucide-react";
-import Link from "next/link";
 import { useMemo } from "react";
+
+import Link from "next/link";
+
+import { Clock, Sparkles } from "lucide-react";
+
+import { useSubscription } from "@/hooks/use-subscription";
+
 
 export function TrialBanner() {
   const { data, isLoading } = useSubscription();
 
   const daysRemaining = useMemo(() => {
-    if (!data?.subscription) return null;
+    if (!data?.subscription) {return null;}
 
     const { subscription } = data;
 
     // Only show for trial status
-    if (subscription.status !== "trial") return null;
+    if (subscription.status !== "trial") {return null;}
 
     const now = new Date();
     const trialEnd = new Date(subscription.trial_end);
@@ -24,7 +28,7 @@ export function TrialBanner() {
     return days > 0 ? days : 0;
   }, [data]);
 
-  if (isLoading || daysRemaining === null) return null;
+  if (isLoading || daysRemaining === null) {return null;}
 
   // Different colors based on days remaining
   const urgency =
@@ -62,24 +66,24 @@ export function TrialBanner() {
 
   return (
     <div
-      className={`${style.bg} ${style.border} border rounded-lg p-4 mb-6 shadow-sm`}
+      className={`${style.bg} ${style.border} mb-6 rounded-lg border p-4 shadow-sm`}
     >
       <div className="flex items-start gap-3">
         <div className="flex-shrink-0">
           {urgency === "info" ? (
-            <Sparkles className={`w-5 h-5 ${style.icon}`} />
+            <Sparkles className={`size-5 ${style.icon}`} />
           ) : (
-            <Clock className={`w-5 h-5 ${style.icon}`} />
+            <Clock className={`size-5 ${style.icon}`} />
           )}
         </div>
 
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
+          <div className="mb-1 flex items-center gap-2">
             <h3 className={`text-sm font-semibold ${style.text}`}>
               Trial Premium Ativo
             </h3>
             <span
-              className={`text-xs font-bold px-2 py-0.5 rounded-full ${style.badge}`}
+              className={`rounded-full px-2 py-0.5 text-xs font-bold ${style.badge}`}
             >
               {daysRemaining} {daysRemaining === 1 ? "dia" : "dias"} restantes
             </span>

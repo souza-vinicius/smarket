@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+
 import { cn } from "@/lib/utils";
 
 interface TabsContextValue {
@@ -94,7 +95,7 @@ export function TabsTrigger({
           : "hover:bg-background/50 hover:text-foreground",
         className
       )}
-      onClick={() => onChange(value)}
+      onClick={() => { onChange(value); }}
       {...props}
     >
       {children}
@@ -115,7 +116,7 @@ export function TabsContent({
 }: TabsContentProps) {
   const { value: selectedValue } = useTabsContext();
 
-  if (selectedValue !== value) return null;
+  if (selectedValue !== value) {return null;}
 
   return (
     <div

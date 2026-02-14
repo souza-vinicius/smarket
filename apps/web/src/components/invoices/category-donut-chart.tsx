@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
+
+import { X } from "lucide-react";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+
 import { Card } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
-import { X } from "lucide-react";
 
 interface CategoryData {
   name: string;
@@ -74,11 +76,11 @@ export function CategoryDonutChart({ products, onCategoryFilter }: CategoryDonut
   }
 
   const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
+    if (active && payload?.length) {
       const data = payload[0].payload as CategoryData;
       return (
-        <div className="bg-background border border-border rounded-lg shadow-lg p-3">
-          <p className="font-semibold text-foreground mb-1">{data.name}</p>
+        <div className="rounded-lg border border-border bg-background p-3 shadow-lg">
+          <p className="mb-1 font-semibold text-foreground">{data.name}</p>
           <p className="text-sm text-muted-foreground">
             {formatCurrency(data.value || 0)} ({(data.percentage || 0).toFixed(1)}%)
           </p>
@@ -116,7 +118,7 @@ export function CategoryDonutChart({ products, onCategoryFilter }: CategoryDonut
   const renderLegend = (props: any) => {
     const { payload } = props;
     return (
-      <div className="flex flex-col gap-2 mt-4">
+      <div className="mt-4 flex flex-col gap-2">
         {payload.map((entry: any, index: number) => {
           const isSelected = selectedCategory === entry.value;
           const isFiltered = selectedCategory !== null && !isSelected;
@@ -124,8 +126,8 @@ export function CategoryDonutChart({ products, onCategoryFilter }: CategoryDonut
           return (
             <div
               key={`legend-${index}`}
-              onClick={() => handleCategoryClick(entry.value)}
-              className={`flex items-center justify-between gap-3 text-sm cursor-pointer rounded-lg p-2 transition-all ${
+              onClick={() => { handleCategoryClick(entry.value); }}
+              className={`flex cursor-pointer items-center justify-between gap-3 rounded-lg p-2 text-sm transition-all ${
                 isSelected
                   ? "bg-primary-subtle ring-2 ring-primary"
                   : isFiltered
@@ -133,20 +135,20 @@ export function CategoryDonutChart({ products, onCategoryFilter }: CategoryDonut
                   : "hover:bg-muted"
               }`}
             >
-              <div className="flex items-center gap-2 min-w-0 flex-1">
+              <div className="flex min-w-0 flex-1 items-center gap-2">
                 <div
-                  className="w-3 h-3 rounded-full flex-shrink-0"
+                  className="size-3 flex-shrink-0 rounded-full"
                   style={{ backgroundColor: entry.color }}
                 />
-                <span className="text-foreground font-medium truncate">
+                <span className="truncate font-medium text-foreground">
                   {entry.value}
                 </span>
               </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="flex flex-shrink-0 items-center gap-2">
                 <span className="text-muted-foreground">
                   {(entry.payload.percentage || 0).toFixed(1)}%
                 </span>
-                <span className="text-foreground font-semibold min-w-[80px] text-right">
+                <span className="min-w-[80px] text-right font-semibold text-foreground">
                   {formatCurrency(entry.payload.value || 0)}
                 </span>
               </div>
@@ -163,16 +165,16 @@ export function CategoryDonutChart({ products, onCategoryFilter }: CategoryDonut
 
   return (
     <Card>
-      <div className="flex items-center justify-between mb-4">
+      <div className="mb-4 flex items-center justify-between">
         <h3 className="font-semibold text-foreground">
           Distribuição por Categoria
         </h3>
         {selectedCategory && (
           <button
-            onClick={() => handleCategoryClick(selectedCategory)}
-            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            onClick={() => { handleCategoryClick(selectedCategory); }}
+            className="flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
-            <X className="w-4 h-4" />
+            <X className="size-4" />
             Limpar filtro
           </button>
         )}
@@ -200,7 +202,7 @@ export function CategoryDonutChart({ products, onCategoryFilter }: CategoryDonut
                     key={`cell-${index}`}
                     fill={COLORS[index % COLORS.length]}
                     opacity={isFiltered ? 0.3 : 1}
-                    className="stroke-background stroke-2 hover:opacity-80 transition-all cursor-pointer"
+                    className="cursor-pointer stroke-background stroke-2 transition-all hover:opacity-80"
                     style={{
                       filter: isSelected ? 'brightness(1.1)' : 'none',
                     }}

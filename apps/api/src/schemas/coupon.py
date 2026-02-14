@@ -29,6 +29,7 @@ class CouponBase(BaseModel):
     max_uses_per_user: int = Field(default=1, gt=0)
     min_purchase_amount: Optional[Decimal] = Field(None, gt=0)
     first_time_only: bool = False
+    duration_months: Optional[int] = Field(None, ge=1)
     allow_reuse_after_cancel: bool = False
     is_stackable: bool = False
     applicable_plans: list[SubscriptionPlan] = Field(default_factory=list)
@@ -70,6 +71,7 @@ class CouponUpdate(BaseModel):
     max_uses: Optional[int] = Field(None, gt=0)
     max_uses_per_user: Optional[int] = Field(None, gt=0)
     min_purchase_amount: Optional[Decimal] = Field(None, gt=0)
+    duration_months: Optional[int] = Field(None, ge=1)
     valid_until: Optional[datetime] = None
     is_active: Optional[bool] = None
 

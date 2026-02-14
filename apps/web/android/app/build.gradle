@@ -22,18 +22,18 @@ android {
         release {
             // CI/CD uses environment variables
             // Store file should be in android/keystore/
-            def keystorePath = System.getenv("ANDROID_SIGNING_KEY_FILE") ?: "keystore/mercado-esperto-release.p12"
-            def keystorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: ""
-            def keyAlias = System.getenv("ANDROID_KEYSTORE_ALIAS") ?: "mercado-esperto"
-            def keyPassword = System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: keystorePassword
+            def ksPath = System.getenv("ANDROID_SIGNING_KEY_FILE") ?: "../keystore/mercado-esperto-release.p12"
+            def ksPassword = System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: ""
+            def ksAlias = System.getenv("ANDROID_KEYSTORE_ALIAS") ?: "mercado-esperto"
+            def ksKeyPassword = System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: ksPassword
 
             // Check if signing key exists
-            def keystoreFile = file(keystorePath)
-            if (keystoreFile.exists()) {
-                storeFile keystoreFile
-                storePassword keystorePassword
-                keyAlias keyAlias
-                keyPassword keyPassword
+            def ksFile = file(ksPath)
+            if (ksFile.exists()) {
+                storeFile ksFile
+                storePassword ksPassword
+                keyAlias ksAlias
+                keyPassword ksKeyPassword
             }
         }
     }
@@ -44,8 +44,9 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             
-            // Use signing config if available
-            if (System.getenv("ANDROID_KEYSTORE_PASSWORD")) {
+            // Use signing config if keystore file exists
+            def keystoreFile = file("../keystore/mercado-esperto-release.p12")
+            if (keystoreFile.exists()) {
                 signingConfig signingConfigs.release
             }
         }

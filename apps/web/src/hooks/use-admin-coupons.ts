@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
 import { adminApi } from "@/lib/admin-api";
 import type {
   CouponListItem,
@@ -49,8 +50,8 @@ export function useAdminCoupons(params: CouponsListParams = {}) {
     queryKey: ADMIN_COUPONS_KEYS.list({ is_active, search, page, per_page }),
     queryFn: async () => {
       const queryParams = new URLSearchParams();
-      if (is_active !== undefined) queryParams.set("is_active", String(is_active));
-      if (search) queryParams.set("search", search);
+      if (is_active !== undefined) {queryParams.set("is_active", String(is_active));}
+      if (search) {queryParams.set("search", search);}
       queryParams.set("page", String(page));
       queryParams.set("per_page", String(per_page));
 
@@ -68,7 +69,7 @@ export function useAdminCoupons(params: CouponsListParams = {}) {
     perPage: data?.per_page || 20,
     pages: data?.pages || 0,
     isLoading,
-    error: error as Error | null,
+    error,
   };
 }
 
@@ -87,7 +88,7 @@ export function useAdminCoupon(couponId: string) {
   return {
     coupon: data || null,
     isLoading,
-    error: error as Error | null,
+    error,
   };
 }
 
@@ -177,7 +178,7 @@ export function useCouponUsages(couponId: string, params: CouponUsagesParams = {
     perPage: data?.per_page || 20,
     pages: data?.pages || 0,
     isLoading,
-    error: error as Error | null,
+    error,
   };
 }
 
@@ -196,6 +197,6 @@ export function useCouponStats(couponId: string) {
   return {
     stats: data || null,
     isLoading,
-    error: error as Error | null,
+    error,
   };
 }

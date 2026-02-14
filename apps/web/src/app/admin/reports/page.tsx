@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+
 import {
   Download,
   TrendingDown,
@@ -31,8 +32,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   useChurnReport,
   useConversionReport,
@@ -104,7 +105,7 @@ export default function AdminReportsPage() {
         </div>
         <Select
           value={months.toString()}
-          onValueChange={(v: string) => setMonths(parseInt(v))}
+          onValueChange={(v: string) => { setMonths(parseInt(v)); }}
         >
           <SelectTrigger className="w-[140px]">
             <SelectValue />
@@ -123,19 +124,19 @@ export default function AdminReportsPage() {
       <Tabs defaultValue="churn" className="space-y-4">
         <TabsList>
           <TabsTrigger value="churn" className="flex items-center gap-2">
-            <TrendingDown className="h-4 w-4" />
+            <TrendingDown className="size-4" />
             Churn
           </TabsTrigger>
           <TabsTrigger value="conversion" className="flex items-center gap-2">
-            <TrendingUp className="h-4 w-4" />
+            <TrendingUp className="size-4" />
             Conversão
           </TabsTrigger>
           <TabsTrigger value="mrr" className="flex items-center gap-2">
-            <DollarSign className="h-4 w-4" />
+            <DollarSign className="size-4" />
             MRR
           </TabsTrigger>
           <TabsTrigger value="export" className="flex items-center gap-2">
-            <FileSpreadsheet className="h-4 w-4" />
+            <FileSpreadsheet className="size-4" />
             Exportar
           </TabsTrigger>
         </TabsList>
@@ -157,7 +158,7 @@ export default function AdminReportsPage() {
                     <CardTitle className="text-sm font-medium">
                       Total Cancelamentos
                     </CardTitle>
-                    <TrendingDown className="h-4 w-4 text-red-500" />
+                    <TrendingDown className="size-4 text-red-500" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">
@@ -173,7 +174,7 @@ export default function AdminReportsPage() {
                     <CardTitle className="text-sm font-medium">
                       Taxa Média de Churn
                     </CardTitle>
-                    <TrendingDown className="h-4 w-4 text-orange-500" />
+                    <TrendingDown className="size-4 text-orange-500" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">
@@ -189,7 +190,7 @@ export default function AdminReportsPage() {
                     <CardTitle className="text-sm font-medium">
                       Plano com Maior Churn
                     </CardTitle>
-                    <Users className="h-4 w-4 text-muted-foreground" />
+                    <Users className="size-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">
@@ -277,7 +278,7 @@ export default function AdminReportsPage() {
             </>
           ) : (
             <Card>
-              <CardContent className="flex items-center justify-center h-32">
+              <CardContent className="flex h-32 items-center justify-center">
                 <p className="text-muted-foreground">
                   Nenhum dado disponível
                 </p>
@@ -303,7 +304,7 @@ export default function AdminReportsPage() {
                     <CardTitle className="text-sm font-medium">
                       Total Trials
                     </CardTitle>
-                    <Users className="h-4 w-4 text-blue-500" />
+                    <Users className="size-4 text-blue-500" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">
@@ -319,7 +320,7 @@ export default function AdminReportsPage() {
                     <CardTitle className="text-sm font-medium">
                       Convertidos
                     </CardTitle>
-                    <TrendingUp className="h-4 w-4 text-green-500" />
+                    <TrendingUp className="size-4 text-green-500" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">
@@ -335,7 +336,7 @@ export default function AdminReportsPage() {
                     <CardTitle className="text-sm font-medium">
                       Taxa de Conversão
                     </CardTitle>
-                    <TrendingUp className="h-4 w-4 text-emerald-500" />
+                    <TrendingUp className="size-4 text-emerald-500" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">
@@ -417,7 +418,7 @@ export default function AdminReportsPage() {
                       {conversionReport.plan_flows.slice(0, 10).map((flow, i) => (
                         <div
                           key={i}
-                          className="flex items-center justify-between p-2 bg-muted rounded"
+                          className="flex items-center justify-between rounded bg-muted p-2"
                         >
                           <span>
                             <span className="font-medium">{flow.from_plan}</span>
@@ -436,7 +437,7 @@ export default function AdminReportsPage() {
             </>
           ) : (
             <Card>
-              <CardContent className="flex items-center justify-center h-32">
+              <CardContent className="flex h-32 items-center justify-center">
                 <p className="text-muted-foreground">
                   Nenhum dado disponível
                 </p>
@@ -462,7 +463,7 @@ export default function AdminReportsPage() {
                     <CardTitle className="text-sm font-medium">
                       MRR Atual
                     </CardTitle>
-                    <DollarSign className="h-4 w-4 text-green-500" />
+                    <DollarSign className="size-4 text-green-500" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">
@@ -480,7 +481,7 @@ export default function AdminReportsPage() {
                     <CardTitle className="text-sm font-medium">
                       ARR (Projetado)
                     </CardTitle>
-                    <DollarSign className="h-4 w-4 text-blue-500" />
+                    <DollarSign className="size-4 text-blue-500" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">
@@ -550,13 +551,13 @@ export default function AdminReportsPage() {
                     {mrrReport.by_plan.map((item, i) => (
                       <div
                         key={i}
-                        className="flex items-center justify-between p-3 bg-muted rounded"
+                        className="flex items-center justify-between rounded bg-muted p-3"
                       >
                         <div>
                           <span className="font-medium capitalize">
                             {item.plan}
                           </span>
-                          <span className="text-muted-foreground ml-2">
+                          <span className="ml-2 text-muted-foreground">
                             ({item.billing_cycle === "monthly" ? "Mensal" : "Anual"})
                           </span>
                         </div>
@@ -578,7 +579,7 @@ export default function AdminReportsPage() {
             </>
           ) : (
             <Card>
-              <CardContent className="flex items-center justify-center h-32">
+              <CardContent className="flex h-32 items-center justify-center">
                 <p className="text-muted-foreground">
                   Nenhum dado disponível
                 </p>
@@ -594,12 +595,12 @@ export default function AdminReportsPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
+                  <Users className="size-5" />
                   Usuários
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground mb-4">
+                <p className="mb-4 text-sm text-muted-foreground">
                   Exportar lista de usuários com informações de perfil,
                   assinatura e uso.
                 </p>
@@ -612,7 +613,7 @@ export default function AdminReportsPage() {
                     "Exportando..."
                   ) : (
                     <>
-                      <Download className="h-4 w-4 mr-2" />
+                      <Download className="mr-2 size-4" />
                       Exportar CSV
                     </>
                   )}
@@ -624,12 +625,12 @@ export default function AdminReportsPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
+                  <TrendingUp className="size-5" />
                   Assinaturas
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground mb-4">
+                <p className="mb-4 text-sm text-muted-foreground">
                   Exportar lista de assinaturas com status, plano,
                   ciclo de cobrança e datas.
                 </p>
@@ -642,7 +643,7 @@ export default function AdminReportsPage() {
                     "Exportando..."
                   ) : (
                     <>
-                      <Download className="h-4 w-4 mr-2" />
+                      <Download className="mr-2 size-4" />
                       Exportar CSV
                     </>
                   )}
@@ -654,12 +655,12 @@ export default function AdminReportsPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="h-5 w-5" />
+                  <DollarSign className="size-5" />
                   Pagamentos
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground mb-4">
+                <p className="mb-4 text-sm text-muted-foreground">
                   Exportar histórico de pagamentos dos últimos {months} meses
                   com valores e status.
                 </p>
@@ -672,7 +673,7 @@ export default function AdminReportsPage() {
                     "Exportando..."
                   ) : (
                     <>
-                      <Download className="h-4 w-4 mr-2" />
+                      <Download className="mr-2 size-4" />
                       Exportar CSV
                     </>
                   )}

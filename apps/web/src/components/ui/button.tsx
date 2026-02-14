@@ -1,4 +1,5 @@
 import * as React from "react";
+
 import { cn } from "@/lib/utils";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -138,8 +139,8 @@ const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
         className={cn(
           "inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-          "disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]",
-          "bg-transparent hover:bg-secondary text-foreground",
+          "active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50",
+          "bg-transparent text-foreground hover:bg-secondary",
           sizes[size],
           className
         )}

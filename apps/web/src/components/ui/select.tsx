@@ -1,8 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { cn } from "@/lib/utils";
+
 import { ChevronDown } from "lucide-react";
+
+import { cn } from "@/lib/utils";
 
 interface SelectContextValue {
   value: string;
@@ -75,11 +77,11 @@ export const SelectTrigger = React.forwardRef<
         "disabled:cursor-not-allowed disabled:opacity-50",
         className
       )}
-      onClick={() => setOpen(!open)}
+      onClick={() => { setOpen(!open); }}
       {...props}
     >
       {children}
-      <ChevronDown className="h-4 w-4 opacity-50" />
+      <ChevronDown className="size-4 opacity-50" />
     </button>
   );
 });
@@ -102,7 +104,7 @@ interface SelectContentProps {
 export function SelectContent({ children, className }: SelectContentProps) {
   const { open } = useSelectContext();
 
-  if (!open) return null;
+  if (!open) {return null;}
 
   return (
     <div
@@ -133,7 +135,7 @@ export function SelectItem({ value, children, className, ...props }: SelectItemP
         isSelected && "bg-secondary",
         className
       )}
-      onClick={() => onChange(value)}
+      onClick={() => { onChange(value); }}
       {...props}
     >
       {children}

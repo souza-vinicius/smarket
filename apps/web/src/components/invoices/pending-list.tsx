@@ -6,6 +6,7 @@ import { Trash2, Eye, AlertCircle, Loader2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { dynamicRoute } from "@/lib/dynamic-params";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { type InvoiceProcessingList } from "@/types";
 
@@ -51,7 +52,7 @@ export function PendingList({
           variant="primary"
           size="sm"
           onClick={() => {
-            router.push(`/invoices/review/${item.processing_id}`);
+            router.push(dynamicRoute("/invoices/review", item.processing_id));
           }}
         >
           Revisar
@@ -64,7 +65,7 @@ export function PendingList({
           variant="outline"
           size="sm"
           onClick={() => {
-            router.push(`/invoices/review/${item.processing_id}`);
+            router.push(dynamicRoute("/invoices/review", item.processing_id));
           }}
         >
           <Eye className="mr-2 size-4" />
@@ -78,7 +79,7 @@ export function PendingList({
           variant="outline"
           size="sm"
           onClick={() => {
-            router.push(`/invoices/review/${item.processing_id}`);
+            router.push(dynamicRoute("/invoices/review", item.processing_id));
           }}
         >
           Ver Detalhes

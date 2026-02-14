@@ -1,6 +1,7 @@
 "use client";
 
 import { FileText, Calendar, ChevronRight } from "lucide-react";
+
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
@@ -21,25 +22,25 @@ export function InvoiceCard({ invoice, onClick }: InvoiceCardProps) {
     return (
         <div
             onClick={onClick}
-            className="flex items-center gap-4 p-4 bg-card rounded-xl border border-border cursor-pointer hover:border-primary/30 transition-colors"
+            className="flex cursor-pointer items-center gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/30"
         >
-            <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary-subtle flex items-center justify-center">
-                <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+            <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-xl bg-primary-subtle sm:size-12">
+                <FileText className="size-5 text-primary sm:size-6" />
             </div>
-            <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-semibold text-foreground text-sm sm:text-base truncate">
+            <div className="min-w-0 flex-1">
+                <div className="mb-1 flex items-center gap-2">
+                    <h3 className="truncate text-sm font-semibold text-foreground sm:text-base">
                         {invoice.issuer_name}
                     </h3>
                     {invoice.type && (
-                        <Badge variant="outline" className="text-[10px] sm:text-xs flex-shrink-0">
+                        <Badge variant="outline" className="flex-shrink-0 text-[10px] sm:text-xs">
                             {invoice.type}
                         </Badge>
                     )}
                 </div>
-                <div className="flex items-center gap-2 sm:gap-3 text-[11px] sm:text-sm text-muted-foreground">
+                <div className="flex items-center gap-2 text-[11px] text-muted-foreground sm:gap-3 sm:text-sm">
                     <span className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                        <Calendar className="size-3 sm:size-3.5" />
                         {formatDate(invoice.issue_date)}
                     </span>
                     <span>•</span>
@@ -47,10 +48,10 @@ export function InvoiceCard({ invoice, onClick }: InvoiceCardProps) {
                 </div>
             </div>
             <div className="text-right">
-                <p className="font-bold text-foreground text-sm sm:text-base">
+                <p className="text-sm font-bold text-foreground sm:text-base">
                     {formatCurrency(invoice.total_value)}
                 </p>
-                <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground ml-auto mt-1" />
+                <ChevronRight className="ml-auto mt-1 size-4 text-muted-foreground sm:size-5" />
             </div>
         </div>
     );

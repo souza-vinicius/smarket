@@ -1,23 +1,24 @@
 "use client";
 
 import { useState } from "react";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+
 import {
   Bell,
   Search,
   ArrowLeft,
-  Plus,
   ChevronDown,
   LogOut,
   Settings,
-  User,
 } from "lucide-react";
+
+import { CountBadge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Drawer } from "@/components/ui/modal";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { CountBadge } from "@/components/ui/badge";
-import { Drawer } from "@/components/ui/modal";
 
 interface HeaderProps {
   title: string;
@@ -51,34 +52,34 @@ export function Header({
     <>
       <header
         className={cn(
-          "sticky top-0 z-30 pt-safe",
+          "pt-safe sticky top-0 z-30",
           "bg-background/95 backdrop-blur-lg",
           "border-b border-border"
         )}
       >
         <div className="flex h-16 items-center justify-between px-4 lg:px-6">
           {/* Left Section */}
-          <div className="flex items-center gap-3 flex-1 min-w-0">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
             {/* Back button */}
             {showBackButton && (
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={handleBack}
-                className="flex-shrink-0 -ml-1"
+                className="-ml-1 flex-shrink-0"
                 aria-label="Voltar"
               >
-                <ArrowLeft className="w-5 h-5" />
+                <ArrowLeft className="size-5" />
               </Button>
             )}
 
             {/* Title */}
             <div className="min-w-0">
-              <h1 className="text-lg sm:text-xl font-bold text-foreground truncate">
+              <h1 className="truncate text-lg font-bold text-foreground sm:text-xl">
                 {title}
               </h1>
               {subtitle && (
-                <p className="text-sm text-muted-foreground truncate hidden sm:block">
+                <p className="hidden truncate text-sm text-muted-foreground sm:block">
                   {subtitle}
                 </p>
               )}
@@ -92,13 +93,13 @@ export function Header({
 
             {/* Search - desktop only */}
             <div className="relative hidden md:block">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="search"
                 placeholder="Buscar..."
                 className={cn(
-                  "h-10 w-64 pl-10 pr-4 rounded-lg",
-                  "bg-muted border-0",
+                  "h-10 w-64 rounded-lg pl-10 pr-4",
+                  "border-0 bg-muted",
                   "text-sm text-foreground placeholder:text-muted-foreground",
                   "focus:outline-none focus:ring-2 focus:ring-primary/20",
                   "transition-all duration-200",
@@ -114,41 +115,41 @@ export function Header({
               className="md:hidden"
               aria-label="Buscar"
             >
-              <Search className="w-5 h-5" />
+              <Search className="size-5" />
             </Button>
 
             {/* Notifications */}
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setIsNotificationsOpen(true)}
+              onClick={() => { setIsNotificationsOpen(true); }}
               className="relative"
               aria-label="Notificações"
             >
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5">
+              <Bell className="size-5" />
+              <span className="absolute right-1.5 top-1.5">
                 <CountBadge count={3} variant="destructive" />
               </span>
             </Button>
 
             {/* User Menu - desktop */}
-            <div className="hidden sm:block relative">
+            <div className="relative hidden sm:block">
               <button
-                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                onClick={() => { setIsUserMenuOpen(!isUserMenuOpen); }}
                 className={cn(
-                  "flex items-center gap-2 pl-2 pr-1 py-1 rounded-lg",
+                  "flex items-center gap-2 rounded-lg py-1 pl-2 pr-1",
                   "border border-border bg-background-elevated",
-                  "hover:bg-muted transition-colors",
+                  "transition-colors hover:bg-muted",
                   "focus:outline-none focus:ring-2 focus:ring-ring"
                 )}
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-white text-sm font-semibold">
+                <div className="flex size-8 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-sm font-semibold text-white">
                   {user?.full_name?.charAt(0).toUpperCase() || "U"}
                 </div>
-                <span className="text-sm font-medium text-foreground hidden lg:block">
+                <span className="hidden text-sm font-medium text-foreground lg:block">
                   {user?.full_name?.split(" ")[0] || "Usuário"}
                 </span>
-                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                <ChevronDown className="size-4 text-muted-foreground" />
               </button>
 
               {/* Dropdown */}
@@ -156,23 +157,23 @@ export function Header({
                 <>
                   <div
                     className="fixed inset-0 z-40"
-                    onClick={() => setIsUserMenuOpen(false)}
+                    onClick={() => { setIsUserMenuOpen(false); }}
                   />
-                  <div className="absolute right-0 top-full mt-2 w-56 py-2 bg-background-elevated rounded-xl border border-border shadow-xl z-50 animate-scale-in">
-                    <div className="px-4 py-3 border-b border-border mb-2">
+                  <div className="absolute right-0 top-full z-50 mt-2 w-56 animate-scale-in rounded-xl border border-border bg-background-elevated py-2 shadow-xl">
+                    <div className="mb-2 border-b border-border px-4 py-3">
                       <p className="text-sm font-medium text-foreground">
                         {user?.full_name || "Usuário"}
                       </p>
-                      <p className="text-xs text-muted-foreground truncate">
+                      <p className="truncate text-xs text-muted-foreground">
                         {user?.email || "user@example.com"}
                       </p>
                     </div>
                     <Link
                       href="/settings"
-                      onClick={() => setIsUserMenuOpen(false)}
-                      className="flex items-center gap-3 px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+                      onClick={() => { setIsUserMenuOpen(false); }}
+                      className="flex items-center gap-3 px-4 py-2 text-sm text-foreground transition-colors hover:bg-muted"
                     >
-                      <Settings className="w-4 h-4" />
+                      <Settings className="size-4" />
                       Configurações
                     </Link>
                     <button
@@ -180,9 +181,9 @@ export function Header({
                         logout();
                         setIsUserMenuOpen(false);
                       }}
-                      className="flex w-full items-center gap-3 px-4 py-2 text-sm text-destructive hover:bg-destructive-subtle transition-colors"
+                      className="flex w-full items-center gap-3 px-4 py-2 text-sm text-destructive transition-colors hover:bg-destructive-subtle"
                     >
-                      <LogOut className="w-4 h-4" />
+                      <LogOut className="size-4" />
                       Sair
                     </button>
                   </div>
@@ -192,8 +193,8 @@ export function Header({
 
             {/* User avatar - mobile only */}
             <button
-              onClick={() => setIsUserMenuOpen(true)}
-              className="sm:hidden flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-white text-sm font-semibold"
+              onClick={() => { setIsUserMenuOpen(true); }}
+              className="flex size-9 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-sm font-semibold text-white sm:hidden"
               aria-label="Menu do usuário"
             >
               {user?.full_name?.charAt(0).toUpperCase() || "U"}
@@ -212,14 +213,14 @@ export function Header({
       {/* User Drawer - Mobile */}
       <Drawer
         isOpen={isUserMenuOpen}
-        onClose={() => setIsUserMenuOpen(false)}
+        onClose={() => { setIsUserMenuOpen(false); }}
         title="Menu"
         position="bottom"
         size="md"
       >
         <div className="space-y-1">
-          <div className="flex items-center gap-3 p-4 bg-muted rounded-xl mb-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-white font-semibold text-lg">
+          <div className="mb-4 flex items-center gap-3 rounded-xl bg-muted p-4">
+            <div className="flex size-12 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-lg font-semibold text-white">
               {user?.full_name?.charAt(0).toUpperCase() || "U"}
             </div>
             <div>
@@ -234,10 +235,10 @@ export function Header({
 
           <Link
             href="/settings"
-            onClick={() => setIsUserMenuOpen(false)}
-            className="flex items-center gap-3 p-4 rounded-xl hover:bg-muted transition-colors"
+            onClick={() => { setIsUserMenuOpen(false); }}
+            className="flex items-center gap-3 rounded-xl p-4 transition-colors hover:bg-muted"
           >
-            <Settings className="w-5 h-5 text-muted-foreground" />
+            <Settings className="size-5 text-muted-foreground" />
             <span className="text-foreground">Configurações</span>
           </Link>
 
@@ -246,9 +247,9 @@ export function Header({
               logout();
               setIsUserMenuOpen(false);
             }}
-            className="flex w-full items-center gap-3 p-4 rounded-xl text-destructive hover:bg-destructive-subtle transition-colors"
+            className="flex w-full items-center gap-3 rounded-xl p-4 text-destructive transition-colors hover:bg-destructive-subtle"
           >
-            <LogOut className="w-5 h-5" />
+            <LogOut className="size-5" />
             <span>Sair</span>
           </button>
         </div>
@@ -257,64 +258,64 @@ export function Header({
       {/* Notifications Drawer */}
       <Drawer
         isOpen={isNotificationsOpen}
-        onClose={() => setIsNotificationsOpen(false)}
+        onClose={() => { setIsNotificationsOpen(false); }}
         title="Notificações"
         position="right"
         size="md"
       >
         <div className="space-y-4">
           {/* Sample notifications */}
-          <div className="p-4 bg-primary-subtle rounded-xl">
+          <div className="rounded-xl bg-primary-subtle p-4">
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                <Bell className="w-4 h-4 text-primary" />
+              <div className="flex size-8 flex-shrink-0 items-center justify-center rounded-full bg-primary/20">
+                <Bell className="size-4 text-primary" />
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-foreground">
                   Nova nota fiscal processada
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="mt-1 text-xs text-muted-foreground">
                   Sua nota do Mercado Livre foi processada com sucesso.
                 </p>
-                <p className="text-xs text-muted-foreground mt-2">
+                <p className="mt-2 text-xs text-muted-foreground">
                   Há 5 minutos
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="p-4 bg-warning-subtle rounded-xl">
+          <div className="rounded-xl bg-warning-subtle p-4">
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-warning/20 flex items-center justify-center">
-                <Bell className="w-4 h-4 text-warning" />
+              <div className="flex size-8 flex-shrink-0 items-center justify-center rounded-full bg-warning/20">
+                <Bell className="size-4 text-warning" />
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-foreground">
                   Preço acima da média
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="mt-1 text-xs text-muted-foreground">
                   Detectamos um preço 20% acima da média em sua última compra.
                 </p>
-                <p className="text-xs text-muted-foreground mt-2">
+                <p className="mt-2 text-xs text-muted-foreground">
                   Há 1 hora
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="p-4 rounded-xl border border-border">
+          <div className="rounded-xl border border-border p-4">
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                <Bell className="w-4 h-4 text-muted-foreground" />
+              <div className="flex size-8 flex-shrink-0 items-center justify-center rounded-full bg-muted">
+                <Bell className="size-4 text-muted-foreground" />
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-foreground">
                   Bem-vindo ao Mercado Esperto!
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="mt-1 text-xs text-muted-foreground">
                   Comece adicionando sua primeira nota fiscal.
                 </p>
-                <p className="text-xs text-muted-foreground mt-2">
+                <p className="mt-2 text-xs text-muted-foreground">
                   Ontem
                 </p>
               </div>

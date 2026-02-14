@@ -1,17 +1,19 @@
 "use client";
 
+import { useState } from "react";
+
 import {
-  ColumnDef,
+  type ColumnDef,
   flexRender,
   getCoreRowModel,
   getPaginationRowModel,
   getSortedRowModel,
-  SortingState,
+  type SortingState,
   useReactTable,
-  ColumnFiltersState,
+  type ColumnFiltersState,
   getFilteredRowModel,
 } from "@tanstack/react-table";
-import { useState } from "react";
+
 import { Button } from "./button";
 
 interface DataTableProps<TData, TValue> {
@@ -57,7 +59,7 @@ export function DataTable<TData, TValue>({
             onChange={(event) =>
               table.getColumn(searchKey)?.setFilterValue(event.target.value)
             }
-            className="max-w-sm px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="max-w-sm rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
       )}
@@ -71,7 +73,7 @@ export function DataTable<TData, TValue>({
                 {headerGroup.headers.map((header) => (
                   <th
                     key={header.id}
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider"
+                    className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700"
                   >
                     {header.isPlaceholder
                       ? null
@@ -84,12 +86,12 @@ export function DataTable<TData, TValue>({
               </tr>
             ))}
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="divide-y divide-gray-200 bg-white">
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <tr
                   key={row.id}
-                  className="hover:bg-gray-50 transition-colors"
+                  className="transition-colors hover:bg-gray-50"
                 >
                   {row.getVisibleCells().map((cell) => (
                     <td key={cell.id} className="px-4 py-3 text-sm text-gray-900">
@@ -122,7 +124,7 @@ export function DataTable<TData, TValue>({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => table.previousPage()}
+            onClick={() => { table.previousPage(); }}
             disabled={!table.getCanPreviousPage()}
           >
             Anterior
@@ -130,7 +132,7 @@ export function DataTable<TData, TValue>({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => table.nextPage()}
+            onClick={() => { table.nextPage(); }}
             disabled={!table.getCanNextPage()}
           >
             Próxima

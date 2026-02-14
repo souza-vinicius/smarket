@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+
 import { apiClient } from "@/lib/api";
 
 export interface Product {
@@ -15,11 +16,6 @@ export interface Product {
   issuer_name: string;
   merchant_name?: string;
   invoice_id: string;
-}
-
-interface ProductsResponse {
-  items: Product[];
-  total: number;
 }
 
 // Get all invoice items (product purchases) for the current user
@@ -44,7 +40,7 @@ export function useSearchProducts(query: string) {
   return useQuery({
     queryKey: ["products", "search", query],
     queryFn: async () => {
-      if (!query || query.length < 2) return [];
+      if (!query || query.length < 2) {return [];}
       
       const response = await apiClient.get<Product[]>(
         `/products/search-purchases?q=${encodeURIComponent(query)}`

@@ -1,12 +1,15 @@
 "use client";
 
 import { useState } from "react";
+
 import Link from "next/link";
+
 import { ArrowLeft, Mail } from "lucide-react";
+
 import { AuthLayout } from "@/components/layout/page-layout";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { InfoCard } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -26,17 +29,17 @@ export default function ForgotPasswordPage() {
       >
         <InfoCard
           variant="success"
-          icon={<Mail className="w-5 h-5" />}
+          icon={<Mail className="size-5" />}
           title="Instruções enviadas"
           description={`Se o e-mail ${email} estiver cadastrado, você receberá instruções para redefinir sua senha.`}
         />
 
-        <div className="text-center pt-6">
+        <div className="pt-6 text-center">
           <Link
             href="/login"
-            className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-primary-hover transition-colors"
+            className="inline-flex items-center gap-2 text-sm font-medium text-primary transition-colors hover:text-primary-hover"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="size-4" />
             Voltar para o login
           </Link>
         </div>
@@ -54,7 +57,7 @@ export default function ForgotPasswordPage() {
           label="E-mail"
           type="email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => { setEmail(e.target.value); }}
           placeholder="seu@email.com"
           required
           autoComplete="email"
@@ -70,12 +73,12 @@ export default function ForgotPasswordPage() {
         </Button>
       </form>
 
-      <div className="text-center pt-6 border-t border-border">
+      <div className="border-t border-border pt-6 text-center">
         <Link
           href="/login"
-          className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-primary-hover transition-colors"
+          className="inline-flex items-center gap-2 text-sm font-medium text-primary transition-colors hover:text-primary-hover"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="size-4" />
           Voltar para o login
         </Link>
       </div>

@@ -6,9 +6,10 @@
  */
 
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
+
 import { getPlatform } from "./capacitor";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const API_BASE_URL = `${API_URL.replace(/\/$/, "").replace(/\/api\/v1$/, "")}/api/v1`;
 
 interface RetryableRequest extends InternalAxiosRequestConfig {
@@ -68,7 +69,7 @@ adminApi.interceptors.request.use(
     return config;
   },
   (error) => {
-    return Promise.reject(error);
+    return Promise.reject(error instanceof Error ? error : new Error(String(error)));
   }
 );
 

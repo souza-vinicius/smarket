@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { isNative } from "@/lib/capacitor";
-import { toast } from "sonner";
-import { useAuth } from "@/hooks/use-auth";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+
+import { toast } from "sonner";
+
+import { useAuth } from "@/hooks/use-auth";
+import { isNative } from "@/lib/capacitor";
 
 /**
  * Admin layout with multi-layer access control:
@@ -40,7 +43,7 @@ export default function AdminLayout({
   // Show loading while checking access
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex min-h-screen items-center justify-center">
         <div className="text-gray-600">Verificando permissões...</div>
       </div>
     );
@@ -57,49 +60,49 @@ export default function AdminLayout({
       <aside className="w-64 bg-white shadow-md">
         <div className="p-6">
           <h1 className="text-2xl font-bold text-gray-900">Admin</h1>
-          <p className="text-sm text-gray-500 mt-1">Mercado Esperto</p>
+          <p className="mt-1 text-sm text-gray-500">Mercado Esperto</p>
         </div>
 
         <nav className="mt-6">
           <Link
             href="/admin"
-            className="block px-6 py-3 text-gray-700 hover:bg-gray-100 transition-colors"
+            className="block px-6 py-3 text-gray-700 transition-colors hover:bg-gray-100"
           >
             📊 Dashboard
           </Link>
           <Link
             href="/admin/users"
-            className="block px-6 py-3 text-gray-700 hover:bg-gray-100 transition-colors"
+            className="block px-6 py-3 text-gray-700 transition-colors hover:bg-gray-100"
           >
             👥 Usuários
           </Link>
           <Link
             href="/admin/subscriptions"
-            className="block px-6 py-3 text-gray-700 hover:bg-gray-100 transition-colors"
+            className="block px-6 py-3 text-gray-700 transition-colors hover:bg-gray-100"
           >
             💳 Assinaturas
           </Link>
           <Link
             href="/admin/payments"
-            className="block px-6 py-3 text-gray-700 hover:bg-gray-100 transition-colors"
+            className="block px-6 py-3 text-gray-700 transition-colors hover:bg-gray-100"
           >
             💰 Pagamentos
           </Link>
           <Link
             href="/admin/coupons"
-            className="block px-6 py-3 text-gray-700 hover:bg-gray-100 transition-colors"
+            className="block px-6 py-3 text-gray-700 transition-colors hover:bg-gray-100"
           >
             🎟️ Cupons
           </Link>
           <Link
             href="/admin/reports"
-            className="block px-6 py-3 text-gray-700 hover:bg-gray-100 transition-colors"
+            className="block px-6 py-3 text-gray-700 transition-colors hover:bg-gray-100"
           >
             📈 Relatórios
           </Link>
           <Link
             href="/admin/settings"
-            className="block px-6 py-3 text-gray-700 hover:bg-gray-100 transition-colors"
+            className="block px-6 py-3 text-gray-700 transition-colors hover:bg-gray-100"
           >
             ⚙️ Configurações
           </Link>
@@ -107,7 +110,7 @@ export default function AdminLayout({
           <div className="mt-8 border-t border-gray-200 pt-4">
             <Link
               href="/dashboard"
-              className="block px-6 py-3 text-blue-600 hover:bg-blue-50 transition-colors"
+              className="block px-6 py-3 text-blue-600 transition-colors hover:bg-blue-50"
             >
               ← Voltar ao App
             </Link>
@@ -115,12 +118,12 @@ export default function AdminLayout({
         </nav>
 
         {/* User info */}
-        <div className="absolute bottom-0 w-64 p-6 border-t border-gray-200 bg-white">
+        <div className="absolute bottom-0 w-64 border-t border-gray-200 bg-white p-6">
           <div className="text-xs text-gray-500">Logado como:</div>
-          <div className="text-sm font-medium text-gray-900 truncate">
+          <div className="truncate text-sm font-medium text-gray-900">
             {user?.email}
           </div>
-          <div className="text-xs text-blue-600 mt-1 font-medium uppercase">
+          <div className="mt-1 text-xs font-medium uppercase text-blue-600">
             {user?.admin_role}
           </div>
         </div>

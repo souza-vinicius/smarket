@@ -1,13 +1,9 @@
 "use client";
 
 import { useState } from "react";
+
 import Link from "next/link";
-import {
-  useAdminSettings,
-  useUpdateFeatureFlags,
-  useAdminRoles,
-} from "@/hooks/use-admin-settings";
-import { toast } from "sonner";
+
 import {
   Settings,
   Shield,
@@ -16,6 +12,13 @@ import {
   ToggleRight,
   ChevronRight,
 } from "lucide-react";
+import { toast } from "sonner";
+
+import {
+  useAdminSettings,
+  useUpdateFeatureFlags,
+  useAdminRoles,
+} from "@/hooks/use-admin-settings";
 
 interface FlagToggleProps {
   label: string;
@@ -39,18 +42,18 @@ function FlagToggle({
       <div>
         <div className="text-sm font-medium text-gray-900">{label}</div>
         {description && (
-          <div className="text-xs text-gray-500 mt-0.5">{description}</div>
+          <div className="mt-0.5 text-xs text-gray-500">{description}</div>
         )}
       </div>
       <button
-        onClick={() => onToggle(flagKey, !value)}
+        onClick={() => { onToggle(flagKey, !value); }}
         disabled={disabled}
         className="flex-shrink-0 disabled:opacity-50"
       >
         {value ? (
-          <ToggleRight className="h-7 w-7 text-blue-600" />
+          <ToggleRight className="size-7 text-blue-600" />
         ) : (
-          <ToggleLeft className="h-7 w-7 text-gray-400" />
+          <ToggleLeft className="size-7 text-gray-400" />
         )}
       </button>
     </div>
@@ -140,7 +143,7 @@ export default function SettingsPage() {
   };
 
   const getEffectiveValue = (key: string, currentValue: unknown): boolean => {
-    if (key in pendingChanges) return pendingChanges[key] as boolean;
+    if (key in pendingChanges) {return pendingChanges[key] as boolean;}
     return currentValue as boolean;
   };
 
@@ -148,13 +151,13 @@ export default function SettingsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Settings className="h-6 w-6" />
+          <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900">
+            <Settings className="size-6" />
             Configuracoes
           </h1>
-          <p className="text-gray-600 mt-1">
+          <p className="mt-1 text-gray-600">
             Feature flags e configuracoes do sistema
           </p>
         </div>
@@ -162,7 +165,7 @@ export default function SettingsPage() {
           <button
             onClick={handleSave}
             disabled={updateFlags.isPending}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            className="rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
           >
             {updateFlags.isPending
               ? "Salvando..."
@@ -173,7 +176,7 @@ export default function SettingsPage() {
 
       {/* Warning banner */}
       {hasPendingChanges && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6 text-sm text-yellow-800">
+        <div className="mb-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
           Alteracoes em feature flags sao aplicadas imediatamente, mas{" "}
           <strong>nao persistem</strong> apos restart do servidor. Para tornar
           permanente, atualize o arquivo <code>.env</code>.
@@ -186,12 +189,12 @@ export default function SettingsPage() {
           {[...Array(4)].map((_, i) => (
             <div
               key={i}
-              className="bg-white rounded-lg shadow p-6 animate-pulse"
+              className="animate-pulse rounded-lg bg-white p-6 shadow"
             >
-              <div className="h-5 bg-gray-200 rounded w-1/4 mb-4" />
+              <div className="mb-4 h-5 w-1/4 rounded bg-gray-200" />
               <div className="space-y-3">
-                <div className="h-4 bg-gray-100 rounded w-full" />
-                <div className="h-4 bg-gray-100 rounded w-3/4" />
+                <div className="h-4 w-full rounded bg-gray-100" />
+                <div className="h-4 w-3/4 rounded bg-gray-100" />
               </div>
             </div>
           ))}
@@ -200,11 +203,11 @@ export default function SettingsPage() {
         <div className="space-y-6">
           {SECTION_ORDER.map((sectionKey) => {
             const flags = settings.feature_flags[sectionKey];
-            if (!flags) return null;
+            if (!flags) {return null;}
 
             return (
-              <div key={sectionKey} className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-base font-semibold text-gray-900 mb-2">
+              <div key={sectionKey} className="rounded-lg bg-white p-6 shadow">
+                <h2 className="mb-2 text-base font-semibold text-gray-900">
                   {SECTION_LABELS[sectionKey] || sectionKey}
                 </h2>
                 <div className="divide-y divide-gray-100">
@@ -244,8 +247,8 @@ export default function SettingsPage() {
           })}
 
           {/* Providers (read-only) */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-base font-semibold text-gray-900 mb-2">
+          <div className="rounded-lg bg-white p-6 shadow">
+            <h2 className="mb-2 text-base font-semibold text-gray-900">
               Provedores Configurados
             </h2>
             <div className="divide-y divide-gray-100">
@@ -262,7 +265,7 @@ export default function SettingsPage() {
                         .replace(/\b\w/g, (c) => c.toUpperCase())}
                     </div>
                     <span
-                      className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
                         value === true || (typeof value === "string" && value)
                           ? "bg-green-50 text-green-700"
                           : "bg-gray-100 text-gray-500"
@@ -283,15 +286,15 @@ export default function SettingsPage() {
       ) : null}
 
       {/* Roles Section */}
-      <div className="mt-8 bg-white rounded-lg shadow p-6">
-        <h2 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <Shield className="h-5 w-5" />
+      <div className="mt-8 rounded-lg bg-white p-6 shadow">
+        <h2 className="mb-4 flex items-center gap-2 text-base font-semibold text-gray-900">
+          <Shield className="size-5" />
           Papeis Administrativos
         </h2>
         {isLoadingRoles ? (
-          <div className="space-y-3 animate-pulse">
+          <div className="animate-pulse space-y-3">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-12 bg-gray-100 rounded" />
+              <div key={i} className="h-12 rounded bg-gray-100" />
             ))}
           </div>
         ) : (
@@ -299,13 +302,13 @@ export default function SettingsPage() {
             {roles.map((role) => (
               <div
                 key={role.role}
-                className="border border-gray-100 rounded-lg p-4"
+                className="rounded-lg border border-gray-100 p-4"
               >
-                <div className="flex items-center justify-between mb-2">
+                <div className="mb-2 flex items-center justify-between">
                   <span className="font-medium text-gray-900">
                     {role.label}
                   </span>
-                  <span className="text-xs text-gray-400 font-mono">
+                  <span className="font-mono text-xs text-gray-400">
                     {role.role}
                   </span>
                 </div>
@@ -313,7 +316,7 @@ export default function SettingsPage() {
                   {role.permissions.map((perm) => (
                     <span
                       key={perm}
-                      className="inline-flex px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-600 font-mono"
+                      className="inline-flex rounded bg-gray-100 px-2 py-0.5 font-mono text-xs text-gray-600"
                     >
                       {perm}
                     </span>
@@ -328,10 +331,10 @@ export default function SettingsPage() {
       {/* Link to Audit Logs */}
       <Link
         href="/admin/settings/audit-logs"
-        className="mt-6 flex items-center justify-between bg-white rounded-lg shadow p-6 hover:bg-gray-50 transition-colors"
+        className="mt-6 flex items-center justify-between rounded-lg bg-white p-6 shadow transition-colors hover:bg-gray-50"
       >
         <div className="flex items-center gap-3">
-          <FileText className="h-5 w-5 text-gray-400" />
+          <FileText className="size-5 text-gray-400" />
           <div>
             <div className="font-medium text-gray-900">Logs de Auditoria</div>
             <div className="text-sm text-gray-500">
@@ -339,7 +342,7 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
-        <ChevronRight className="h-5 w-5 text-gray-400" />
+        <ChevronRight className="size-5 text-gray-400" />
       </Link>
     </div>
   );

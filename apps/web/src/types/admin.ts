@@ -291,9 +291,7 @@ export interface SettingsResponse {
   feature_flags: FeatureFlags;
 }
 
-export interface FeatureFlagsUpdate {
-  [key: string]: boolean | number;
-}
+export type FeatureFlagsUpdate = Record<string, boolean | number>;
 
 export interface FeatureFlagsUpdateResponse {
   message: string;
@@ -337,6 +335,7 @@ export interface CouponResponse {
   max_uses_per_user: number;
   min_purchase_amount: number | null;
   first_time_only: boolean;
+  duration_months: number | null;
   allow_reuse_after_cancel: boolean;
   is_stackable: boolean;
   applicable_plans: string[];
@@ -359,6 +358,7 @@ export interface CouponCreate {
   max_uses_per_user?: number;
   min_purchase_amount?: number | null;
   first_time_only?: boolean;
+  duration_months?: number | null;
   allow_reuse_after_cancel?: boolean;
   is_stackable?: boolean;
   applicable_plans?: string[];
@@ -375,6 +375,7 @@ export interface CouponUpdate {
   min_purchase_amount?: number | null;
   valid_until?: string | null;
   is_active?: boolean;
+  duration_months?: number | null;
 }
 
 export interface CouponUsageResponse {

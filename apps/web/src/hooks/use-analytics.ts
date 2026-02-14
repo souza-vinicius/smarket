@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+
 import { apiClient } from "@/lib/api";
 
 // Spending Trends
@@ -15,7 +16,7 @@ interface SpendingTrendsResponse {
   trends: Trend[];
 }
 
-export function useSpendingTrends(months: number = 6) {
+export function useSpendingTrends(months = 6) {
   return useQuery({
     queryKey: ["analytics", "spending-trends", months],
     queryFn: async () => {
@@ -40,7 +41,7 @@ interface MerchantInsightsResponse {
   merchants: MerchantInsight[];
 }
 
-export function useMerchantInsights(limit: number = 10) {
+export function useMerchantInsights(limit = 10) {
   return useQuery({
     queryKey: ["analytics", "merchant-insights", limit],
     queryFn: async () => {
@@ -76,7 +77,7 @@ interface CategorySpendingResponse {
   subcategories: Subcategory[];
 }
 
-export function useCategorySpending(months: number = 6) {
+export function useCategorySpending(months = 6) {
   return useQuery({
     queryKey: ["analytics", "category-spending", months],
     queryFn: async () => {

@@ -105,3 +105,13 @@ export function useInsightsReport(): UseQueryResult<{ summary: string }> {
     refetchOnWindowFocus: false,
   });
 }
+
+export function useInvoiceAnalyses(invoiceId: string): UseQueryResult<Analysis[]> {
+  return useQuery({
+    queryKey: [...INSIGHT_KEYS.all, "invoice", invoiceId],
+    queryFn: async () => {
+      return apiClient.get<Analysis[]>(`/analysis/by-invoice/${invoiceId}`);
+    },
+    enabled: !!invoiceId,
+  });
+}

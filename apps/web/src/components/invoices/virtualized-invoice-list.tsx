@@ -1,11 +1,17 @@
 "use client";
 
 import { useRef, useCallback, useEffect, useState } from "react";
-import { useVirtualizer } from "@tanstack/react-virtual";
+
 import { useRouter } from "next/navigation";
+
+import { useVirtualizer } from "@tanstack/react-virtual";
+
+import { type VirtualItem } from "@/hooks/use-grouped-invoices";
+import { dynamicRoute } from "@/lib/dynamic-params";
+
 import { InvoiceCard } from "./invoice-card";
 import { MonthSeparator } from "./month-separator";
-import { VirtualItem } from "@/hooks/use-grouped-invoices";
+
 
 interface VirtualizedInvoiceListProps {
   items: VirtualItem[];
@@ -55,7 +61,7 @@ export function VirtualizedInvoiceList({ items }: VirtualizedInvoiceListProps) {
 
   const handleInvoiceClick = useCallback(
     (invoiceId: string) => {
-      router.push(`/invoices/${invoiceId}`);
+      router.push(dynamicRoute("/invoices", invoiceId));
     },
     [router]
   );
@@ -68,7 +74,7 @@ export function VirtualizedInvoiceList({ items }: VirtualizedInvoiceListProps) {
   return (
     <div
       ref={parentRef}
-      className="w-full overflow-y-auto border border-border rounded-lg"
+      className="w-full overflow-y-auto rounded-lg border border-border"
       style={{
         height: `${containerHeight}px`,
         contain: "layout style paint",
@@ -90,7 +96,7 @@ export function VirtualizedInvoiceList({ items }: VirtualizedInvoiceListProps) {
               style={{
                 transform: `translateY(${virtualItem.start}px)`,
               }}
-              className="absolute left-0 right-0 top-0 w-full"
+              className="absolute inset-x-0 top-0 w-full"
             >
               {item.type === "header" ? (
                 <MonthSeparator
@@ -101,7 +107,7 @@ export function VirtualizedInvoiceList({ items }: VirtualizedInvoiceListProps) {
                 <div className="px-2 py-1 sm:px-4 sm:py-2">
                   <InvoiceCard
                     invoice={item.data}
-                    onClick={() => handleInvoiceClick(item.data.id)}
+                    onClick={() => { handleInvoiceClick(item.data.id); }}
                   />
                 </div>
               )}

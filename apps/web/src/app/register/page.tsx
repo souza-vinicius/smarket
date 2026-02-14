@@ -1,13 +1,16 @@
 "use client";
 
 import { useState } from "react";
+
 import Link from "next/link";
-import { ArrowRight, Check } from "lucide-react";
-import { useAuth } from "@/hooks/use-auth";
+
+import { ArrowRight } from "lucide-react";
+
 import { AuthLayout } from "@/components/layout/page-layout";
 import { Button } from "@/components/ui/button";
-import { Input, PasswordInput } from "@/components/ui/input";
 import { InfoCard } from "@/components/ui/card";
+import { Input, PasswordInput } from "@/components/ui/input";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function RegisterPage() {
   const [fullName, setFullName] = useState("");
@@ -20,7 +23,7 @@ export default function RegisterPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password !== confirmPassword) return;
+    if (password !== confirmPassword) {return;}
     register({ email, password, full_name: fullName });
   };
 
@@ -41,7 +44,7 @@ export default function RegisterPage() {
           <InfoCard
             variant="error"
             icon={
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             }
@@ -55,7 +58,7 @@ export default function RegisterPage() {
           label="Nome completo"
           type="text"
           value={fullName}
-          onChange={(e) => setFullName(e.target.value)}
+          onChange={(e) => { setFullName(e.target.value); }}
           placeholder="Seu nome completo"
           required
           autoComplete="name"
@@ -66,7 +69,7 @@ export default function RegisterPage() {
           label="E-mail"
           type="email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => { setEmail(e.target.value); }}
           placeholder="seu@email.com"
           required
           autoComplete="email"
@@ -76,7 +79,7 @@ export default function RegisterPage() {
         <PasswordInput
           label="Senha"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={(e) => { setPassword(e.target.value); }}
           placeholder="Mínimo 8 caracteres"
           required
           hint="Use pelo menos 8 caracteres com letras e números"
@@ -86,21 +89,21 @@ export default function RegisterPage() {
         <PasswordInput
           label="Confirme a senha"
           value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
+          onChange={(e) => { setConfirmPassword(e.target.value); }}
           placeholder="••••••••"
           required
           error={confirmPassword && !passwordsMatch ? "As senhas não coincidem" : undefined}
         />
 
         {/* Terms */}
-        <label className="flex items-start gap-3 cursor-pointer">
+        <label className="flex cursor-pointer items-start gap-3">
           <input
             type="checkbox"
             checked={acceptTerms}
-            onChange={(e) => setAcceptTerms(e.target.checked)}
-            className="mt-0.5 w-4 h-4 rounded border-border text-primary focus:ring-primary"
+            onChange={(e) => { setAcceptTerms(e.target.checked); }}
+            className="mt-0.5 size-4 rounded border-border text-primary focus:ring-primary"
           />
-          <span className="text-sm text-muted-foreground leading-relaxed">
+          <span className="text-sm leading-relaxed text-muted-foreground">
             Aceito os{" "}
             <Link href="/terms" className="text-primary hover:underline">
               Termos de Uso
@@ -119,19 +122,19 @@ export default function RegisterPage() {
           size="lg"
           isLoading={isRegisterPending}
           disabled={!canSubmit}
-          rightIcon={<ArrowRight className="w-4 h-4" />}
+          rightIcon={<ArrowRight className="size-4" />}
         >
           Criar conta
         </Button>
       </form>
 
       {/* Footer */}
-      <div className="text-center pt-6 border-t border-border">
+      <div className="border-t border-border pt-6 text-center">
         <p className="text-sm text-muted-foreground">
           Já tem uma conta?{" "}
           <Link
             href="/login"
-            className="font-medium text-primary hover:text-primary-hover transition-colors"
+            className="font-medium text-primary transition-colors hover:text-primary-hover"
           >
             Entre
           </Link>

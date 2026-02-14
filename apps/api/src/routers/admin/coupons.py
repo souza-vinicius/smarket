@@ -10,7 +10,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from datetime import timezone
+
 from src.database import get_db
+
 from src.dependencies import get_current_admin, require_permission
 from src.models.coupon import Coupon, CouponUsage
 from src.models.user import User
@@ -24,6 +27,7 @@ from src.schemas.coupon import (
 )
 from src.services.admin_service import AdminService
 from src.services.coupon_service import CouponService
+from src.services.stripe_service import StripeService
 
 logger = structlog.get_logger()
 
@@ -168,6 +172,15 @@ async def create_coupon(
         )
 
     # Create coupon
+    # Ensure datetimes are naive UTC for asyncpg
+    valid_from = data.valid_from
+    if valid_from and valid_from.tzinfo:
+        valid_from = valid_from.astimezone(timezone.utc).replace(tzinfo=None)
+
+    valid_until = data.valid_until
+    if valid_until and valid_until.tzinfo:
+        valid_until = valid_until.astimezone(timezone.utc).replace(tzinfo=None)
+
     coupon = Coupon(
         code=data.code.upper(),
         description=data.description,
@@ -177,12 +190,14 @@ async def create_coupon(
         max_uses_per_user=data.max_uses_per_user,
         min_purchase_amount=data.min_purchase_amount,
         first_time_only=data.first_time_only,
+        duration_months=data.duration_months,
         allow_reuse_after_cancel=data.allow_reuse_after_cancel,
         is_stackable=data.is_stackable,
         applicable_plans=data.applicable_plans,
         applicable_cycles=data.applicable_cycles,
-        valid_from=data.valid_from,
-        valid_until=data.valid_until,
+
+        valid_from=valid_from,
+        valid_until=valid_until,
         is_active=data.is_active,
         created_by=admin.id,
     )
@@ -190,6 +205,38 @@ async def create_coupon(
     db.add(coupon)
     await db.commit()
     await db.refresh(coupon)
+
+    # Sync with Stripe
+    try:
+        # Determine duration
+        if data.duration_months:
+            stripe_duration = "repeating"
+            duration_in_months = data.duration_months
+        else:
+            stripe_duration = "forever"
+            duration_in_months = None
+
+        stripe_coupon = await StripeService.create_coupon(
+            duration=stripe_duration,
+            duration_in_months=duration_in_months,
+            name=f"{data.description} ({data.code})",
+            percent_off=float(data.discount_value) if data.discount_type == "percentage" else None,
+            amount_off=int(data.discount_value * 100) if data.discount_type == "fixed" else None,
+            currency="brl",
+        )
+
+        stripe_promo = await StripeService.create_promotion_code(
+            coupon_id=stripe_coupon.id,
+            code=data.code,
+        )
+
+        coupon.stripe_coupon_id = stripe_coupon.id
+        coupon.stripe_promo_code_id = stripe_promo.id
+        await db.commit()
+    except Exception as e:
+        logger.error("stripe_sync_failed", error=str(e), coupon_code=data.code)
+        # Continue without failing the request, but log the error
+        # In a strict environment, we might want to rollback or raise
 
     # Audit log
     service = AdminService(db, admin, request)
@@ -237,6 +284,8 @@ async def update_coupon(
     # Update fields
     update_data = data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
+        if field == "valid_until" and value and value.tzinfo:
+             value = value.astimezone(timezone.utc).replace(tzinfo=None)
         setattr(coupon, field, value)
 
     await db.commit()

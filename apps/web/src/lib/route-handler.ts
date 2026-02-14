@@ -16,17 +16,17 @@ const DYNAMIC_ROUTE_MAPPINGS = [
   // /invoices/[id] -> /invoices/_
   {
     pattern: /^\/invoices\/(?!_$|add$|review\/|index\.)([^/]+)\/?$/,
-    rewrite: (match: RegExpMatchArray) => `/invoices/_/`
+    rewrite: (_match: RegExpMatchArray) => `/invoices/_/`
   },
   // /invoices/[id]/edit -> /invoices/_/edit
   {
     pattern: /^\/invoices\/(?!_$|add$|review\/|index\.)([^/]+)\/edit\/?$/,
-    rewrite: (match: RegExpMatchArray) => `/invoices/_/edit/`
+    rewrite: (_match: RegExpMatchArray) => `/invoices/_/edit/`
   },
   // /invoices/review/[id] -> /invoices/review/_
   {
     pattern: /^\/invoices\/review\/(?!_$|index\.)([^/]+)\/?$/,
-    rewrite: (match: RegExpMatchArray) => `/invoices/review/_/`
+    rewrite: (_match: RegExpMatchArray) => `/invoices/review/_/`
   },
 ];
 
@@ -39,7 +39,6 @@ export function rewriteDynamicRoute(url: string): string {
     const match = url.match(mapping.pattern);
     if (match) {
       const rewritten = mapping.rewrite(match);
-      console.log('[RouteHandler] Rewriting:', url, '→', rewritten);
       return rewritten;
     }
   }

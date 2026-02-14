@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
+
 import { useRouter } from "next/navigation";
+
 import {
   User,
-  Mail,
   Users,
   DollarSign,
   LogOut,
@@ -16,17 +17,18 @@ import {
   Crown,
   Calendar,
 } from "lucide-react";
+import { toast } from "sonner";
+
 import { PageLayout } from "@/components/layout/page-layout";
-import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Modal, ConfirmModal } from "@/components/ui/modal";
-import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth, useChangePassword } from "@/hooks/use-auth";
 import { useSettings, useUpdateSettings } from "@/hooks/use-settings";
 import { useSubscription } from "@/hooks/use-subscription";
-import { Skeleton } from "@/components/ui/skeleton";
-import { toast } from "sonner";
 
 interface SettingsSectionProps {
   title: string;
@@ -36,7 +38,7 @@ interface SettingsSectionProps {
 function SettingsSection({ title, children }: SettingsSectionProps) {
   return (
     <section className="mb-8">
-      <h2 className="text-lg font-semibold text-foreground mb-4">{title}</h2>
+      <h2 className="mb-4 text-lg font-semibold text-foreground">{title}</h2>
       <div className="space-y-3">{children}</div>
     </section>
   );
@@ -61,16 +63,16 @@ function SettingsItem({
       onClick={onClick}
       className="flex items-center gap-4"
     >
-      <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-muted flex items-center justify-center text-muted-foreground">
+      <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
         {icon}
       </div>
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0 flex-1">
         <p className="font-medium text-foreground">{label}</p>
         {value && (
-          <p className="text-sm text-muted-foreground truncate">{value}</p>
+          <p className="truncate text-sm text-muted-foreground">{value}</p>
         )}
       </div>
-      {action || (onClick && <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />)}
+      {action || (onClick && <ChevronRight className="size-5 flex-shrink-0 text-muted-foreground" />)}
     </Card>
   );
 }
@@ -131,7 +133,7 @@ function ProfileModal({
           label="Nome completo"
           value={formData.full_name}
           onChange={(e) =>
-            setFormData({ ...formData, full_name: e.target.value })
+            { setFormData({ ...formData, full_name: e.target.value }); }
           }
         />
         <Input
@@ -364,10 +366,10 @@ function HouseholdModal({
           type="number"
           value={formData.household_income}
           onChange={(e) =>
-            setFormData({
+            { setFormData({
               ...formData,
               household_income: Number(e.target.value),
-            })
+            }); }
           }
           leftIcon={<span className="text-muted-foreground">R$</span>}
         />
@@ -378,10 +380,10 @@ function HouseholdModal({
             min={1}
             value={formData.adults_count}
             onChange={(e) =>
-              setFormData({
+              { setFormData({
                 ...formData,
                 adults_count: Number(e.target.value),
-              })
+              }); }
             }
           />
           <Input
@@ -390,10 +392,10 @@ function HouseholdModal({
             min={0}
             value={formData.children_count}
             onChange={(e) =>
-              setFormData({
+              { setFormData({
                 ...formData,
                 children_count: Number(e.target.value),
-              })
+              }); }
             }
           />
         </div>
@@ -405,7 +407,7 @@ function HouseholdModal({
 export default function SettingsPage() {
   const router = useRouter();
   const { logout, user } = useAuth();
-  const { data: settings, isLoading } = useSettings();
+  const { data: settings } = useSettings();
   const { data: subscriptionData, isLoading: isSubscriptionLoading } = useSubscription();
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isHouseholdModalOpen, setIsHouseholdModalOpen] = useState(false);
@@ -424,56 +426,56 @@ export default function SettingsPage() {
     <PageLayout title="Configurações" subtitle="Gerencie suas preferências">
       {/* Profile Card */}
       <Card className="mb-6 flex items-center gap-4">
-        <div className="flex-shrink-0 w-16 h-16 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-xl font-bold">
+        <div className="flex size-16 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-xl font-bold text-white">
           {user?.full_name?.charAt(0).toUpperCase() || "U"}
         </div>
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0 flex-1">
           <h2 className="text-xl font-bold text-foreground">
             {user?.full_name || "Usuário"}
           </h2>
-          <p className="text-muted-foreground truncate">{user?.email}</p>
+          <p className="truncate text-muted-foreground">{user?.email}</p>
         </div>
       </Card>
 
       {/* Profile Section */}
       <SettingsSection title="Perfil">
         <SettingsItem
-          icon={<User className="w-5 h-5" />}
+          icon={<User className="size-5" />}
           label="Editar perfil"
           value={settings?.full_name}
-          onClick={() => setIsProfileModalOpen(true)}
+          onClick={() => { setIsProfileModalOpen(true); }}
         />
         <SettingsItem
-          icon={<Users className="w-5 h-5" />}
+          icon={<Users className="size-5" />}
           label="Perfil familiar"
           value={
             settings?.adults_count
               ? `${settings.adults_count} adultos, ${settings.children_count} crianças`
               : undefined
           }
-          onClick={() => setIsHouseholdModalOpen(true)}
+          onClick={() => { setIsHouseholdModalOpen(true); }}
         />
         <SettingsItem
-          icon={<DollarSign className="w-5 h-5" />}
+          icon={<DollarSign className="size-5" />}
           label="Renda mensal"
           value={
             settings?.household_income
               ? `R$ ${settings.household_income.toLocaleString("pt-BR")}`
               : undefined
           }
-          onClick={() => setIsHouseholdModalOpen(true)}
+          onClick={() => { setIsHouseholdModalOpen(true); }}
         />
       </SettingsSection>
 
       {/* Preferences Section */}
       <SettingsSection title="Preferências">
         <SettingsItem
-          icon={<Bell className="w-5 h-5" />}
+          icon={<Bell className="size-5" />}
           label="Notificações"
           value="Ativadas"
         />
         <SettingsItem
-          icon={<Moon className="w-5 h-5" />}
+          icon={<Moon className="size-5" />}
           label="Tema"
           value="Automático"
         />
@@ -486,13 +488,13 @@ export default function SettingsPage() {
         ) : subscription ? (
           <Card className="p-4">
             {/* Header */}
-            <div className="flex items-start justify-between mb-4">
+            <div className="mb-4 flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center">
-                  <Crown className="w-6 h-6 text-white" />
+                <div className="flex size-12 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600">
+                  <Crown className="size-6 text-white" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  <div className="mb-1 flex flex-wrap items-center gap-2">
                     <h3 className="font-semibold text-foreground">
                       Plano {subscription.plan === "free" ? "Gratuito" : subscription.plan === "basic" ? "Básico" : "Premium"}
                     </h3>
@@ -506,8 +508,8 @@ export default function SettingsPage() {
                     )}
                   </div>
                   {subscription.status === "trial" && (
-                    <p className="text-sm text-muted-foreground flex items-center gap-1">
-                      <Calendar className="w-3 h-3" />
+                    <p className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <Calendar className="size-3" />
                       Trial até {new Date(subscription.trial_end).toLocaleDateString("pt-BR")}
                     </p>
                   )}
@@ -522,15 +524,15 @@ export default function SettingsPage() {
 
             {/* Usage Stats */}
             {usage && (
-              <div className="grid grid-cols-2 gap-3 mb-4 p-3 bg-muted rounded-lg">
+              <div className="mb-4 grid grid-cols-2 gap-3 rounded-lg bg-muted p-3">
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">Notas Fiscais</p>
+                  <p className="mb-1 text-xs text-muted-foreground">Notas Fiscais</p>
                   <p className="text-sm font-semibold text-foreground">
                     {usage.invoices_used} / {usage.invoices_limit === null ? "∞" : usage.invoices_limit}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">Análises de IA</p>
+                  <p className="mb-1 text-xs text-muted-foreground">Análises de IA</p>
                   <p className="text-sm font-semibold text-foreground">
                     {usage.ai_analyses_used} / {usage.ai_analyses_limit === null ? "∞" : usage.ai_analyses_limit}
                   </p>
@@ -542,18 +544,18 @@ export default function SettingsPage() {
             <Button
               fullWidth
               variant="outline"
-              onClick={() => router.push("/settings/subscription")}
-              rightIcon={<ChevronRight className="w-4 h-4" />}
+              onClick={() => { router.push("/settings/subscription"); }}
+              rightIcon={<ChevronRight className="size-4" />}
             >
               Gerenciar Assinatura
             </Button>
           </Card>
         ) : (
           <Card className="p-4 text-center">
-            <p className="text-muted-foreground mb-3">
+            <p className="mb-3 text-muted-foreground">
               Nenhuma assinatura encontrada
             </p>
-            <Button onClick={() => router.push("/pricing")}>
+            <Button onClick={() => { router.push("/pricing"); }}>
               Ver Planos
             </Button>
           </Card>
@@ -563,16 +565,16 @@ export default function SettingsPage() {
       {/* Security Section */}
       <SettingsSection title="Segurança">
         <SettingsItem
-          icon={<Shield className="w-5 h-5" />}
+          icon={<Shield className="size-5" />}
           label="Alterar senha"
-          onClick={() => setIsChangePasswordModalOpen(true)}
+          onClick={() => { setIsChangePasswordModalOpen(true); }}
         />
       </SettingsSection>
 
       {/* Support Section */}
       <SettingsSection title="Suporte">
         <SettingsItem
-          icon={<HelpCircle className="w-5 h-5" />}
+          icon={<HelpCircle className="size-5" />}
           label="Ajuda e suporte"
           onClick={() => {}}
         />
@@ -583,8 +585,8 @@ export default function SettingsPage() {
         <Button
           variant="danger"
           fullWidth
-          leftIcon={<LogOut className="w-5 h-5" />}
-          onClick={() => setIsLogoutModalOpen(true)}
+          leftIcon={<LogOut className="size-5" />}
+          onClick={() => { setIsLogoutModalOpen(true); }}
         >
           Sair da conta
         </Button>
@@ -593,19 +595,19 @@ export default function SettingsPage() {
       {/* Modals */}
       <ProfileModal
         isOpen={isProfileModalOpen}
-        onClose={() => setIsProfileModalOpen(false)}
+        onClose={() => { setIsProfileModalOpen(false); }}
       />
       <HouseholdModal
         isOpen={isHouseholdModalOpen}
-        onClose={() => setIsHouseholdModalOpen(false)}
+        onClose={() => { setIsHouseholdModalOpen(false); }}
       />
       <ChangePasswordModal
         isOpen={isChangePasswordModalOpen}
-        onClose={() => setIsChangePasswordModalOpen(false)}
+        onClose={() => { setIsChangePasswordModalOpen(false); }}
       />
       <ConfirmModal
         isOpen={isLogoutModalOpen}
-        onClose={() => setIsLogoutModalOpen(false)}
+        onClose={() => { setIsLogoutModalOpen(false); }}
         onConfirm={handleLogout}
         variant="danger"
         title="Sair da conta"

@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
+
 import { CountBadge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 interface NavItem {
   label: string;
@@ -24,7 +25,7 @@ export function MobileNav({ items, className }: MobileNavProps) {
   return (
     <nav
       className={cn(
-        "fixed bottom-0 left-0 right-0 z-50",
+        "fixed inset-x-0 bottom-0 z-50",
         "bg-background-elevated/95 backdrop-blur-lg",
         "border-t border-border",
         "pb-safe",
@@ -32,16 +33,27 @@ export function MobileNav({ items, className }: MobileNavProps) {
         className
       )}
     >
-      <div className="flex items-center justify-around h-16">
+      <div className="flex h-16 items-center justify-around">
         {items.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-          
+          // Exact match or child route (but not if there's a more specific match)
+          const isExactMatch = pathname === item.href;
+          const isChildRoute = pathname.startsWith(`${item.href}/`);
+
+          // Check if there's a more specific nav item that matches
+          const hasMoreSpecificMatch = items.some(
+            (other) => other.href !== item.href &&
+                       other.href.length > item.href.length &&
+                       pathname.startsWith(other.href)
+          );
+
+          const isActive = isExactMatch || (isChildRoute && !hasMoreSpecificMatch);
+
           return (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-col items-center justify-center flex-1 h-full",
+                "flex h-full flex-1 flex-col items-center justify-center",
                 "min-w-[64px] max-w-[96px]",
                 "transition-colors duration-200",
                 "relative",
@@ -58,20 +70,20 @@ export function MobileNav({ items, className }: MobileNavProps) {
                   {isActive && item.activeIcon ? item.activeIcon : item.icon}
                 </span>
                 {item.badge && item.badge > 0 && (
-                  <span className="absolute -top-1 -right-1">
+                  <span className="absolute -right-1 -top-1">
                     <CountBadge count={item.badge} />
                   </span>
                 )}
               </div>
               <span className={cn(
-                "text-[10px] font-medium mt-1",
+                "mt-1 text-[10px] font-medium",
                 "transition-all duration-200",
                 isActive ? "opacity-100" : "opacity-70"
               )}>
                 {item.label}
               </span>
               {isActive && (
-                <span className="absolute -bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary" />
+                <span className="absolute -bottom-0 left-1/2 size-1 -translate-x-1/2 rounded-full bg-primary" />
               )}
             </Link>
           );
@@ -102,10 +114,10 @@ export function FloatingActionButton({
       onClick={onClick}
       aria-label={label}
       className={cn(
-        "fixed right-4 bottom-20 z-40",
+        "fixed bottom-20 right-4 z-40",
         "lg:hidden",
         "flex items-center gap-2",
-        "h-14 px-4 rounded-full",
+        "h-14 rounded-full px-4",
         "shadow-lg shadow-primary/25",
         "transition-all duration-200",
         "active:scale-95",
@@ -114,7 +126,7 @@ export function FloatingActionButton({
         className
       )}
     >
-      <span className="w-5 h-5">{icon}</span>
+      <span className="size-5">{icon}</span>
       <span className="font-medium">{label}</span>
     </button>
   );
