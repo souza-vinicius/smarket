@@ -22,7 +22,6 @@ import {
   useMerchantInsights,
   useCategorySpending,
 } from "@/hooks/use-analytics";
-import { useDashboardSummary } from "@/hooks/use-dashboard";
 import { formatCurrency } from "@/lib/utils";
 
 // Map API period to months
@@ -109,7 +108,6 @@ export default function AnalyticsPage() {
   const [period, setPeriod] = useState<"7d" | "30d" | "90d" | "1y">("30d");
 
   // Fetch data from APIs
-  const { data: summary, isLoading: isSummaryLoading } = useDashboardSummary();
   const { data: categoryData, isLoading: isCategoryLoading } =
     useCategorySpending(periodToMonths[period]);
   const { data: merchantData, isLoading: isMerchantLoading } =
@@ -117,43 +115,42 @@ export default function AnalyticsPage() {
   const { data: trendsData, isLoading: isTrendsLoading } =
     useSpendingTrends(periodToMonths[period]);
 
-  // Calculate stats from real data
+  // Calculate stats from real data - respecting selected period
   const stats = useMemo(() => {
-    if (!summary) {return null;}
-
-    const totalSpent = summary.total_spent_this_month;
-    const totalSpentLastMonth = summary.total_spent_last_month;
-    const invoiceCount = summary.invoice_count_this_month;
-
-    // Calculate average ticket from trends data
     const trends = trendsData?.trends || [];
-    const totalInvoices = trends.reduce(
-      (sum, t) => sum + t.invoice_count,
-      0
-    );
-    const totalFromTrends = trends.reduce((sum, t) => sum + Number(t.total), 0);
-    const averageTicket =
-      totalInvoices > 0 ? totalFromTrends / totalInvoices : 0;
+    if (trends.length === 0) {return null;}
+
+    // Calculate totals from trends (respects selected period)
+    const totalInvoices = trends.reduce((sum, t) => sum + t.invoice_count, 0);
+    const totalSpent = trends.reduce((sum, t) => sum + Number(t.total), 0);
+    const averageTicket = totalInvoices > 0 ? totalSpent / totalInvoices : 0;
 
     // Get top category
     const categories = categoryData?.categories || [];
     const topCategory = categories[0] || { name: "N/A", total_spent: 0 };
 
-    // Calculate period change
+    // Calculate period-over-period change
+    // Split trends into current period and previous period
+    const midPoint = Math.floor(trends.length / 2);
+    const firstHalf = trends.slice(0, midPoint);
+    const secondHalf = trends.slice(midPoint);
+
+    const firstHalfTotal = firstHalf.reduce((sum, t) => sum + Number(t.total), 0);
+    const secondHalfTotal = secondHalf.reduce((sum, t) => sum + Number(t.total), 0);
+
     const periodChange =
-      totalSpentLastMonth > 0
-        ? ((totalSpent - totalSpentLastMonth) / totalSpentLastMonth) * 100
+      firstHalfTotal > 0
+        ? ((secondHalfTotal - firstHalfTotal) / firstHalfTotal) * 100
         : 0;
 
     return {
       totalSpent,
-      totalSpentLastMonth,
-      invoiceCount,
+      invoiceCount: totalInvoices,
       averageTicket,
       topCategory,
       periodChange,
     };
-  }, [summary, trendsData, categoryData]);
+  }, [trendsData, categoryData]);
 
   // Process categories with percentages
   const categoriesWithPercentage = useMemo(() => {
@@ -171,7 +168,7 @@ export default function AnalyticsPage() {
   }, [categoryData]);
 
   const isLoading =
-    isSummaryLoading || isCategoryLoading || isMerchantLoading || isTrendsLoading;
+    isCategoryLoading || isMerchantLoading || isTrendsLoading;
 
   return (
     <PageLayout
