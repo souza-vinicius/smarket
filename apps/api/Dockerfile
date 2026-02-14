@@ -59,4 +59,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
 # Run migrations then start uvicorn with:
 # - Multiple workers for concurrency
 # - Proxy headers for running behind Traefik/reverse proxy (Dokploy)
-CMD ["sh", "-c", "alembic upgrade head && uvicorn src.main:app --host 0.0.0.0 --port 8000 --workers ${UVICORN_WORKERS:-2} --proxy-headers --forwarded-allow-ips='*'"]
+# - Graceful shutdown timeout: 30s to finish pending requests
+CMD ["sh", "-c", "alembic upgrade head && uvicorn src.main:app --host 0.0.0.0 --port 8000 --workers ${UVICORN_WORKERS:-2} --proxy-headers --forwarded-allow-ips='*' --timeout-graceful-shutdown 30"]

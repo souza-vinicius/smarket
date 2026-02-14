@@ -3,6 +3,7 @@ import sys
 import traceback
 import uuid
 
+import structlog
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -29,12 +30,35 @@ from src.routers import (
 from src.routers.admin import admin_router
 
 
-# Configurar logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout)],
-)
+# Configure structured logging (JSON format for production)
+if not settings.DEBUG:
+    # Production: JSON logging for easy parsing
+    structlog.configure(
+        processors=[
+            structlog.stdlib.add_log_level,
+            structlog.stdlib.add_logger_name,
+            structlog.processors.TimeStamper(fmt="iso"),
+            structlog.processors.StackInfoRenderer(),
+            structlog.processors.format_exc_info,
+            structlog.processors.JSONRenderer(),
+        ],
+        wrapper_class=structlog.stdlib.BoundLogger,
+        context_class=dict,
+        logger_factory=structlog.stdlib.LoggerFactory(),
+        cache_logger_on_first_use=True,
+    )
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(message)s",
+        handlers=[logging.StreamHandler(sys.stdout)],
+    )
+else:
+    # Development: Human-readable logs
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        handlers=[logging.StreamHandler(sys.stdout)],
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -238,6 +262,25 @@ async def bootstrap_admin():
                 "ADMIN_BOOTSTRAP_EMAIL configured but user not found: %s",
                 settings.ADMIN_BOOTSTRAP_EMAIL,
             )
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Gracefully close database and Redis connections on shutdown."""
+    logger.info("Shutting down gracefully...")
+
+    # Dispose database engine (close all connections in pool)
+    from src.database import engine
+    await engine.dispose()
+    logger.info("Database connections closed")
+
+    # Close Redis connection if exists
+    from src.services.cached_prompts import prompt_cache
+    if prompt_cache.redis_client:
+        await prompt_cache.redis_client.close()
+        logger.info("Redis connection closed")
+
+    logger.info("Shutdown complete")
 
 
 def _cors_headers(request: Request) -> dict[str, str]:
