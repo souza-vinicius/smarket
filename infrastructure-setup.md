@@ -1,289 +1,592 @@
-# Infrastructure Setup Plan: Mercado Esperto VPS (Phases 1-3)
+# Infrastructure Setup Plan: Mercado Esperto VPS (Revised)
 
 ## Goal
-Create production-ready infrastructure documentation and configuration files for deploying Mercado Esperto to Hostinger VPS (16GB RAM, 8 vCPU, São Paulo) supporting 1000 concurrent users while maintaining strict $16.67/month budget.
+Production-ready infrastructure for Mercado Esperto on Hostinger VPS (2 vCPU, 8GB RAM, 100GB disk, São Paulo).
+Target: 100-150 concurrent users (~800-1500 registered active users). Budget: $16.67/month (infra only, LLM costs separate).
 
-## Deliverables Summary
+## Current State (baseline)
 
-### Phase 1: Infrastructure Configuration (2-3 hours)
-**Output**: Domain/DNS setup guide + Nginx config + CloudFlare setup guide
-- [ ] **Task 1.1**: Domain & DNS Setup Guide
-  - Create `docs/DOMAIN_SETUP.md` with Registro.br + CloudFlare steps
-  - Verify: File created, all steps documented with screenshots
-  - Rollback: Delete file (no infrastructure yet)
-
-- [ ] **Task 1.2**: CloudFlare Configuration Guide
-  - Create `docs/CLOUDFLARE_SETUP.md` with DNS records, page rules, firewall rules
-  - Verify: Guide includes all 10 configuration steps with expected results
-  - Rollback: Delete file
-
-- [ ] **Task 1.3**: Nginx Reverse Proxy Config
-  - Create `nginx.conf` (rate limiting + SSL + caching headers)
-  - Verify: File validates with `nginx -t`, all zones/upstreams defined
-  - Rollback: `git checkout nginx.conf`
-
-- [ ] **Task 1.4**: SSL Certificate Setup Guide
-  - Create `docs/SSL_SETUP.md` with Let's Encrypt + Certbot steps
-  - Verify: Include renewal automation steps, expected file locations
-  - Rollback: Delete file
+| Component | Status | Gap |
+|-----------|--------|-----|
+| **Reverse Proxy** | Traefik via Dokploy (SSL auto) | No rate limiting configured |
+| **DB Pooling** | NullPool (debug) / default (prod) | No explicit pool_size, overflow, timeout |
+| **Caching** | Redis 1h TTL for LLM extractions | TTL too short, no metrics |
+| **Background Tasks** | FastAPI BackgroundTasks | Works for current scale, no persistence |
+| **Health Check** | `GET /health` → `{"status": "ok"}` | No DB/Redis/provider verification |
+| **Backups** | None | **Critical gap** |
+| **Rate Limiting** | None | Vulnerable to abuse |
+| **LLM Resilience** | Basic fallback chain | No circuit breakers, no timeouts |
+| **Logging** | Text-based, stdout | No structured JSON logging |
+| **Monitoring** | None | No metrics, no alerts |
 
 ---
 
-### Phase 2: Docker & Application Deployment (3-4 hours)
-**Output**: Production docker-compose file + deployment procedures + health check script
-- [ ] **Task 2.1**: Production Docker Compose
-  - Create `docker-compose.production.yml` with all services + resource limits
-  - Verify: File parses with `docker-compose config`, all services have healthchecks
-  - Rollback: `git checkout docker-compose.production.yml`
+## Phase 1: Production Docker & Deploy (3-4 hours)
 
-- [ ] **Task 2.2**: Environment Configuration Template
-  - Create `.env.production.example` with all required secrets (masked)
-  - Verify: All 25+ variables documented with descriptions
-  - Rollback: `rm .env.production.example`
+**Output**: Production docker-compose + deploy guide + health checks
 
-- [ ] **Task 2.3**: Deployment Procedure Guide
-  - Create `docs/DEPLOYMENT.md` with step-by-step (clone → .env → build → up → migrate → verify)
-  - Verify: All 12 steps documented, expected output for each step
-  - Rollback: `git checkout DEPLOYMENT.md`
+### Task 1.1: Production Docker Compose
+- Create `docker-compose.production.yml` with resource limits for all services
+- Services: postgres, redis, api, web (same 4 services, no Nginx — Traefik handles routing)
+- Resource limits based on 2 vCPU / 8GB RAM VPS:
 
-- [ ] **Task 2.4**: Health Check & Verification Script
-  - Create `scripts/health_check.sh` (curl /health endpoints, db ping, redis ping)
-  - Verify: Script is executable, all checks documented
-  - Rollback: `rm scripts/health_check.sh`
+| Service | Memory Limit | CPU Limit | Notes |
+|---------|-------------|-----------|-------|
+| postgres | 2 GB | shared | Shared buffers = 512MB |
+| redis | 256 MB | shared | maxmemory 256MB (allkeys-lru) |
+| api | 2.5 GB | shared | 2 uvicorn workers |
+| web | 1 GB | shared | Next.js SSR |
+| OS + Traefik | ~1 GB | shared | Reserved for system |
+| **Headroom** | **~1.2 GB** | | Buffer for spikes |
 
-- [ ] **Task 2.5**: Database Migration Documentation
-  - Create `docs/DATABASE_MIGRATION.md` with alembic commands + rollback procedures
-  - Verify: Include both forward (upgrade head) and backward (downgrade) steps
-  - Rollback: `git checkout DATABASE_MIGRATION.md`
+> **Note**: With 2 vCPU, CPU limits per container are not set (all services share
+> the 2 cores). Docker `cpus` constraints only make sense with 4+ cores.
+> Memory limits ARE set to prevent OOM kills.
+
+- Verify: `docker-compose -f docker-compose.production.yml config` parses without errors
+- Rollback: `git checkout docker-compose.production.yml`
+
+### Task 1.2: Environment Configuration Template
+- Create `.env.production.example` with all required variables (masked)
+- Document all 30+ variables with descriptions and default values
+- Include Traefik domain variables (`API_DOMAIN`, `WEB_DOMAIN`)
+- Verify: All variables from current `docker-compose.yml` + `config.py` documented
+- Rollback: `rm .env.production.example`
+
+### Task 1.3: Deployment Procedure Guide
+- Create `docs/DEPLOYMENT.md` with step-by-step:
+  1. VPS initial setup (SSH, firewall, Docker install)
+  2. Dokploy/Traefik setup (already in use)
+  3. Clone repo + configure `.env`
+  4. Build + start services
+  5. Run migrations (`alembic upgrade head`)
+  6. Verify health
+  7. DNS configuration (point domain to VPS IP)
+- Include Traefik-specific config (labels are already in docker-compose.yml)
+- Verify: All steps have expected output examples
+- Rollback: Delete file
+
+### Task 1.4: Health Check Script
+- Create `scripts/health_check.sh`:
+  - `curl /health` (API alive)
+  - `pg_isready` (DB connection)
+  - `redis-cli ping` (Cache connection)
+  - Check LLM provider connectivity (non-blocking)
+  - Report memory/disk usage
+- Verify: Script is executable, all checks return pass/fail
+- Rollback: `rm scripts/health_check.sh`
+
+### Task 1.5: Database Backup Script
+- Create `scripts/backup.sh`:
+  - `pg_dump` compressed backup to `/backups/` directory
+  - Retention: keep last 7 daily + 4 weekly
+  - Log backup size and duration
+  - Optional: upload to S3-compatible storage (Backblaze B2 = $0.005/GB)
+- Create `docs/BACKUP_RESTORE.md` with restore procedures
+- Add cron job documentation: `0 3 * * * /path/to/backup.sh`
+- Verify: Script creates valid backup, restore procedure tested
+- Rollback: Delete files
 
 ---
 
-### Phase 3: Backend Optimizations (4-5 hours)
-**Output**: Code changes for performance + caching + rate limiting + LLM cost reduction
+## Phase 2: Backend Optimizations (4-5 hours)
 
-- [ ] **Task 3.1**: Connection Pooling Configuration
-  - Modify `apps/api/src/database.py` with SQLAlchemy pool settings (20+10 connections)
-  - Verify: File parses, `pool_size=20, max_overflow=10` visible, comments explain why
-  - Rollback: `git checkout apps/api/src/database.py`
+**Output**: Connection pooling + cache improvements + rate limiting + health check upgrade
 
-- [ ] **Task 3.2**: Celery Task Queue Integration
-  - Create `apps/api/src/celery_app.py` (Redis broker, task config, decorators)
-  - Modify `apps/api/src/routers/invoices.py` to use Celery instead of BackgroundTasks
-  - Verify: Both files exist, no syntax errors, Celery config has acks_late + retry config
-  - Rollback: `git checkout apps/api/src/celery_app.py apps/api/src/routers/invoices.py`
+### Task 2.1: Connection Pooling Configuration
+Modify `apps/api/src/database.py`:
 
-- [ ] **Task 3.3**: Rate Limiting Middleware
-  - Create `apps/api/src/middleware/rate_limiter.py` (Redis-backed sliding window)
-  - Modify `apps/api/src/main.py` to import and apply middleware
-  - Verify: Both files exist, test endpoint has rate limit decorator
-  - Rollback: `git checkout apps/api/src/middleware/rate_limiter.py apps/api/src/main.py`
+```python
+engine = create_async_engine(
+    settings.DATABASE_URL,
+    echo=settings.DB_ECHO,
+    future=True,
+    poolclass=NullPool if settings.DEBUG else None,
+    # Production pool settings (ignored when NullPool)
+    pool_size=settings.DB_POOL_SIZE,          # 10
+    max_overflow=settings.DB_MAX_OVERFLOW,     # 5
+    pool_pre_ping=True,                        # detect stale connections
+    pool_recycle=settings.DB_POOL_RECYCLE,     # 1800s (30min)
+    pool_timeout=settings.DB_POOL_TIMEOUT,     # 30s
+)
+```
 
-- [ ] **Task 3.4**: LLM Response Caching (72h TTL)
-  - Expand `apps/api/src/services/cached_prompts.py` with image hash + prompt hash caching
-  - Modify `apps/api/src/services/multi_provider_extractor.py` to check cache first
-  - Verify: Both files exist, cache TTL = 86400*3 (259200s), logic before LLM call
-  - Rollback: `git checkout apps/api/src/services/cached_prompts.py apps/api/src/services/multi_provider_extractor.py`
+- Sized for 2 workers: pool_size(10) × workers(2) = 20 max connections + 5 overflow = 25 total
+- Verify: `pool_size=10, max_overflow=5, pool_pre_ping=True` visible in code
+- Rollback: `git checkout apps/api/src/database.py`
 
-- [ ] **Task 3.5**: Gemini Direct API Prioritization
-  - Modify `apps/api/src/services/multi_provider_extractor.py` to prioritize Gemini Direct
-  - Change provider order: Gemini Direct → OpenRouter → OpenAI → Anthropic
-  - Verify: File shows new priority order, comments explain 80% cost savings
-  - Rollback: `git checkout apps/api/src/services/multi_provider_extractor.py`
+### Task 2.2: Expand LLM Cache TTL
+Modify `apps/api/src/services/cached_prompts.py`:
 
-- [ ] **Task 3.6**: Batch AI Analysis
-  - Modify `apps/api/src/services/ai_analyzer.py` to combine 14 analyses into 1 LLM call
-  - Verify: Single prompt with 14 analysis types, returns one JSON response
-  - Rollback: `git checkout apps/api/src/services/ai_analyzer.py`
+```python
+# Before:  self.ttl = 3600  (1 hour)
+# After:   self.ttl = settings.LLM_CACHE_TTL  (configurable, default 24h)
+```
 
-- [ ] **Task 3.7**: Conditional Analysis (Skip Low-Value Invoices)
-  - Modify `apps/api/src/tasks/ai_analysis.py` with business logic (Premium only, < R$50 skip)
-  - Verify: Function `should_run_analysis()` exists with 3 conditions documented
-  - Rollback: `git checkout apps/api/src/tasks/ai_analysis.py`
+- Same image + same provider = same extraction result (deterministic)
+- 24h default is conservative; can increase to 72h after validation
+- Add cache hit/miss logging for monitoring
+- Verify: TTL reads from config, cache metrics logged
+- Rollback: `git checkout apps/api/src/services/cached_prompts.py`
 
-- [ ] **Task 3.8**: Configuration for Optimizations
-  - Add to `apps/api/src/config.py`: `CELERY_ENABLED`, `RATE_LIMIT_ENABLED`, `CACHE_TTL_HOURS`, `MIN_INVOICE_VALUE_FOR_ANALYSIS`
-  - Verify: All settings have defaults + doc strings
-  - Rollback: `git checkout apps/api/src/config.py`
+### Task 2.3: Rate Limiting with slowapi
+Install `slowapi` and add rate limiting to key endpoints:
 
-- [ ] **Task 3.9**: Create Optimization Summary Document
-  - Create `docs/OPTIMIZATIONS.md` explaining all changes (pool size, Celery, caching, Gemini Direct)
-  - Include before/after cost estimates (LLM: $1500 → $300/month)
-  - Verify: Document includes 8+ optimizations with cost/performance impact
-  - Rollback: `rm docs/OPTIMIZATIONS.md`
+```python
+# main.py
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+limiter = Limiter(key_func=get_remote_address, storage_uri=settings.REDIS_URL)
+app.state.limiter = limiter
+```
+
+Limits:
+| Endpoint | Limit | Rationale |
+|----------|-------|-----------|
+| `POST /auth/register` | 5/hour | Prevent spam accounts |
+| `POST /auth/login` | 10/minute | Prevent brute force |
+| `POST /invoices/upload/*` | 30/hour | Prevent LLM cost abuse |
+| `POST /invoices/*/confirm` | 60/hour | Prevent AI analysis abuse |
+| Global default | 100/minute | General protection |
+
+- Feature flag: `RATE_LIMIT_ENABLED` (default: true in prod)
+- Verify: Hitting limit returns 429 with `Retry-After` header
+- Rollback: Remove slowapi from requirements + revert main.py
+
+### Task 2.4: Enhanced Health Check Endpoint
+Upgrade `GET /health` in `main.py`:
+
+```python
+@app.get("/health")
+async def health_check():
+    checks = {"api": "ok", "version": "1.0.0"}
+
+    # DB check
+    try:
+        async with AsyncSessionLocal() as db:
+            await db.execute(text("SELECT 1"))
+        checks["database"] = "ok"
+    except Exception as e:
+        checks["database"] = f"error: {str(e)}"
+
+    # Redis check
+    try:
+        r = redis.from_url(settings.REDIS_URL)
+        await r.ping()
+        checks["redis"] = "ok"
+    except Exception as e:
+        checks["redis"] = f"error: {str(e)}"
+
+    status = "ok" if all(v == "ok" for v in checks.values()) else "degraded"
+    return {"status": status, **checks}
+```
+
+- Verify: `/health` returns DB and Redis status
+- Rollback: `git checkout apps/api/src/main.py`
+
+### Task 2.5: LLM Circuit Breakers
+Add retry + circuit breaker logic to `multi_provider_extractor.py`:
+
+```python
+# Use tenacity for retry with exponential backoff
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+
+@retry(
+    stop=stop_after_attempt(2),
+    wait=wait_exponential(multiplier=1, min=2, max=10),
+    retry=retry_if_exception_type((TimeoutError, ConnectionError)),
+)
+async def _call_provider(self, provider, images, ...):
+    ...
+```
+
+- Add per-provider timeout: `LLM_TIMEOUT_SECONDS` (default: 60s)
+- Log provider failures with structured data (provider, error, duration)
+- Don't change the provider fallback order (current smart routing is correct)
+- Verify: Timeout kills hanging LLM calls, retries work
+- Rollback: `git checkout apps/api/src/services/multi_provider_extractor.py`
+
+### Task 2.6: Configuration for All Optimizations
+Add to `apps/api/src/config.py`:
+
+```python
+# Database Pool
+DB_POOL_SIZE: int = 10         # connections per worker (2 workers × 10 = 20 base)
+DB_MAX_OVERFLOW: int = 5       # extra connections under load (total max: 25 per worker)
+DB_POOL_RECYCLE: int = 1800    # 30 minutes
+DB_POOL_TIMEOUT: int = 30      # seconds
+
+# LLM Cache
+LLM_CACHE_TTL: int = 86400    # 24 hours (seconds)
+
+# Rate Limiting
+RATE_LIMIT_ENABLED: bool = True
+
+# LLM Resilience
+LLM_TIMEOUT_SECONDS: int = 60
+```
+
+Add to `docker-compose.yml` environment section:
+```yaml
+DB_POOL_SIZE: ${DB_POOL_SIZE:-10}
+DB_MAX_OVERFLOW: ${DB_MAX_OVERFLOW:-5}
+LLM_CACHE_TTL: ${LLM_CACHE_TTL:-86400}
+RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
+LLM_TIMEOUT_SECONDS: ${LLM_TIMEOUT_SECONDS:-60}
+```
+
+- Verify: All settings have defaults, documented in `.env.production.example`
+- Rollback: `git checkout apps/api/src/config.py`
+
+---
+
+## Phase 3: Observability & Hardening (3-4 hours)
+
+**Output**: Structured logging + Traefik rate limiting + graceful shutdown + monitoring docs
+
+### Task 3.1: Structured JSON Logging
+Modify `apps/api/src/main.py` logging configuration:
+
+```python
+import structlog
+
+structlog.configure(
+    processors=[
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.processors.add_log_level,
+        structlog.processors.JSONRenderer(),
+    ],
+)
+```
+
+- All logs become JSON for easy parsing (grep, jq, future log aggregation)
+- Keep existing `logger.info(...)` calls — structlog wraps stdlib
+- Verify: Logs output JSON format in Docker
+- Rollback: `git checkout apps/api/src/main.py`
+
+### Task 3.2: Traefik Rate Limiting Labels
+Add rate limiting via Traefik labels in `docker-compose.production.yml`:
+
+```yaml
+labels:
+  # Existing Traefik labels...
+  - "traefik.http.middlewares.smarket-ratelimit.ratelimit.average=100"
+  - "traefik.http.middlewares.smarket-ratelimit.ratelimit.burst=50"
+  - "traefik.http.middlewares.smarket-ratelimit.ratelimit.period=1m"
+  - "traefik.http.routers.smarket-api.middlewares=smarket-ratelimit"
+```
+
+- This provides network-level rate limiting WITHOUT application code changes
+- Complements slowapi (Task 2.3) which provides per-endpoint granularity
+- Verify: Traefik config validates, 429 returned on burst
+- Rollback: Remove labels
+
+### Task 3.3: Graceful Shutdown
+Modify `apps/api/Dockerfile` CMD:
+
+```dockerfile
+# Add SIGTERM handling + drain timeout
+CMD ["sh", "-c", "alembic upgrade head && uvicorn src.main:app \
+  --host 0.0.0.0 --port 8000 \
+  --workers ${UVICORN_WORKERS:-2} \
+  --proxy-headers --forwarded-allow-ips='*' \
+  --timeout-graceful-shutdown 30"]
+```
+
+Add FastAPI shutdown event in `main.py`:
+
+```python
+@app.on_event("shutdown")
+async def shutdown_event():
+    logger.info("Shutting down gracefully...")
+    # Close DB pool
+    await engine.dispose()
+    # Close Redis connections
+    if prompt_cache.redis_client:
+        await prompt_cache.redis_client.close()
+```
+
+- Verify: `docker stop` allows in-flight requests to complete (up to 30s)
+- Rollback: `git checkout apps/api/Dockerfile apps/api/src/main.py`
+
+### Task 3.4: PostgreSQL Production Tuning
+Add PostgreSQL config in `docker-compose.production.yml`:
+
+```yaml
+postgres:
+  command: >
+    postgres
+    -c shared_buffers=512MB
+    -c effective_cache_size=1536MB
+    -c work_mem=8MB
+    -c maintenance_work_mem=128MB
+    -c max_connections=50
+    -c wal_buffers=8MB
+    -c checkpoint_completion_target=0.9
+    -c random_page_cost=1.1
+    -c log_min_duration_statement=1000
+```
+
+- Tuned for 8GB VPS with 2GB allocated to PostgreSQL
+- `shared_buffers=512MB` (~25% of PG memory allocation)
+- `max_connections=50` (pool_size(10) × workers(2) + background tasks + overhead)
+- `log_min_duration_statement=1000` logs slow queries (>1s)
+- Verify: `SHOW shared_buffers` returns 512MB after restart
+- Rollback: Remove `command` from docker-compose
+
+### Task 3.5: Uvicorn Workers Configuration
+Keep worker count at 2 (matches vCPU count):
+
+```yaml
+# docker-compose.production.yml
+environment:
+  UVICORN_WORKERS: 2  # 2 vCPU → 2 workers (IO-bound, async handles concurrency)
+```
+
+- 2 workers × ~500MB each = ~1GB RAM for uvicorn processes
+- Remaining ~1.5GB API allocation for background tasks + spikes
+- Async IO means 2 workers handle many concurrent connections efficiently
+- Verify: `ps aux | grep uvicorn` shows 2 worker processes + 1 master
+- Rollback: N/A (already the current value)
+
+### Task 3.6: Monitoring Setup Guide
+Create `docs/MONITORING.md`:
+- **Uptime Robot** (free tier): Monitor `/health` endpoint every 5 min
+- **Docker stats**: `docker stats --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}"` via cron
+- **Disk usage alert**: Script to warn at 80% disk usage
+- **LLM cost monitoring**: Token callback logs + grep script for daily spend estimate
+- **PostgreSQL**: Slow query log analysis (`log_min_duration_statement=1000`)
+- Future: Prometheus + Grafana (Phase 4, when needed)
+
+### Task 3.7: Security Hardening Checklist
+Create `docs/SECURITY.md`:
+- SSH: Disable password auth, use key-based only
+- Firewall: Only ports 80, 443, 22 open (ufw)
+- Docker: Non-root user (already done in Dockerfile)
+- Secrets: Document `.env` file permissions (`chmod 600`)
+- CORS: Verify allowed origins match production domains only
+- JWT: Verify `SECRET_KEY` is strong (32+ random chars)
+- Traefik: Enable security headers (HSTS, X-Frame-Options, etc.)
 
 ---
 
 ## Dependency Graph
 
 ```
-Phase 1:
-  1.1 (Domain) → 1.2 (CloudFlare) [both needed before VPS setup]
-  1.3 (Nginx) ← depends on domain SSL
-  1.4 (SSL) → 1.3 (Nginx SSL config)
+Phase 1 (Deploy Foundation):
+  1.1 (docker-compose.prod) [independent]
+  1.2 (.env.example) ← depends on 1.1 (knows which vars exist)
+  1.3 (Deploy guide) ← depends on 1.1, 1.2
+  1.4 (Health script) [independent]
+  1.5 (Backup script) [independent]
 
-Phase 2:
-  2.1 (docker-compose.prod) [independent]
-  2.2 (.env.example) ← depends on what services in 2.1
-  2.3 (Deploy guide) → 2.4 (Health script) → 2.5 (DB migration)
-  All Phase 2 tasks → Phase 3 (backend depends on docker infra)
+Phase 2 (Backend Optimization):
+  2.1 (DB pooling) [independent]
+  2.2 (Cache TTL) [independent]
+  2.3 (Rate limiting) [independent]
+  2.4 (Health endpoint) [independent]
+  2.5 (Circuit breakers) [independent]
+  2.6 (Config) ← depends on 2.1-2.5 (collects all new vars)
 
-Phase 3:
-  3.1 (DB pooling) [independent]
-  3.2 (Celery) [independent]
-  3.3 (Rate limiting) [independent]
-  3.4-3.7 (LLM optimizations) [all independent]
-  3.8 (Config) ← depends on 3.1-3.7 (add config vars for new features)
-  3.9 (Docs) ← depends on 3.1-3.8 (document all changes)
+Phase 3 (Observability):
+  3.1 (Logging) [independent]
+  3.2 (Traefik rate limit) ← depends on 1.1 (prod compose)
+  3.3 (Graceful shutdown) [independent]
+  3.4 (PG tuning) ← depends on 1.1 (prod compose)
+  3.5 (Workers) ← depends on 1.1 (prod compose)
+  3.6 (Monitoring docs) ← depends on 2.4 (health endpoint)
+  3.7 (Security docs) [independent]
 ```
 
-**Critical Path**: 1.1 → 1.2 → 1.4 → 1.3 → 2.1 → 2.3 → Phase 3
+**Critical Path**: 1.1 → 1.2 → 1.3 → Phase 2 → Phase 3
 
 ---
 
-## Budget Impact Analysis
+## Budget Impact
 
-| Task | Component | Monthly Cost | Notes |
-|------|-----------|--------------|-------|
-| 1.1-1.4 | Domain + CloudFlare + SSL | $0.67 | R$ 40/year domain, free SSL, free CDN |
-| 2.1 | VPS (Hostinger) | $16.00 | **Fixed. Included in budget.** |
-| 2.1-2.5 | Docker services (local storage) | $0 | PostgreSQL, Redis, Nginx all local |
-| 3.1-3.7 | Backend optimizations | Variable LLM savings | See below |
+| Component | Monthly Cost | Notes |
+|-----------|-------------|-------|
+| VPS (Hostinger) | $16.00 | 2 vCPU, 8GB RAM, 100GB disk, São Paulo |
+| Domain (.com.br) | ~$0.67 | R$ 40/year at Registro.br |
+| Traefik + SSL | $0 | Free, auto-renewal via Let's Encrypt |
+| CloudFlare CDN | $0 | Free tier (DNS + basic CDN) |
+| Uptime Robot | $0 | Free tier (50 monitors) |
+| Backup storage | $0-$1 | Local + optional Backblaze B2 |
+| **Total infra** | **~$16.67/month** | Within budget |
 
-### LLM Cost Projection (Before vs After Optimizations)
+### Capacity Estimation (2 vCPU / 8GB RAM)
 
-| Metric | Before | After | Savings |
-|--------|--------|-------|---------|
-| **Invoice Extraction** | OpenRouter: $0.15/invoice | Gemini Direct: $0.03 | -80% |
-| **AI Analysis** | 14 calls × $0.05 | 1 batch call × $0.10 | -85% |
-| **Monthly (10k invoices)** | $1,500 + $700 = **$2,200** | $300 + $100 = **$400** | **-82%** 🎯 |
+**Bottleneck**: CPU (2 cores). Memory is sufficient for all services.
 
-**Result**: Phases 1-3 reduce LLM costs from $26,400/year to $4,800/year = **$21,600 annual savings**.
+| Operação | Tempo Resposta | CPU Impact | % do Tráfego |
+|----------|---------------|------------|-------------|
+| GET endpoints (listas, dashboard) | 50-200ms | Baixo (IO-bound) | ~80% |
+| POST upload foto | ~100ms (retorno) | **Alto** (background 20-40s) | ~5% |
+| POST confirm invoice | ~100ms (retorno) | Médio (background 5-10s) | ~5% |
+| Auth (login/register) | 100-300ms | Médio (bcrypt) | ~10% |
+
+| Cenário | Usuários Simultâneos | Req/segundo |
+|---------|---------------------|-------------|
+| **Navegação normal** (dashboard, listas) | **150-200** | ~15-20 req/s |
+| **Carga mista** (navegação + uploads) | **80-120** | ~10-15 req/s |
+| **Pico de uploads** (muitos enviando fotos) | **30-50** | ~5-8 req/s |
+
+**Conversão para usuários registrados:**
+- Concorrência típica: 5-10% dos ativos estão online simultaneamente
+- 100 concurrent ÷ 7% = **~1.400 usuários registrados** confortavelmente
+- Cenário conservador: **~800-1.000 usuários ativos**
+
+**Quando escalar:**
+- Monitorar CPU > 80% sustentado por 5+ minutos
+- Próximo degrau: 4 vCPU / 16GB RAM (~$30-35/mês)
+- Com 4 vCPU: 4 uvicorn workers, pool_size=20, ~300-400 concurrent users
+
+### Disk Usage Estimate (100GB)
+
+| Component | Size Estimate | Growth Rate |
+|-----------|--------------|-------------|
+| PostgreSQL data | 1-5 GB | ~500MB/10k invoices |
+| Redis data | < 256 MB | Capped by maxmemory |
+| Docker images | ~2-3 GB | Per rebuild |
+| Uploads (photos) | 10-50 GB | ~5MB/invoice (optimized) |
+| Backups (7 daily + 4 weekly) | 5-15 GB | Proportional to DB |
+| OS + logs | ~5 GB | Rotation needed |
+| **Total estimated** | **~25-80 GB** | **100GB sufficient for 1-2 years** |
+
+> **Alert at 80GB** (80% threshold). At current growth, disk is not a concern
+> until ~20k+ invoices with photos. Configure log rotation to prevent log bloat.
+
+---
+
+### LLM Cost Reality (current architecture)
+
+| Operation | Cost per Unit | Monthly (1k invoices) | Monthly (10k invoices) |
+|-----------|--------------|----------------------|----------------------|
+| Invoice extraction (OpenRouter Gemini Flash) | ~$0.01-0.02 | $10-20 | $100-200 |
+| AI analysis (4-8 calls × gpt-4o-mini) | ~$0.005-0.01 | $5-10 | $50-100 |
+| **Total LLM** | | **$15-30** | **$150-300** |
+
+**Optimization impact (Phase 2)**:
+- Cache TTL 1h → 24h: Eliminates re-extractions of same photos → **~20% reduction**
+- Circuit breakers: Prevents wasted tokens on failing requests → **~5% reduction**
+- Total estimated LLM savings: **~25% reduction** from cache + resilience improvements
+
+> Note: The original plan claimed $2,200/month → $400/month savings. The actual current LLM cost
+> for 10k invoices is ~$150-300/month. The smart provider routing already uses the cheapest
+> models (Gemini Flash Lite → Flash → Flash Standard). Further cost reduction would require
+> reducing the number of AI analysis types, which is a product decision, not an infrastructure one.
 
 ---
 
 ## Rollback Procedures
 
 ### Phase 1 Rollback
-- Delete all `docs/*_SETUP.md` files
-- Revert `nginx.conf`: `git checkout nginx.conf`
-- No infrastructure changed yet
+```bash
+# Delete all new files (no infrastructure changed)
+rm docker-compose.production.yml .env.production.example
+rm -rf docs/ scripts/
+```
 
 ### Phase 2 Rollback
-- Revert `docker-compose.production.yml`: `git checkout docker-compose.production.yml`
-- Delete `.env.production.example`
-- Stop any running containers: `docker-compose -f docker-compose.production.yml down`
+```bash
+git checkout \
+  apps/api/src/database.py \
+  apps/api/src/config.py \
+  apps/api/src/main.py \
+  apps/api/src/services/cached_prompts.py \
+  apps/api/src/services/multi_provider_extractor.py
+pip uninstall slowapi tenacity  # if added
+```
 
 ### Phase 3 Rollback
-- Revert all modified files:
-  ```bash
-  git checkout apps/api/src/database.py \
-    apps/api/src/celery_app.py \
-    apps/api/src/routers/invoices.py \
-    apps/api/src/middleware/rate_limiter.py \
-    apps/api/src/main.py \
-    apps/api/src/services/cached_prompts.py \
-    apps/api/src/services/multi_provider_extractor.py \
-    apps/api/src/services/ai_analyzer.py \
-    apps/api/src/tasks/ai_analysis.py \
-    apps/api/src/config.py
-  ```
-- Database rollback: Run `alembic downgrade -1` if needed (for future migrations)
+```bash
+git checkout \
+  apps/api/src/main.py \
+  apps/api/Dockerfile \
+  docker-compose.production.yml
+pip uninstall structlog  # if added
+```
 
 ---
 
 ## Verification Checklist
 
-### Phase 1 Completion
-- [ ] `docs/DOMAIN_SETUP.md` exists with all 8 Registro.br + CloudFlare steps
-- [ ] `docs/CLOUDFLARE_SETUP.md` includes DNS records (A, CNAME) + 3 page rules + 5 firewall rules
-- [ ] `nginx.conf` is valid: run `docker run --rm -v $(pwd)/nginx.conf:/etc/nginx/nginx.conf:ro nginx nginx -t`
-- [ ] `docs/SSL_SETUP.md` documents Certbot installation + renewal cron job
-- [ ] All 4 files committed to git: `git status` shows no modified docs
+### Phase 1 ✓
+- [ ] `docker-compose -f docker-compose.production.yml config` validates
+- [ ] Resource limits set for all 4 services (memory + CPU)
+- [ ] `.env.production.example` has 30+ variables with descriptions
+- [ ] `docs/DEPLOYMENT.md` has sequential steps with expected output
+- [ ] `scripts/health_check.sh` is executable and checks DB + Redis
+- [ ] `scripts/backup.sh` creates valid `pg_dump` backup
+- [ ] `docs/BACKUP_RESTORE.md` includes restore procedure
 
-### Phase 2 Completion
-- [ ] `docker-compose.production.yml` validates: `docker-compose -f docker-compose.production.yml config > /dev/null`
-- [ ] All 6 services defined: postgres, redis, api, celery_worker, web, nginx
-- [ ] Resource limits set for each service (memory + CPU constraints)
-- [ ] `.env.production.example` has 25+ variables with descriptions
-- [ ] `docs/DEPLOYMENT.md` has 12 sequential steps with expected output
-- [ ] `scripts/health_check.sh` is executable: `chmod +x scripts/health_check.sh`
-- [ ] `docs/DATABASE_MIGRATION.md` includes forward/backward migration procedures
-- [ ] All Phase 2 files committed: `git status` shows clean
+### Phase 2 ✓
+- [ ] `database.py`: `pool_size=10, max_overflow=5, pool_pre_ping=True`
+- [ ] `cached_prompts.py`: TTL reads from `settings.LLM_CACHE_TTL`, cache hit/miss logging
+- [ ] `main.py`: slowapi limiter active, `/health` returns DB + Redis status
+- [ ] `multi_provider_extractor.py`: tenacity retry decorator, timeout on LLM calls
+- [ ] `config.py`: All 7 new settings with defaults documented
+- [ ] `docker-compose.yml`: New env vars forwarded to container
+- [ ] Python syntax check passes on all modified files
 
-### Phase 3 Completion
-- [ ] `database.py` has `pool_size=20, max_overflow=10, pool_pre_ping=True`
-- [ ] `celery_app.py` exists with Redis broker + task config + acks_late=True
-- [ ] `invoices.py` uses `process_invoice_photos_task.delay()` instead of `background_tasks.add_task()`
-- [ ] `rate_limiter.py` exists with Redis-backed sliding window limiter
-- [ ] `cached_prompts.py` caches by `{image_hash}:{prompt_hash}` with 72h TTL
-- [ ] `multi_provider_extractor.py` has Gemini Direct first in provider priority
-- [ ] `ai_analyzer.py` combines 14 analyses into single LLM call
-- [ ] `ai_analysis.py` has `should_run_analysis()` function with 3 conditions
-- [ ] `config.py` has `CELERY_ENABLED`, `RATE_LIMIT_ENABLED`, `CACHE_TTL_HOURS`
-- [ ] `docs/OPTIMIZATIONS.md` documents all changes + before/after costs
-- [ ] Python syntax check: `python -m py_compile apps/api/src/database.py ...` (all modified files)
-- [ ] All Phase 3 files committed: `git status` shows clean
+### Phase 3 ✓
+- [ ] Logs output JSON format (structlog)
+- [ ] Traefik rate limiting labels in production compose
+- [ ] `docker stop` allows 30s graceful drain
+- [ ] PostgreSQL tuned: `shared_buffers=512MB`, `max_connections=50`, slow query logging
+- [ ] Uvicorn workers = 2 in production (matches 2 vCPU)
+- [ ] `docs/MONITORING.md` covers uptime, disk, LLM costs
+- [ ] `docs/SECURITY.md` covers SSH, firewall, secrets, CORS
 
 ---
 
-## Timeline & Effort Estimates
+## What Was Removed From Original Plan (and why)
 
-| Phase | Tasks | Effort | Timeline |
-|-------|-------|--------|----------|
-| **Phase 1** | 4 config + docs | 2-3 hours | Day 1 |
-| **Phase 2** | 5 deployment + scripts | 3-4 hours | Day 2 |
-| **Phase 3** | 9 backend optimizations | 4-5 hours | Day 3-4 |
-| **Total** | 18 deliverables | **9-12 hours** | **4 days** |
+| Original Task | Reason Removed |
+|---------------|----------------|
+| **Nginx reverse proxy** | Traefik already in use via Dokploy. Adding Nginx would conflict. |
+| **Celery task queue** | Adds container + complexity. BackgroundTasks works for current volume. Revisit at 10k+ invoices/month. |
+| **Gemini Direct prioritization** | Current smart routing (Lite → Standard → Classic) is already optimal. Gemini Direct free tier has aggressive rate limits. |
+| **Batch AI analysis (14→1 call)** | Loses per-analysis feature flags. Giant prompt costs more tokens. Single failure kills all analyses. |
+| **Conditional analysis (skip <R$50)** | Product decision, not infrastructure. Small purchases can be significant (daily coffee = R$300/month). |
+| **CloudFlare/Domain setup docs** | Generic docs don't add value; official docs are better. Deploy guide (1.3) covers DNS pointing. |
+| **SSL/Certbot setup** | Traefik handles SSL automatically via Let's Encrypt. No manual Certbot needed. |
 
----
+## What Was Added (gaps in original plan)
 
-## Next Steps After Phases 1-3
-
-### Phase 4: Monitoring & Observability (1-2 days)
-- Prometheus + Grafana config
-- Sentry integration
-- Uptime Robot setup guide
-
-### Phase 5: Backups & Automation (1 day)
-- `scripts/backup.sh` (daily PostgreSQL backup)
-- `scripts/deploy.sh` (automated deploy)
-- Cron job configuration
-
-### Phase 6: CI/CD Pipeline (1 day)
-- `.github/workflows/deploy.yml` (GitHub Actions)
-- Environment secrets setup
-
-### Phase 7: Testing & Performance (2-3 days)
-- Load testing (Apache Bench, k6)
-- Security checklist (SSL Labs, OWASP)
-- Disaster recovery simulation
+| New Task | Why |
+|----------|-----|
+| **Database backup script** | Critical gap — no backup = potential data loss |
+| **Enhanced health check** | Current `/health` doesn't verify DB or Redis |
+| **Circuit breakers (tenacity)** | LLM provider failures need timeout + retry logic |
+| **Graceful shutdown** | In-flight requests lost on container restart |
+| **PostgreSQL tuning** | Default PG config wastes VPS resources (8GB RAM) |
+| **Structured logging** | Text logs unusable at scale; JSON enables filtering |
+| **Security hardening docs** | No SSH/firewall documentation existed |
 
 ---
 
-## Important Notes
+## Timeline
 
-### Budget Constraint
-- **$16.67/month cap is FOR INFRASTRUCTURE ONLY** (VPS + domain + CloudFlare CDN)
-- LLM costs are VARIABLE and NOT part of cap
-- With optimizations in Phase 3, LLM costs drop 82% (most impactful)
+| Phase | Tasks | Effort |
+|-------|-------|--------|
+| **Phase 1** | 5 tasks (deploy + backup) | 3-4 hours |
+| **Phase 2** | 6 tasks (backend optimizations) | 4-5 hours |
+| **Phase 3** | 7 tasks (observability + hardening) | 3-4 hours |
+| **Total** | **18 deliverables** | **10-13 hours** |
 
-### Implementation Order
-- **Do NOT deploy to VPS yet** - this plan is documentation only
-- Follow phases in order (dependencies matter)
-- Commit changes after each phase
-- Test locally with `docker-compose` before VPS deployment
+---
 
-### Cost Savings Achieved by Each Phase
-- **Phase 1**: $0 (setup cost, not infra)
-- **Phase 2**: $0 (same infrastructure)
-- **Phase 3**: **$1,800/month LLM savings** (biggest ROI)
-- **Phase 4-7**: $0 (monitoring + backups + testing)
+## Future Phases (not in scope)
 
-### Risk Mitigation
-- All changes are reversible (git + rollback scripts)
-- No infrastructure modified until actual VPS deployment
-- Health checks verify all services before considering deployment complete
-- Rate limiting prevents cost explosion from abuse
+| Phase | Content | When |
+|-------|---------|------|
+| **Phase 4: VPS upgrade** | 4 vCPU / 16GB RAM, 4 workers, pool_size=20 | When CPU > 80% sustained |
+| **Phase 5: Monitoring stack** | Prometheus + Grafana + alerting | When >500 active users |
+| **Phase 6: CI/CD** | GitHub Actions → auto-deploy on push to main | After Phase 3 stable |
+| **Phase 7: Celery migration** | Persistent task queue + Flower dashboard | When >10k invoices/month |
+| **Phase 8: Load testing** | k6 scripts + performance benchmarks | Before marketing launch |
 
 ---
 
@@ -291,51 +594,30 @@ Phase 3:
 
 ```
 smarket/
-├── nginx.conf                              # NEW: Reverse proxy config
-├── docker-compose.production.yml           # NEW: Production deployment config
+├── docker-compose.yml                     # EXISTING: Dev/staging (unchanged)
+├── docker-compose.production.yml          # NEW: Production with resource limits
+├── .env.production.example                # NEW: Production env template
 ├── docs/
-│   ├── DOMAIN_SETUP.md                    # NEW: Domain registration guide
-│   ├── CLOUDFLARE_SETUP.md                # NEW: CDN + DNS configuration
-│   ├── SSL_SETUP.md                       # NEW: Let's Encrypt + Certbot
-│   ├── DEPLOYMENT.md                      # NEW: Step-by-step deploy guide
-│   ├── DATABASE_MIGRATION.md              # NEW: Alembic migration procedures
-│   └── OPTIMIZATIONS.md                   # NEW: Cost/performance summary
+│   ├── DEPLOYMENT.md                      # NEW: VPS deploy guide
+│   ├── BACKUP_RESTORE.md                  # NEW: Backup + restore procedures
+│   ├── MONITORING.md                      # NEW: Monitoring setup
+│   └── SECURITY.md                        # NEW: Security hardening
 ├── scripts/
 │   ├── health_check.sh                    # NEW: Service health verification
-│   ├── backup.sh                          # (TODO Phase 5)
-│   ├── deploy.sh                          # (TODO Phase 5)
-│   └── rollback.sh                        # (TODO Phase 5)
-├── .env.production.example                # NEW: Environment template
+│   └── backup.sh                          # NEW: PostgreSQL backup
 ├── apps/
 │   ├── api/
-│   │   ├── src/
-│   │   │   ├── database.py                # MODIFIED: Connection pooling
-│   │   │   ├── config.py                  # MODIFIED: New config vars
-│   │   │   ├── celery_app.py              # NEW: Celery task queue
-│   │   │   ├── main.py                    # MODIFIED: Add rate limiting
-│   │   │   ├── routers/invoices.py        # MODIFIED: Use Celery instead of BackgroundTasks
-│   │   │   ├── middleware/rate_limiter.py # NEW: Rate limiting middleware
-│   │   │   ├── services/
-│   │   │   │   ├── cached_prompts.py      # MODIFIED: 72h TTL caching
-│   │   │   │   ├── multi_provider_extractor.py # MODIFIED: Gemini Direct priority
-│   │   │   │   └── ai_analyzer.py         # MODIFIED: Batch analysis
-│   │   │   └── tasks/ai_analysis.py       # MODIFIED: Conditional analysis
-│   │   └── Dockerfile                     # (no changes, but includes Celery worker)
-│   └── web/
-│       └── next.config.js                 # (no changes, CDN headers via nginx)
-└── infrastructure-setup.md                # THIS FILE: Implementation plan
+│   │   ├── Dockerfile                     # MODIFIED: Graceful shutdown
+│   │   ├── requirements.txt               # MODIFIED: +slowapi, +tenacity, +structlog
+│   │   └── src/
+│   │       ├── database.py                # MODIFIED: Connection pooling
+│   │       ├── config.py                  # MODIFIED: 7 new config vars
+│   │       ├── main.py                    # MODIFIED: Rate limiting, health check, logging, shutdown
+│   │       └── services/
+│   │           ├── cached_prompts.py      # MODIFIED: Configurable TTL, metrics logging
+│   │           └── multi_provider_extractor.py  # MODIFIED: Circuit breakers, timeouts
+│   └── web/                               # UNCHANGED
+└── infrastructure-setup.md                # THIS FILE
 ```
 
----
-
-## Questions Before Starting?
-
-Before you begin Phase 1, confirm:
-
-1. **Hostinger VPS Details**: Can you provide the IP address and SSH access details? (Not needed for documentation, but good to have ready)
-2. **Domain Status**: Is the `.br` domain already registered, or does that need to be done first?
-3. **LangChain Version**: Should Phase 3 assume Pydantic v2 (current) or v1?
-4. **Celery Worker Deployment**: Should celery worker run as separate container or within API container?
-5. **Git Workflow**: Do you want separate branches for Phases 1/2/3, or all commits to one branch?
-
-Once confirmed, I'll begin with **Phase 1 (Infrastructure Configuration)**.
+**Total new files: 7** | **Modified files: 6** | **Deleted files: 0**
