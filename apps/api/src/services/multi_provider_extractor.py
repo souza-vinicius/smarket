@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import json
 import logging
@@ -9,6 +10,12 @@ from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_exponential,
+    retry_if_exception_type,
+)
 
 from src.config import settings
 from src.schemas.invoice_processing import ExtractedInvoiceData
@@ -16,6 +23,51 @@ from src.services.cached_prompts import cache_extraction, get_cached_extraction
 
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# LLM Resilience: Retry with exponential backoff + timeout
+# ---------------------------------------------------------------------------
+
+
+@retry(
+    stop=stop_after_attempt(2),
+    wait=wait_exponential(multiplier=1, min=2, max=10),
+    retry=retry_if_exception_type((TimeoutError, ConnectionError, OSError)),
+    reraise=True,
+)
+async def _call_llm_with_resilience(llm, message, config, provider_name: str):
+    """Call LLM with timeout and retry logic.
+
+    Args:
+        llm: LangChain LLM instance
+        message: HumanMessage to send
+        config: Config dict (including callbacks)
+        provider_name: Provider name for logging
+
+    Returns:
+        LLM response
+
+    Raises:
+        TimeoutError: If LLM call exceeds timeout
+        ConnectionError: If network error occurs
+    """
+    timeout = settings.LLM_TIMEOUT_SECONDS
+
+    try:
+        logger.debug(f"{provider_name}: Calling LLM (timeout: {timeout}s)")
+        response = await asyncio.wait_for(
+            llm.ainvoke([message], config=config),
+            timeout=timeout
+        )
+        logger.debug(f"{provider_name}: LLM response received ({len(response.content)} chars)")
+        return response
+    except asyncio.TimeoutError:
+        logger.error(f"{provider_name}: LLM call timed out after {timeout}s")
+        raise TimeoutError(f"{provider_name} timeout after {timeout}s")
+    except (ConnectionError, OSError) as e:
+        logger.error(f"{provider_name}: Connection error: {e}")
+        raise
 
 
 # ---------------------------------------------------------------------------
@@ -420,12 +472,11 @@ class GeminiExtractor(BaseInvoiceExtractor):
         content = _build_image_content_openai(images)
         message = HumanMessage(content=content)
 
-        # Pass callback to ainvoke for token tracking
-        response = await self.llm.ainvoke([message], config={"callbacks": [callback]})
-
-        logger.debug(
-            f"GeminiExtractor: Resposta recebida ({len(response.content)} chars)"
+        # Call LLM with resilience (retry + timeout)
+        response = await _call_llm_with_resilience(
+            self.llm, message, {"callbacks": [callback]}, "GeminiExtractor"
         )
+
         return parse_invoice_response(response.content)
 
 
@@ -460,12 +511,11 @@ class OpenAIExtractor(BaseInvoiceExtractor):
         content = _build_image_content_openai(images)
         message = HumanMessage(content=content)
 
-        # Pass callback to ainvoke for token tracking
-        response = await self.llm.ainvoke([message], config={"callbacks": [callback]})
-
-        logger.debug(
-            f"OpenAIExtractor: Resposta recebida ({len(response.content)} chars)"
+        # Call LLM with resilience (retry + timeout)
+        response = await _call_llm_with_resilience(
+            self.llm, message, {"callbacks": [callback]}, "OpenAIExtractor"
         )
+
         return parse_invoice_response(response.content)
 
 
@@ -503,12 +553,11 @@ class AnthropicExtractor(BaseInvoiceExtractor):
         content = _build_image_content_anthropic(images)
         message = HumanMessage(content=content)
 
-        # Pass callback to ainvoke for token tracking
-        response = await self.llm.ainvoke([message], config={"callbacks": [callback]})
-
-        logger.debug(
-            f"AnthropicExtractor: Resposta recebida ({len(response.content)} chars)"
+        # Call LLM with resilience (retry + timeout)
+        response = await _call_llm_with_resilience(
+            self.llm, message, {"callbacks": [callback]}, "AnthropicExtractor"
         )
+
         return parse_invoice_response(response.content)
 
 
@@ -552,12 +601,11 @@ class OpenRouterExtractor(BaseInvoiceExtractor):
         content = _build_image_content_openai(images)
         message = HumanMessage(content=content)
 
-        # Pass callback to ainvoke for token tracking
-        response = await self.llm.ainvoke([message], config={"callbacks": [callback]})
-
-        logger.debug(
-            f"OpenRouterExtractor: Resposta recebida ({len(response.content)} chars)"
+        # Call LLM with resilience (retry + timeout)
+        response = await _call_llm_with_resilience(
+            self.llm, message, {"callbacks": [callback]}, "OpenRouterExtractor"
         )
+
         return parse_invoice_response(response.content)
 
 

@@ -46,6 +46,10 @@ langchain-anthropic==1.0.0
 redis==7.1.0
 cachetools==5.3.3
 
+# Resilience & Rate Limiting (Phase 2 Optimization)
+tenacity==9.0.0
+slowapi==0.1.9
+
 # Payments
 stripe==11.4.1
 

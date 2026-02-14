@@ -16,7 +16,8 @@ class PromptCache:
 
     def __init__(self):
         self.redis_client: Optional[redis.Redis] = None
-        self.ttl = 3600  # 1 hora
+        # TTL configurable via settings (default: 24 hours)
+        self.ttl = settings.LLM_CACHE_TTL
 
     async def connect(self):
         """Conecta ao Redis."""
@@ -58,9 +59,10 @@ class PromptCache:
 
             cached = await self.redis_client.get(cache_key)
             if cached:
-                logger.debug(f"Cache hit for {cache_key}")
+                logger.info(f"LLM cache HIT: {cache_key}")
                 return json.loads(cached)
 
+            logger.info(f"LLM cache MISS: {cache_key}")
             return None
 
         except Exception as e:
@@ -89,7 +91,8 @@ class PromptCache:
             await self.redis_client.setex(
                 cache_key, self.ttl, json.dumps(result, default=str)
             )
-            logger.debug(f"Cached result for {cache_key}")
+            ttl_hours = self.ttl / 3600
+            logger.info(f"LLM cache STORED: {cache_key} (TTL: {ttl_hours:.1f}h)")
             return True
 
         except Exception as e:
