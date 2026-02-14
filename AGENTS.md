@@ -104,11 +104,6 @@ environment:
 - Use `async`/`await` for all database operations
 - Line length: 88 characters (Black-compatible)
 
-### Date and Time Handling
-- always use **timezone-aware** datetimes in Python to avoid `sqlalchemy.exc.DBAPIError` (mixing naive and aware datetimes).
-- Use `datetime.now(timezone.utc)` for current time.
-- Avoid `datetime.utcnow()` as it returns a naive datetime.
-- Ensure all SQLAlchemy model defaults use timezone-aware factories (e.g., `default=lambda: datetime.now(timezone.utc)`).
 
 ### Imports (isort-style grouping)
 

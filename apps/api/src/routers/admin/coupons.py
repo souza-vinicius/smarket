@@ -10,7 +10,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from datetime import timezone
+
 from src.database import get_db
+
 from src.dependencies import get_current_admin, require_permission
 from src.models.coupon import Coupon, CouponUsage
 from src.models.user import User
@@ -168,6 +171,15 @@ async def create_coupon(
         )
 
     # Create coupon
+    # Ensure datetimes are naive UTC for asyncpg
+    valid_from = data.valid_from
+    if valid_from and valid_from.tzinfo:
+        valid_from = valid_from.astimezone(timezone.utc).replace(tzinfo=None)
+
+    valid_until = data.valid_until
+    if valid_until and valid_until.tzinfo:
+        valid_until = valid_until.astimezone(timezone.utc).replace(tzinfo=None)
+
     coupon = Coupon(
         code=data.code.upper(),
         description=data.description,
@@ -181,8 +193,9 @@ async def create_coupon(
         is_stackable=data.is_stackable,
         applicable_plans=data.applicable_plans,
         applicable_cycles=data.applicable_cycles,
-        valid_from=data.valid_from,
-        valid_until=data.valid_until,
+        applicable_cycles=data.applicable_cycles,
+        valid_from=valid_from,
+        valid_until=valid_until,
         is_active=data.is_active,
         created_by=admin.id,
     )
@@ -237,6 +250,8 @@ async def update_coupon(
     # Update fields
     update_data = data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
+        if field == "valid_until" and value and value.tzinfo:
+             value = value.astimezone(timezone.utc).replace(tzinfo=None)
         setattr(coupon, field, value)
 
     await db.commit()

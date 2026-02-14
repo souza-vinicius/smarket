@@ -236,10 +236,7 @@ State is fetched via TanStack React Query. The root layout wraps children in a `
 - **Duplicate detection**: Composite unique constraint `(access_key, user_id)`. Early check in background task shows warning banner (non-blocking).
 
 - **Date handling**: `dateutil.parser.parse(dayfirst=True)` in Pydantic validators. Supports DD/MM/YYYY (Brazilian), ISO 8601, and US formats.
-  - **⚠️ Date & Time Handling**: Always use **timezone-aware** datetimes in Python to avoid `sqlalchemy.exc.DBAPIError` (mixing naive and aware datetimes).
-    - **Use**: `datetime.now(timezone.utc)` for current time.
-    - **Avoid**: `datetime.utcnow()` (it returns a naive datetime).
-    - **DB Columns**: AsyncPG/SQLAlchemy handles timezone-aware datetimes correctly if the driver and model are consistent. Ensure all model defaults use timezone-aware factories (e.g., `default=lambda: datetime.now(timezone.utc)`).
+  - **⚠️ AsyncPG timezone mismatch**: DB columns are `TIMESTAMP WITHOUT TIME ZONE` (naive). AsyncPG rejects timezone-aware datetimes (`datetime.now(timezone.utc)`) with error `can't subtract offset-naive and offset-aware datetimes`. Always use `datetime.utcnow()` (naive) when storing/comparing timestamps. When reading from DB for comparisons, use `datetime.utcnow()` not `datetime.now(timezone.utc)`.
 
 - **Database migrations**: 8 Alembic migrations in `apps/api/alembic/versions/`. Docker entrypoint runs `alembic upgrade head` before starting uvicorn.
 
