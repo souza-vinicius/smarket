@@ -27,7 +27,7 @@ import {
   type ExtractedInvoiceData,
 } from "@/hooks/use-invoices";
 import { CATEGORY_NAMES, getSubcategories } from "@/lib/category-options";
-import { formatCNPJInput, getCNPJErrorMessage } from "@/lib/cnpj";
+import { formatCNPJInput, getCNPJErrorMessage, isValidCNPJ } from "@/lib/cnpj";
 import { readDynamicParam } from "@/lib/dynamic-params";
 import { formatCurrency } from "@/lib/utils";
 import { type InvoiceItem } from "@/types";
