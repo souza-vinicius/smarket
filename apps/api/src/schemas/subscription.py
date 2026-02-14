@@ -47,6 +47,7 @@ class CheckoutRequest(BaseModel):
     billing_cycle: str = Field(..., pattern="^(monthly|yearly)$")
     success_url: str
     cancel_url: str
+    coupon_code: Optional[str] = None
 
 
 class CheckoutResponse(BaseModel):

@@ -27,6 +27,7 @@ from src.schemas.coupon import (
 )
 from src.services.admin_service import AdminService
 from src.services.coupon_service import CouponService
+from src.services.stripe_service import StripeService
 
 logger = structlog.get_logger()
 
@@ -203,6 +204,33 @@ async def create_coupon(
     db.add(coupon)
     await db.commit()
     await db.refresh(coupon)
+
+    # Sync with Stripe
+    try:
+        # Default to repeating for subscriptions (matches monthly/yearly cycles)
+        stripe_duration = "repeating"
+
+        stripe_coupon = await StripeService.create_coupon(
+            duration=stripe_duration,
+            duration_in_months=None, # Forever repeating
+            name=f"{data.description} ({data.code})",
+            percent_off=float(data.discount_value) if data.discount_type == "percentage" else None,
+            amount_off=int(data.discount_value * 100) if data.discount_type == "fixed" else None,
+            currency="brl",
+        )
+
+        stripe_promo = await StripeService.create_promotion_code(
+            coupon_id=stripe_coupon.id,
+            code=data.code,
+        )
+
+        coupon.stripe_coupon_id = stripe_coupon.id
+        coupon.stripe_promo_code_id = stripe_promo.id
+        await db.commit()
+    except Exception as e:
+        logger.error("stripe_sync_failed", error=str(e), coupon_code=data.code)
+        # Continue without failing the request, but log the error
+        # In a strict environment, we might want to rollback or raise
 
     # Audit log
     service = AdminService(db, admin, request)

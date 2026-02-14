@@ -81,6 +81,10 @@ class Coupon(Base):
     # Status
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
+    # Integração Stripe
+    stripe_coupon_id: Mapped[Optional[str]] = mapped_column(String(50), unique=True, nullable=True)
+    stripe_promo_code_id: Mapped[Optional[str]] = mapped_column(String(50), unique=True, nullable=True)
+
     # Metadados
     created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)

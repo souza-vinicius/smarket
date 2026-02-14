@@ -12,6 +12,7 @@ from src.models.payment import Payment
 from src.models.subscription import Subscription
 from src.models.usage_record import UsageRecord
 from src.models.user import User
+from src.models.coupon import Coupon
 from src.schemas.subscription import (
     CheckoutRequest,
     CheckoutResponse,
@@ -89,6 +90,26 @@ async def create_checkout_session(
             detail="Nenhuma assinatura encontrada.",
         )
 
+    discounts = []
+    if request.coupon_code:
+        # Validate coupon
+        coupon_query = select(Coupon).where(Coupon.code == request.coupon_code.upper(), Coupon.is_active == True)
+        coupon = await db.scalar(coupon_query)
+        if not coupon:
+            raise HTTPException(status_code=400, detail="Cupom inválido")
+
+        now = datetime.utcnow()
+        if coupon.valid_from > now:
+            raise HTTPException(status_code=400, detail="Cupom ainda não é válido")
+        if coupon.valid_until and coupon.valid_until < now:
+            raise HTTPException(status_code=400, detail="Cupom expirado")
+
+        # Check if stripe promo code exists
+        if not coupon.stripe_promo_code_id:
+             raise HTTPException(status_code=400, detail="Cupom não sincronizado com processador de pagamentos")
+
+        discounts = [{"promotion_code": coupon.stripe_promo_code_id}]
+
     # Create Stripe Checkout session
     session = await StripeService.create_checkout_session(
         user_email=current_user.email,
@@ -98,6 +119,7 @@ async def create_checkout_session(
         success_url=request.success_url,
         cancel_url=request.cancel_url,
         stripe_customer_id=subscription.stripe_customer_id,
+        discounts=discounts,
     )
 
     return CheckoutResponse(

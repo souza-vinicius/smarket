@@ -67,6 +67,7 @@ const plans = [
 
 export default function PricingPage() {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
+  const [couponCode, setCouponCode] = useState("");
   const { data: subData } = useSubscription();
   const checkoutMutation = useCheckout();
 
@@ -82,6 +83,7 @@ export default function PricingPage() {
         billing_cycle: billingCycle,
         success_url: `${window.location.origin}/dashboard?payment=success`,
         cancel_url: `${window.location.origin}/pricing?payment=cancelled`,
+        coupon_code: couponCode.trim() || undefined,
       });
 
       // Redirect to Stripe Checkout
@@ -108,32 +110,41 @@ export default function PricingPage() {
           {/* Billing Toggle */}
           <div className="flex items-center justify-center gap-4">
             <span
-              className={`text-sm font-medium ${
-                billingCycle === "monthly" ? "text-slate-900" : "text-slate-500"
-              }`}
+              className={`text-sm font-medium ${billingCycle === "monthly" ? "text-slate-900" : "text-slate-500"
+                }`}
             >
               Mensal
             </span>
             <button
-              onClick={() =>
-                { setBillingCycle(billingCycle === "monthly" ? "yearly" : "monthly"); }
+              onClick={() => { setBillingCycle(billingCycle === "monthly" ? "yearly" : "monthly"); }
               }
               className="relative inline-flex h-6 w-11 items-center rounded-full bg-emerald-600 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
             >
               <span
-                className={`inline-block size-4 transform rounded-full bg-white transition-transform ${
-                  billingCycle === "yearly" ? "translate-x-6" : "translate-x-1"
-                }`}
+                className={`inline-block size-4 transform rounded-full bg-white transition-transform ${billingCycle === "yearly" ? "translate-x-6" : "translate-x-1"
+                  }`}
               />
             </button>
             <span
-              className={`text-sm font-medium ${
-                billingCycle === "yearly" ? "text-slate-900" : "text-slate-500"
-              }`}
+              className={`text-sm font-medium ${billingCycle === "yearly" ? "text-slate-900" : "text-slate-500"
+                }`}
             >
               Anual{" "}
               <span className="font-semibold text-emerald-600">(~17% OFF)</span>
             </span>
+          </div>
+
+          {/* Coupon Input */}
+          <div className="mt-6 flex justify-center">
+            <div className="relative w-full max-w-xs">
+              <input
+                type="text"
+                placeholder="Tem um cupom de desconto?"
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                className="w-full rounded-full border-slate-200 bg-white py-2 px-4 text-center text-sm shadow-sm transition-all placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
+            </div>
           </div>
         </div>
 
@@ -148,11 +159,10 @@ export default function PricingPage() {
             return (
               <div
                 key={plan.plan}
-                className={`relative rounded-2xl p-8 ${
-                  plan.highlight
+                className={`relative rounded-2xl p-8 ${plan.highlight
                     ? "scale-105 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-xl"
                     : "bg-white text-slate-900 shadow-lg"
-                }`}
+                  }`}
               >
                 {plan.highlight && (
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2 transform rounded-full bg-yellow-400 px-4 py-1 text-sm font-semibold text-slate-900">
@@ -163,9 +173,8 @@ export default function PricingPage() {
                 <div className="mb-8 text-center">
                   <h3 className="mb-2 text-2xl font-bold">{plan.name}</h3>
                   <p
-                    className={`mb-4 text-sm ${
-                      plan.highlight ? "text-emerald-50" : "text-slate-600"
-                    }`}
+                    className={`mb-4 text-sm ${plan.highlight ? "text-emerald-50" : "text-slate-600"
+                      }`}
                   >
                     {plan.description}
                   </p>
@@ -179,9 +188,8 @@ export default function PricingPage() {
                   {plan.features.map((feature, idx) => (
                     <li key={idx} className="flex items-start gap-3">
                       <CheckCircle2
-                        className={`size-5 flex-shrink-0 ${
-                          plan.highlight ? "text-white" : "text-emerald-600"
-                        }`}
+                        className={`size-5 flex-shrink-0 ${plan.highlight ? "text-white" : "text-emerald-600"
+                          }`}
                       />
                       <span className="text-sm">{feature}</span>
                     </li>
@@ -193,11 +201,10 @@ export default function PricingPage() {
                   disabled={
                     currentPlan === plan.plan || checkoutMutation.isPending
                   }
-                  className={`w-full rounded-lg px-6 py-3 font-semibold transition-colors ${
-                    plan.highlight
+                  className={`w-full rounded-lg px-6 py-3 font-semibold transition-colors ${plan.highlight
                       ? "bg-white text-emerald-600 hover:bg-emerald-50 disabled:bg-gray-200 disabled:text-gray-500"
                       : "bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-gray-300 disabled:text-gray-500"
-                  } disabled:cursor-not-allowed`}
+                    } disabled:cursor-not-allowed`}
                 >
                   {currentPlan === plan.plan ? "Plano Atual" : plan.cta}
                 </button>

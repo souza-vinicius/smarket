@@ -266,6 +266,7 @@ export interface CheckoutRequest {
   billing_cycle: "monthly" | "yearly";
   success_url: string;
   cancel_url: string;
+  coupon_code?: string;
 }
 
 export interface CheckoutResponse {
