@@ -21,7 +21,7 @@ import { Card } from "@/components/ui/card";
 import { ConfirmModal } from "@/components/ui/modal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useInvoice, useDeleteInvoice } from "@/hooks/use-invoices";
-import { dynamicRoute, readDynamicParam } from "@/lib/dynamic-params";
+import { dynamicRoute, useDynamicParam } from "@/lib/dynamic-params";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 function ProductItem({
@@ -76,7 +76,7 @@ export default function InvoiceDetailClient() {
   const router = useRouter();
   const params = useParams();
 
-  const invoiceId = readDynamicParam(params.invoiceId as string);
+  const invoiceId = useDynamicParam(params.invoiceId as string);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);

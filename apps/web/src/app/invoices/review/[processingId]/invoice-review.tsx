@@ -28,7 +28,7 @@ import {
 } from "@/hooks/use-invoices";
 import { CATEGORY_NAMES, getSubcategories } from "@/lib/category-options";
 import { formatCNPJInput, getCNPJErrorMessage, isValidCNPJ } from "@/lib/cnpj";
-import { readDynamicParam } from "@/lib/dynamic-params";
+import { useDynamicParam } from "@/lib/dynamic-params";
 import { formatCurrency } from "@/lib/utils";
 import { type InvoiceItem } from "@/types";
 
@@ -44,7 +44,7 @@ export default function InvoiceReviewClient() {
   const params = useParams();
   const router = useRouter();
 
-  const processingId = readDynamicParam(params.processingId as string);
+  const processingId = useDynamicParam(params.processingId as string);
 
   const { data: processingData, isLoading, error: fetchError } = useProcessingStatus(processingId);
   const confirmMutation = useConfirmInvoice();

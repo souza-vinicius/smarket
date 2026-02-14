@@ -23,7 +23,7 @@ import { useCNPJEnrichment, type CNPJEnrichmentError } from "@/hooks/use-cnpj-en
 import { useInvoice, useUpdateInvoice } from "@/hooks/use-invoices";
 import { CATEGORY_NAMES, getSubcategories } from "@/lib/category-options";
 import { formatCNPJInput, getCNPJErrorMessage } from "@/lib/cnpj";
-import { dynamicRoute, readDynamicParam } from "@/lib/dynamic-params";
+import { dynamicRoute, useDynamicParam } from "@/lib/dynamic-params";
 import { formatCurrency } from "@/lib/utils";
 import { type InvoiceItem, type InvoiceUpdateRequest } from "@/types";
 
@@ -42,7 +42,7 @@ export default function InvoiceEditClient() {
   const params = useParams();
   const router = useRouter();
 
-  const invoiceId = readDynamicParam(params.invoiceId as string);
+  const invoiceId = useDynamicParam(params.invoiceId as string);
 
   const { data: invoice, isLoading, error: fetchError } = useInvoice(invoiceId);
   const updateMutation = useUpdateInvoice();
