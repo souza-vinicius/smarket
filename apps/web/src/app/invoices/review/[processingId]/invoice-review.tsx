@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { PageLayout } from "@/components/layout/page-layout";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
