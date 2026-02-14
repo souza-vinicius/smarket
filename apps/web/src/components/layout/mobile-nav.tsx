@@ -35,8 +35,19 @@ export function MobileNav({ items, className }: MobileNavProps) {
     >
       <div className="flex h-16 items-center justify-around">
         {items.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-          
+          // Exact match or child route (but not if there's a more specific match)
+          const isExactMatch = pathname === item.href;
+          const isChildRoute = pathname.startsWith(`${item.href}/`);
+
+          // Check if there's a more specific nav item that matches
+          const hasMoreSpecificMatch = items.some(
+            (other) => other.href !== item.href &&
+                       other.href.length > item.href.length &&
+                       pathname.startsWith(other.href)
+          );
+
+          const isActive = isExactMatch || (isChildRoute && !hasMoreSpecificMatch);
+
           return (
             <Link
               key={item.href}

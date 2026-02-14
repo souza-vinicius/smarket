@@ -113,8 +113,19 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         <nav className="flex-1 overflow-y-auto px-3 py-6">
           <div className="space-y-1">
             {navItems.map((item) => {
-              const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-              
+              // Exact match or child route (but not if there's a more specific match)
+              const isExactMatch = pathname === item.href;
+              const isChildRoute = pathname.startsWith(`${item.href}/`);
+
+              // Check if there's a more specific nav item that matches
+              const hasMoreSpecificMatch = navItems.some(
+                (other) => other.href !== item.href &&
+                           other.href.length > item.href.length &&
+                           pathname.startsWith(other.href)
+              );
+
+              const isActive = isExactMatch || (isChildRoute && !hasMoreSpecificMatch);
+
               return (
                 <Link
                   key={item.href}
