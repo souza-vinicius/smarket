@@ -129,15 +129,15 @@ services:
       - dokploy-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.smarket-api.rule=Host(`${API_DOMAIN}`)"
-      - "traefik.http.routers.smarket-api.entrypoints=websecure"
-      - "traefik.http.routers.smarket-api.tls.certresolver=letsencrypt"
-      - "traefik.http.services.smarket-api.loadbalancer.server.port=8000"
+      - "traefik.http.routers.mercadoesperto-api.rule=Host(`${API_DOMAIN}`)"
+      - "traefik.http.routers.mercadoesperto-api.entrypoints=websecure"
+      - "traefik.http.routers.mercadoesperto-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.mercadoesperto-api.loadbalancer.server.port=8000"
       # Rate limiting (network-level protection)
-      - "traefik.http.middlewares.smarket-ratelimit.ratelimit.average=100"
-      - "traefik.http.middlewares.smarket-ratelimit.ratelimit.burst=50"
-      - "traefik.http.middlewares.smarket-ratelimit.ratelimit.period=1m"
-      - "traefik.http.routers.smarket-api.middlewares=smarket-ratelimit"
+      - "traefik.http.middlewares.mercadoesperto-ratelimit.ratelimit.average=100"
+      - "traefik.http.middlewares.mercadoesperto-ratelimit.ratelimit.burst=50"
+      - "traefik.http.middlewares.mercadoesperto-ratelimit.ratelimit.period=1m"
+      - "traefik.http.routers.mercadoesperto-api.middlewares=mercadoesperto-ratelimit"
     restart: always
     deploy:
       resources:
@@ -164,10 +164,10 @@ services:
       - dokploy-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.smarket-web.rule=Host(`${WEB_DOMAIN}`)"
-      - "traefik.http.routers.smarket-web.entrypoints=websecure"
-      - "traefik.http.routers.smarket-web.tls.certresolver=letsencrypt"
-      - "traefik.http.services.smarket-web.loadbalancer.server.port=3000"
+      - "traefik.http.routers.mercadoesperto-web.rule=Host(`${WEB_DOMAIN}`)"
+      - "traefik.http.routers.mercadoesperto-web.entrypoints=websecure"
+      - "traefik.http.routers.mercadoesperto-web.tls.certresolver=letsencrypt"
+      - "traefik.http.services.mercadoesperto-web.loadbalancer.server.port=3000"
     restart: always
     deploy:
       resources:

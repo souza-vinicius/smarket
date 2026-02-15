@@ -12,6 +12,35 @@ import { InfoCard } from "@/components/ui/card";
 import { Input, PasswordInput } from "@/components/ui/input";
 import { useAuth } from "@/hooks/use-auth";
 
+/**
+ * Converts API errors to user-friendly messages in Portuguese
+ */
+function getErrorMessage(error: Error | null): string {
+  if (!error) return "";
+
+  const message = error.message.toLowerCase();
+
+  // Check for specific error patterns
+  if (message.includes("sessão expirada") || message.includes("refresh token")) {
+    return "Sua sessão expirou. Por favor, faça login novamente.";
+  }
+
+  if (message.includes("401") || message.includes("unauthorized") || message.includes("credenciais")) {
+    return "E-mail ou senha incorretos. Verifique suas credenciais e tente novamente.";
+  }
+
+  if (message.includes("network") || message.includes("rede")) {
+    return "Erro de conexão. Verifique sua internet e tente novamente.";
+  }
+
+  if (message.includes("500") || message.includes("server") || message.includes("servidor")) {
+    return "Nosso servidor está temporariamente indisponível. Tente novamente em alguns instantes.";
+  }
+
+  // Default fallback message
+  return "Ocorreu um erro ao fazer login. Por favor, tente novamente.";
+}
+
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -35,7 +64,7 @@ export default function LoginPage() {
               </svg>
             }
             title="Erro ao entrar"
-            description={loginError.message || "Verifique suas credenciais e tente novamente."}
+            description={getErrorMessage(loginError)}
           />
         )}
 
