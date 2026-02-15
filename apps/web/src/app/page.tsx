@@ -1,24 +1,67 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
-import { useRouter } from "next/navigation";
+import { motion, useScroll, useSpring } from "framer-motion";
 
-import { Loader2 } from "lucide-react";
+import { FAQSection } from "./(landing)/components/faq-section";
+import { FeaturesSection } from "./(landing)/components/features-section";
+import { Footer } from "./(landing)/components/footer";
+import { HeroSection } from "./(landing)/components/hero-section";
+import { HowItWorksSection } from "./(landing)/components/how-it-works-section";
+import { Navigation } from "./(landing)/components/navigation";
+import { PricingSection } from "./(landing)/components/pricing-section";
+import { SocialProofSection } from "./(landing)/components/social-proof-section";
 
-export default function HomePage() {
-  const router = useRouter();
+export default function LandingPage() {
+  const [isScrolled, setIsScrolled] = useState(false);
+  const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, {
+    stiffness: 100,
+    damping: 30,
+    restDelta: 0.001,
+  });
 
   useEffect(() => {
-    router.replace("/dashboard");
-  }, [router]);
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 50);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="flex flex-col items-center gap-4">
-        <Loader2 className="size-12 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground">Carregando...</p>
-      </div>
-    </div>
+    <main className="relative min-h-screen overflow-hidden bg-background">
+      {/* Progress Bar */}
+      <motion.div
+        className="fixed left-0 right-0 top-0 z-50 h-1 origin-left bg-gradient-to-r from-emerald-400 to-emerald-600"
+        style={{ scaleX }}
+      />
+
+      {/* Navigation */}
+      <Navigation isScrolled={isScrolled} />
+
+      {/* Hero Section */}
+      <HeroSection />
+
+      {/* Social Proof */}
+      <SocialProofSection />
+
+      {/* How It Works */}
+      <HowItWorksSection />
+
+      {/* Features */}
+      <FeaturesSection />
+
+      {/* Pricing */}
+      <PricingSection />
+
+      {/* FAQ */}
+      <FAQSection />
+
+      {/* Footer */}
+      <Footer />
+    </main>
   );
 }
