@@ -100,7 +100,7 @@ class ApiClient {
       try {
         const refreshToken = this.getRefreshToken();
         if (!refreshToken) {
-          throw new Error("No refresh token available");
+          throw new Error("Sessão expirada. Por favor, faça login novamente.");
         }
 
         const response = await axios.post<Token>(
