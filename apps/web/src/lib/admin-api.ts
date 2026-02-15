@@ -27,7 +27,7 @@ async function refreshAccessToken(): Promise<string> {
     try {
       const refreshToken = localStorage.getItem("refresh_token");
       if (!refreshToken) {
-        throw new Error("No refresh token available");
+        throw new Error("Sessão expirada. Por favor, faça login novamente.");
       }
 
       const response = await axios.post<{ access_token: string; refresh_token: string }>(
