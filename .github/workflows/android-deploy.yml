@@ -91,7 +91,7 @@ jobs:
 
       - name: Build Next.js for Capacitor
         env:
-          NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL || 'https://smarket-api.n8nvinicius.cloud' }}
+          NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL || 'https://api.mercadoesperto.com.br/' }}
           NODE_ENV: production
           BUILD_TARGET: capacitor
         run: npm run build
